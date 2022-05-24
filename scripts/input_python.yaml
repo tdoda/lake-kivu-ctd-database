@@ -1,0 +1,17 @@
+# This file contains all the output directories where the processed data is stored by the main running script
+
+#### DO NOT CHANGE THE VARIABLE NAMES ####
+
+# Level 0 output directory
+Level0_dir: "../data/Level0/"
+
+# Level 1B output directory
+Level1_dir: "../data/Level1/"
+
+# Level 2A output directory
+Level2A_dir: "../data/Level2A/"
+
+# Level 2B output directory
+Level2B_dir: "../data/Level2B/"
+
+quality_assurance: "../quality_assurance.json"
