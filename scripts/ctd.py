@@ -349,7 +349,6 @@ class ctd:
         
         log("Calculating depth_ref...", indent=2)
         self.data["depth_ref"] = (1e4 * data["adj_press"] / self.data["rho"] / sw.g(lat)) + self.depth_value
-        # print(self.data["depth_ref"])
         try:
             log("Calculating potential temperature...", indent=2)
             self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat)
