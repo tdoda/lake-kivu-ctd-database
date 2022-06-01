@@ -1,9 +1,8 @@
-# LéXPLORE CTD
+# Lake Kivu CTD
 
 ## Project Information
 
-The data is collected within the frame of the [LeXPLORE project](https://wp.unil.ch/lexplore/) on Lake Geneva. 
-The data is used and displayed on the [Datalakes website](https://www.datalakes-eawag.ch/).
+The data is collected within the Lake kivu monitoring program. 
 
 ## Sensors
 

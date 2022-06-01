@@ -468,6 +468,8 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                     dateformat="%d/%m/%Y %H:%M:%S"
                 else:
                     dateformat="%m/%d/%Y %H:%M:%S"
+                    print(infolder)
+                    print("STOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOP")
         #if add alternative dateformat
         if "IntDT" in columns and "IntDT1" in columns:        
             try:

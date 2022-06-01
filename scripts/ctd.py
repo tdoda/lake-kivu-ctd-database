@@ -9,9 +9,9 @@ from copy import deepcopy
 from envass import qualityassurance
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from functions import *
+from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resample_guide,resample,index_of_max,position_in_array,round_to_days,advanced_quality_flags,json_converter,log,error,find_closest_index,is_number,isnt_number,first_centered_differences,default_salinity_temperature,salinity,density,Gamma_adiabatic,mask_single_data,potential_temperature,oxygen_saturation,parse_file,rename_duplicates,check_variable,parse_time,parse_chl
 from scipy import interpolate
-
+import seawater as sw
 
 class ctd:
     def __init__(self):
@@ -19,9 +19,10 @@ class ctd:
         self.bottom_of_profile_index = False
         self.air_press = False
         self.submerged_index = False
-        self.fixed_depths = np.linspace(0, 120, 1201) #what is this?
+        # self.fixed_depths = np.linspace(0, 120, 1201) 
+        self.fixed_depths_ref = np.linspace(0, 480, 4801) ###################################### 480= max depth of lake kivu. Is 4801 god as interpolation value or is this causing the problems with the figures in matplotlib?
 
-        self.general_attributes = {###########what should I fill in here
+        self.general_attributes = {############################################ what should I fill in here?
             "institution": "Eawag",
             "source": "different sources",
             "references": "james.runnalls@eawag.ch",
@@ -59,27 +60,46 @@ class ctd:
 
         self.grid_dimensions = {
             'time': {'dim_name': 'time', 'dim_size': None},
-            'depth': {'dim_name': 'depth', 'dim_size': None},
-            # "depth_ref": {'dim_name': "depth_ref", 'dim_size': None}#necessary?
+            # 'depth': {'dim_name': 'depth', 'dim_size': None},
+            "depth_ref": {'dim_name': "depth_ref", 'dim_size': None}
         }
         
-        self.grid_variables = {
+        self.grid_variables = { #gridding: changed 'dim': ('depth', 'time') to 'dim': ('depth_ref', 'time')
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
-            "depth": {'var_name': "depth", 'dim': ('depth',), 'unit': 'm', 'longname': "Depth", },
-            "depth_ref": {'var_name': "depth_ref", 'dim': ('time',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
-            'Temp': {'var_name': 'Temp', 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': 'temperature'},#here I have add depth_ref" as dimension
-            'Cond': {'var_name': 'Cond', 'dim': ('depth', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
-            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
-            'Turb': {'var_name': 'Turb', 'dim': ('depth', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
-            'pH': {'var_name': 'pH', 'dim': ('depth', 'time'), 'unit': ('_','0_14'), 'longname': 'pH'},
-            'sat': {'var_name': 'sat', 'dim': ('depth', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
-            'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
-            "rho": {'var_name': "rho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
-            "pt": {'var_name': "pt", 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
-            "prho": {'var_name': "prho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
-            "thorpe": {'var_name': "thorpe", 'dim': ('depth', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
-            "SALIN": {'var_name': 'SALIN', 'dim': ('depth', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
+            "depth": {'var_name': "depth", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth", },
+            "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
+            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': 'temperature'},
+            'Cond': {'var_name': 'Cond', 'dim': ('depth_ref', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
+            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_ref', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
+            'Turb': {'var_name': 'Turb', 'dim': ('depth_ref', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
+            'pH': {'var_name': 'pH', 'dim': ('depth_ref', 'time'), 'unit': ('_','0_14'), 'longname': 'pH'},
+            'sat': {'var_name': 'sat', 'dim': ('depth_ref', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
+            'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth_ref', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
+            "rho": {'var_name': "rho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
+            "pt": {'var_name': "pt", 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
+            "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
+            "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
+            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
         }
+        
+        # self.grid_variables = { #original version
+        #     'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
+        #     "depth": {'var_name': "depth", 'dim': ('depth',), 'unit': 'm', 'longname': "Depth", },
+        #     "depth_ref": {'var_name': "depth_ref", 'dim': ('depth',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
+        #     'Temp': {'var_name': 'Temp', 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': 'temperature'},#here I have add depth_ref" as dimension
+        #     'Cond': {'var_name': 'Cond', 'dim': ('depth', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
+        #     'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
+        #     'Turb': {'var_name': 'Turb', 'dim': ('depth', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
+        #     'pH': {'var_name': 'pH', 'dim': ('depth', 'time'), 'unit': ('_','0_14'), 'longname': 'pH'},
+        #     'sat': {'var_name': 'sat', 'dim': ('depth', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
+        #     'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
+        #     "rho": {'var_name': "rho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
+        #     "pt": {'var_name': "pt", 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
+        #     "prho": {'var_name': "prho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
+        #     "thorpe": {'var_name': "thorpe", 'dim': ('depth', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
+        #     "SALIN": {'var_name': 'SALIN', 'dim': ('depth', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
+        # }
+        
         self.data = {}
         self.grid = {}
 
@@ -90,10 +110,18 @@ class ctd:
         with open(infile, encoding="utf8", errors='ignore') as f:
             lines = f.readlines()
         try:
-            ref_date = datetime.timestamp(dateparser.parse(lines[15])) #?????????
+            ref_date = datetime.timestamp(dateparser.parse(lines[2]))
         except:
-            log("Unable to convert date: {}".format(lines[15])) ########This part of code doesnt work
+            log("Unable to convert date fom line 2: {}".format(lines[2])) 
             ref_date = False
+        if ref_date == False:
+            try:
+                ref_date = datetime.timestamp(dateparser.parse(lines[15]))
+                print(ref_date)
+            except:
+                log("Unable to convert date from line 15: {}".format(lines[15])) 
+                ref_date = False
+        ############# Now there is always a ref_date 
 
         skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines :")
         if not valid:
@@ -108,7 +136,7 @@ class ctd:
             else:
                 self.data[variable] = np.array([-999] * len(df))
 
-        #if self.data["time"] > datetime.utcnow().timestamp():
+        #if self.data["time"] > datetime.utcnow().timestamp(): ##### Can i delete this part of the code? It was hashtagged, when I downloaded it and it doesn't seem to do much.
         # if self.data["time"][0] > datetime.utcnow().timestamp():
         #     return False
 
@@ -257,14 +285,17 @@ class ctd:
                     log("Duplicated run, no data added", 2)
                     nc.close()
                     start = start + td
-                    continue #end of whileloop
+                    continue
                 else:
                     idx = position_in_array(nc_time, time_arr[0])
                     nc_time[:] = np.insert(nc_time[:], idx, time_arr[0])
                     for key, values in variables.items():
-                        if key not in dimensions:
+                        if key not in dimensions and key != "depth": 
                             var = nc.variables[key]
-                            end = len(var[:][0]) - 1
+                            try:
+                                end = len(var[:][0]) - 1
+                            except:
+                                print(var)
                             if idx != end:
                                 var[:, end] = data[key]
                                 var[:] = var[:, np.insert(np.arange(end), idx, end)]
@@ -295,21 +326,33 @@ class ctd:
             start = start + td
 
     def profile_to_timeseries_grid(self, time_label="time"):
+        # log("Resampling profile to fixed grid...", indent=2)
+        # self.grid["depth"] = self.fixed_depths
+        # self.grid["time"] = [self.data[time_label][0]]
+        # for key, values in self.grid_variables.items():
+        #     if key not in self.grid_dimensions:
+        #         mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth"]))
+        #         depths = self.data["depth"][mask]
+        #         data = self.data[key][mask]
+        #         if len(data) < 50:
+        #             self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths))
+        #         else:
+        #             self.grid[key] = np.interp(self.fixed_depths, depths, data, left=np.nan, right=np.nan)
+        #same function as above but with depth_ref in it            
         log("Resampling profile to fixed grid...", indent=2)
-        self.grid["depth"] = self.fixed_depths
-        print(self.data[time_label])
+        self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [self.data[time_label][0]]
         for key, values in self.grid_variables.items():
             if key not in self.grid_dimensions:
-                mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth"]))
-                depths = self.data["depth"][mask]
+                mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
+                depths_ref = self.data["depth_ref"][mask]
                 data = self.data[key][mask]
                 if len(data) < 50:
-                    self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths))
+                    self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths_ref))
                 else:
-                    self.grid[key] = np.interp(self.fixed_depths, depths, data, left=np.nan, right=np.nan)
+                    self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
     
-    def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):#why -> what is diff to mask data
+    def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)
         log("Masking variables for calculations", indent=2)
@@ -346,12 +389,15 @@ class ctd:
 
         log("Calculating depth...", indent=2)
         self.data["depth"] = 1e4 * data["adj_press"] / self.data["rho"] / sw.g(lat)
-        
+        a=(self.data["depth"])
+    
         log("Calculating depth_ref...", indent=2)
         self.data["depth_ref"] = (1e4 * data["adj_press"] / self.data["rho"] / sw.g(lat)) + self.depth_value
+        b=(self.data["depth_ref"])
+
         try:
             log("Calculating potential temperature...", indent=2)
-            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat)
+            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) #should I use depth_ref here?
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature")
@@ -371,7 +417,7 @@ class ctd:
         try:
             log("Calculating Thorpe Dispacements...", indent=2)
             sorted_pt = np.argsort(self.data["pt"])[::-1]
-            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt])
+            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) #should I use depth_ref here?
         except Exception :
             log("Failed to calculate Thorpe Displacements", indent=2)
 
