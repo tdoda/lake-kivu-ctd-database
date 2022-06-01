@@ -2,7 +2,7 @@
 
 ## Project Information
 
-The data is collected within the Lake kivu monitoring program. 
+The data is collected within the Lake Kivu Monitoring Program. 
 
 ## Sensors
 
