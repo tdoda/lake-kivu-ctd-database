@@ -5,6 +5,7 @@ import netCDF4
 import dateparser
 import numpy as np
 import pandas as pd
+import math
 from copy import deepcopy
 from envass import qualityassurance
 from datetime import datetime, timedelta
@@ -20,16 +21,24 @@ class ctd:
         self.air_press = False
         self.submerged_index = False
         # self.fixed_depths = np.linspace(0, 120, 1201) 
-        self.fixed_depths_ref = np.linspace(0, 480, 4801) ###################################### 480= max depth of lake kivu. Is 4801 god as interpolation value or is this causing the problems with the figures in matplotlib?
+        # self.fixed_depths_ref = np.linspace(0, 480, 4801)
+        self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
 
-        self.general_attributes = {############################################ what should I fill in here?
+        self.general_attributes = {
             "institution": "Eawag",
-            "source": "different sources",
+            "source": "Lake Kivu Monitoring Program",
             "references": "james.runnalls@eawag.ch",
             "history": "See history on Renku",
             "conventions": "CF 1.7",
-            "comment": "Data from CTD profiles for Lake Kivu ",
-            "title": "Lake Kivu CTD"
+            "comment": "CTD profiles for Lake Kivu ",
+            "title": "Lake Kivu CTD",
+            # "TOB name in data base": file_name,
+            # "campaign number": campaign_number,
+            # "profile count": profile_count,
+            # "latitude S": latitude,
+            # "longitude E": longitude,
+            # "distance to GEF (m)": distance_to_gef,
+            # "purpose of sampling": purpose_of_sampling
         }
 
         self.dimensions = {
@@ -37,7 +46,7 @@ class ctd:
         }
 
         self.variables = {
-            'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time', "function": parse_time},
+            'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             'Press': {'var_name':'Press', 'dim':('time',), 'unit': 'dbar', 'longname': 'pressure'},
             'Temp': {'var_name':'Temp', 'dim':('time',), 'unit': 'degC', 'longname': 'temperature'},
             'Cond': {'var_name': 'Cond', 'dim': ('time',), 'unit': 'mS/cm', 'longname': 'conductivity'},
@@ -68,7 +77,7 @@ class ctd:
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             "depth": {'var_name': "depth", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth", },
             "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
-            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': 'temperature'},
+            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': ('degC',"?C"), 'longname': 'temperature'},
             'Cond': {'var_name': 'Cond', 'dim': ('depth_ref', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
             'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_ref', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
             'Turb': {'var_name': 'Turb', 'dim': ('depth_ref', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
@@ -80,6 +89,7 @@ class ctd:
             "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
+            #"Coor": {'var_name': 'Coordinates', 'dim': ('time',), 'unit': '', 'longname': 'latitude (S) and longitude (E)'},
         }
         
         # self.grid_variables = { #original version
@@ -104,43 +114,49 @@ class ctd:
         self.grid = {}
 
     def read_raw_data(self, infile,):
-
-        
-        log("Reading data from {}".format(infile))
+        log("Reading data from {}".format(infile), indent=1)
         with open(infile, encoding="utf8", errors='ignore') as f:
             lines = f.readlines()
         try:
             ref_date = datetime.timestamp(dateparser.parse(lines[2]))
+            # ref_date2 = (dateparser.parse(lines[2]))
+            # referenced_datetime = pd.to_datetime(ref_date2, format="%Y, %m, %d", dayfirst=True)
         except:
-            log("Unable to convert date fom line 2: {}".format(lines[2])) 
+            log("Unable to convert date fom line 2: {}".format(lines[2]), indent=1) 
             ref_date = False
         if ref_date == False:
             try:
-                ref_date = datetime.timestamp(dateparser.parse(lines[15]))
-                print(ref_date)
+                ref_date = datetime.timestamp(dateparser.parse(lines[19]))
             except:
-                log("Unable to convert date from line 15: {}".format(lines[15])) 
+                log("Unable to convert date from line 20: {}".format(lines[19])) 
                 ref_date = False
-        ############# Now there is always a ref_date 
-
-        skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines :")
-        if not valid:
+        skip_rows, columns, units, valid, date_format,  = parse_file(infile, "Lines")
+        if valid==False:
             return False
         df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding = "cp1252")
+        # df = parse_time(df, columns, units, ref_date, date_format)
+        # df = parse_time(df, self.variables[varaible], variable, columns, units, ref_date, date_format)
+        
+        df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
 
+        if math.isnan(df.Cond.iloc[-1]):
+            df.drop(index=df.index[-1],axis=0,inplace=True)
+
+###### What to do with this part?
         for variable in self.variables:
             if check_variable(variable, self.variables[variable]["unit"], columns, units):
                 self.data[variable] = np.array(df[variable].values)
             elif "function" in self.variables[variable]:
                 self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
             else:
-                self.data[variable] = np.array([-999] * len(df))
+                self.data[variable] = np.array([-999] * len(df)) # I do not understand this line. Why exactly [-999]? 
+                # For time the code always runs this line because of the unit/ units problem I mentioned in check_variable
+######
 
-        #if self.data["time"] > datetime.utcnow().timestamp(): ##### Can i delete this part of the code? It was hashtagged, when I downloaded it and it doesn't seem to do much.
-        # if self.data["time"][0] > datetime.utcnow().timestamp():
-        #     return False
+        if self.data["time"][0] > datetime.utcnow().timestamp():
+            return False
 
-        if not check_valid_profile(self.data["Press"], 1):
+        if not check_valid_profile(self.data["Press"], 3): 
             return False
         
         return True
@@ -177,6 +193,13 @@ class ctd:
             f = interpolate.interp1d(x, y)
             ynew = f(xnew)  
             self.depth_value = reference_depth - ynew
+            
+            
+    # def extract_meta_data():
+    #     first_line=
+    #     if first_line == "Meta Data":
+            
+        
 
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)
@@ -186,7 +209,7 @@ class ctd:
         self.bottom_of_profile_index = len(self.data["Press"])
 
         if not np.isnan(self.data["Cond"]).all():
-            diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])
+            diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])#diff_cond looks weird
             perc_cond = np.where(diff_cond > np.percentile(diff_cond, 85))
             water_entry_index = perc_cond[0][0]
             submerged_index = perc_cond[0][0]
@@ -198,6 +221,7 @@ class ctd:
                 self.water_entry_index = water_entry_index - 1
             if len(self.data["Press"]) > submerged_index > 0:
                 self.submerged_index = submerged_index + 1
+                
 
         self.bottom_of_profile_index = np.argmax(self.data["Press"]) - remove_timesteps
 
@@ -325,20 +349,7 @@ class ctd:
 
             start = start + td
 
-    def profile_to_timeseries_grid(self, time_label="time"):
-        # log("Resampling profile to fixed grid...", indent=2)
-        # self.grid["depth"] = self.fixed_depths
-        # self.grid["time"] = [self.data[time_label][0]]
-        # for key, values in self.grid_variables.items():
-        #     if key not in self.grid_dimensions:
-        #         mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth"]))
-        #         depths = self.data["depth"][mask]
-        #         data = self.data[key][mask]
-        #         if len(data) < 50:
-        #             self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths))
-        #         else:
-        #             self.grid[key] = np.interp(self.fixed_depths, depths, data, left=np.nan, right=np.nan)
-        #same function as above but with depth_ref in it            
+    def profile_to_timeseries_grid(self, time_label="time"):           
         log("Resampling profile to fixed grid...", indent=2)
         self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [self.data[time_label][0]]
@@ -397,7 +408,7 @@ class ctd:
 
         try:
             log("Calculating potential temperature...", indent=2)
-            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) #should I use depth_ref here?
+            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) #should I use depth_ref to calculate potential temperature?
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature")
@@ -417,7 +428,7 @@ class ctd:
         try:
             log("Calculating Thorpe Dispacements...", indent=2)
             sorted_pt = np.argsort(self.data["pt"])[::-1]
-            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) #should I use depth_ref here?
+            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) #should I use depth_ref to calculate thorpe?
         except Exception :
             log("Failed to calculate Thorpe Displacements", indent=2)
 

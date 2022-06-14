@@ -39,6 +39,7 @@ def check_valid_profile(data, value):
         return True
     else:
         return False
+    
 
 
 def fixed_grid_resample_guide(data, grid):
@@ -161,7 +162,7 @@ def isnt_number(n):
     else:
         return False
 
-def first_centered_differences(x, y, fill=False):
+def first_centered_differences(x, y, fill=False): #does not work properly?
     if x.size != y.size:
         log("first-centered differences: vectors do not have the same size")
     dy = np.full(x.size, np.nan)
@@ -171,7 +172,7 @@ def first_centered_differences(x, y, fill=False):
     x0 = x[iif]
     y0 = y[iif]
     dy0 = np.full(x0.size, np.nan)
-    # calculates differences
+    # calculates differences (here mistake happens)
     dy0[0] = (y0[1] - y0[0]) / (x0[1] - x0[0])
     dy0[-1] = (y0[-1] - y0[-2]) / (x0[-1] - x0[-2])
     dy0[1:-1] = (y0[2:] - y0[0:-2]) / (x0[2:] - x0[0:-2])
@@ -278,34 +279,65 @@ def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
 
 
 def parse_file(input_file_path, string):
+    
     valid = True
     with open(input_file_path, encoding="utf8", errors='ignore') as f:
         lines = f.readlines()
     for i in range(len(lines)):
         if string in lines[i]:
             break
-    if "APHYS_Field" in lines[i-1]:
-        date_format = "%m/%d/%Y %H:%M:%S"
-    else:
-        # date_format = "%m/%d/%Y %I:%M:%S %p"  
-        date_format = "%m/%d/%Y %H:%M:%S"
-    columns = lines[i + 2].replace(";", "").split()
+            print("yes")
+    date_format = "%m/%d/%Y %H:%M:%S"
+    columns = lines[i + 2].replace(";", "").split() #IndexError: list index out of range
     columns.pop(0)
     columns = rename_duplicates(columns)
     units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
     skip_rows = i + 5
-
     n = 0
     while len(lines[i + 5].split()) - 1 > len(columns):
         columns.append(n)
         n = n + 1
-
     if len(lines) <= skip_rows + 1 or len(columns) < 5:
-        valid = False
+        valid=False
+    return skip_rows, columns, units, valid, date_format, 
 
-    return skip_rows, columns, units, valid, date_format
+#     columns = lines[i + 2].replace(";", "").split()
+# IndexError: list index out of range
 
 
+
+    # except: #here I want to add a function which simply goes to the next file if "try" does not work
+    #     log("parse file failed")
+    #     return invalid
+
+    # valid = True
+    # invalid= False
+    # with open(input_file_path, encoding="utf8", errors='ignore') as f:
+    #     lines = f.readlines()
+    # for i in range(len(lines)):
+    #     if string in lines[i]:
+    #         break
+    # date_format = "%m/%d/%Y %H:%M:%S"
+    # # try:                            #new try and except statement
+    # columns = lines[i + 2].replace(";", "").split() 
+    # columns.pop(0)
+    # columns = rename_duplicates(columns)
+    # units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
+    # skip_rows = i + 5
+    # n = 0
+    # while len(lines[i + 5].split()) - 1 > len(columns):
+    #     columns.append(n)
+    #     n = n + 1
+    # if len(lines) <= skip_rows + 1 or len(columns) < 5:
+    #     invalid
+    # return skip_rows, columns, units, valid, date_format, invalid
+    # # except: #here I want to add a function which simply goes to the next file if "try" does not work
+    # #     log("parse file failed")
+    # #     return invalid
+
+
+
+        
 def rename_duplicates(arr):
     out = []
     d = {}
@@ -325,9 +357,10 @@ def rename_duplicates(arr):
 def check_variable(variable, unit, columns, units):
     if variable in columns:
         for i in range(len(columns)):
-            if variable == columns[i]: # variable cond in file C:/Users/thomitob/Documents/ctd_james_bestcode/ctd-profiles/scripts/data/Level0/TC231844_11.TOB makes problems
+            if variable == columns[i]:
+                print(variable)
                 break
-        if units[i] in unit:
+        if units[i] in unit: #IndexError: time has unit 'seconds since 1970-01-01 00:00:00' but in units is only "Time"
             return True
         else:
             log("{} needs unit [{}] but has unit [{}]".format(variable, unit, units[i]))
@@ -336,24 +369,21 @@ def check_variable(variable, unit, columns, units):
         return False
 
     
-def parse_time(df, variable, name, columns, units, ref_date, infolder): #name was in there 
-    AM="AM" or "AM?" or "AM.?"
-    PM="PM" or"PM?" or "PM.?"
-    # AM=["AM", "AM?", "AM.?"]
-    # PM=["PM", "PM?", "PM.?"]
-    AM_PM_check= df.isin([AM,PM]).any().any()
-    if AM_PM_check == True:
-        dateformat="%m/%d/%Y %H:%M:%S"
-        if "IntD" in columns and "IntT" in columns:
-            if AM in list(df["IntD"]) or PM in list(df["IntD"]):
+def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to add positional arguments?
+    # AM_PM_Files=[]
+    AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
+    res = [ele for ele in AM_PM if(ele in df.values)]
+    if bool(res)==True:
+        dateformat="%m/%d/%Y %H:%M:%S"       
+        if "IntD" in columns and "IntT" in columns:            
+            if bool([ele for ele in AM_PM if(ele in list(df["IntD"]))])==True:
                 del columns[-1]
                 columns.insert(columns.index("IntD"), 0) 
                 df.columns=columns
-                # df['IntDx'] = df[0] #IntDx is Date
                 try:
                     datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df["IntD"] == PM].index] = datetime_arr[df[df["IntD"] == AM].index] + timedelta(hours=12) #IntD placed for 0 -> might not work
+                        datetime_arr[df[df["IntD"] == "PM"].index] = datetime_arr[df[df["IntD"] == "PM"].index] + timedelta(hours=12)
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -366,11 +396,11 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                 except:
                     log("Datetime file parse failed")
                     raise
-            if AM in list(df[0]) or PM in list(df[0]):
+            if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
                 try:
                     datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df[0] == PM].index] = datetime_arr[df[df[0] == PM].index] + timedelta(hours=12) #IntD placed for 0 -> might not work
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12)
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -379,7 +409,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    return variable
                 except:
                     log("Datetime file parse failed")
                     raise
@@ -390,7 +420,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                 try:
                     datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df[0] == PM].index] = datetime_arr[df[df[0] == PM].index] + timedelta(hours=12) 
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -404,14 +434,14 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                     log("Datetime file parse failed")
                     raise
         if "IntDT" in columns and "IntDT1" in columns:
-            if AM in list(df["IntDT1"]) or PM in list(df["IntDT1"]):
+            if bool([ele for ele in AM_PM if(ele in list(df["IntDT1"]))])==True:
                 del columns[-1]
                 columns.insert(columns.index("IntDT1"), 0) 
                 df.columns=columns
                 try:
                     datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df[0] == PM].index] = datetime_arr[df[df[0] == PM].index] + timedelta(hours=12) 
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -424,11 +454,11 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                 except:
                     log("Datetime file parse failed")
                     raise
-            if AM in list(df[0]) or PM in list(df[0]):   
+            if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:   
                 try:
                     datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df[0] == PM].index] = datetime_arr[df[df[0] == PM].index] + timedelta(hours=12) 
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -445,10 +475,11 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                 del columns[-1]
                 columns.insert(columns.index("IntDT1")+1, 0)
                 df.columns=columns
+                units.insert(columns.index(0), 0) #adjusting units
                 try:
                     datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
                     try:
-                        datetime_arr[df[df[0] == PM].index] = datetime_arr[df[df[0] == PM].index] + timedelta(hours=12) #IntD placed for 0 -> might not work
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
                     except: pass
                     idx = np.argmin(np.diff(datetime_arr))
                     if np.diff(datetime_arr)[idx].astype("float")<0:
@@ -457,23 +488,15 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    return arr #return df, arr -> Creates tuple object. How to return individual objects?
                 except:
                     log("Datetime file parse failed")
                     raise              
-    else:
-        for path, subdirs, files in os.walk(infolder):
-            for name in files:
-                if name[0]=="S":
-                    dateformat="%d/%m/%Y %H:%M:%S"
-                else:
-                    dateformat="%m/%d/%Y %H:%M:%S"
-                    print(infolder)
-                    print("STOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOP")
-        #if add alternative dateformat
-        if "IntDT" in columns and "IntDT1" in columns:        
+    else: 
+        if "IntDT" in columns and "IntDT1" in columns:
+            dateformat="%d/%m/%Y %H:%M:%S"
             try:
-                datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True)
+                datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
                 try:
                     arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
@@ -485,14 +508,16 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
             except:
                 log("Datetime file parse failed")
                 raise    
-        elif "IntD" in columns and "IntT" in columns:        
+        elif "IntD" in columns and "IntT" in columns: 
+            dateformat="%m/%d/%Y %H:%M:%S"
             try:
-                datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True)
+                datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                 try:
                     arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
-                    return arr #local variable 'arr' referenced before assignment
+                    return arr
+                
                 except:
                     log("Datetime file parse failed")
                 return arr
@@ -502,6 +527,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder): #name wa
     
 
     
+# def parse_chl(df, variable, name, columns, units, ref_date):
 def parse_chl(df, variable, name, columns, units, ref_date, date_format):
     if units == "g/l":
         try:

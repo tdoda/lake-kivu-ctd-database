@@ -3,8 +3,8 @@ import os
 import yaml
 from ctd import ctd
 
-lake_info = {"lat": -2.044843, "alt": 1462}
-lake_level = "../data/lake_level/bukavu.csv"
+lake_info = {"lat": -2, "alt": 1462}
+lake_level = "../data/lake_level/c_gls.json"
 
 with open("input_python.yaml", "r") as f:
     directories = yaml.load(f, Loader=yaml.FullLoader)
@@ -24,9 +24,9 @@ for file in files:
         CTD.extract_profile()
         CTD.quality_assurance(directories["quality_assurance"])
         CTD.to_netcdf(directories["Level1_dir"], "L1")
-        if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
-            CTD.quality_assurance(directories["quality_assurance"])
-            CTD.to_netcdf(directories["Level2A_dir"], "L2A")
-            CTD.mask_data()
-            CTD.profile_to_timeseries_grid()
-            CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="yearly", grid=True)
+        # if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
+        #     CTD.quality_assurance(directories["quality_assurance"])
+        #     CTD.to_netcdf(directories["Level2A_dir"], "L2A")
+        #     CTD.mask_data()
+        #     CTD.profile_to_timeseries_grid()
+        #     CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="yearly", grid=True)

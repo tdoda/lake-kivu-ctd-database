@@ -16,6 +16,7 @@ import numpy as np
 import datetime as datetime
 import time
 
+#incorrect depth C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/level0/111212_712.TOB
 
 ########################################################################################################################
 
@@ -31,7 +32,7 @@ q2="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2A/L2A_2010
 q3="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2A/L2A_20100524_103420.nc"
 q4="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2A/L2A_20110106_105931.nc"
 
-ncfile = nc.Dataset(q3)
+ncfile = nc.Dataset("C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2A/L2A_20111205_114533.nc")
 ncfile.institution 
 ncfile.variables["depth"]
 ncfile.variables["depth_ref"]
@@ -48,9 +49,10 @@ z1="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_2009
 z2="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20100101_000000.nc"
 z3="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20080101_000000.nc"
 z4="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20110101_000000.nc"
+z5="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20040101_000000.nc"
+z6="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20130101_000000.nc"
 
-
-ncfile2= nc.Dataset(z4)
+ncfile2= nc.Dataset(z6)
 ncfile2.variables["depth_ref"]
 ncfile2.variables["Temp"]
 ncfile2.variables["time"]
@@ -111,6 +113,7 @@ turb= ncfile.variables["Turb"][:]
 ph=ncfile.variables["pH"][:]
 rho=ncfile.variables["rho"][:]
 salin=ncfile.variables["SALIN"][:]
+press=ncfile.variables["Press"][:]
 # fig, axs = plt.subplots(3, 2)
 fig, axs = plt.subplots(2, 3)
 
@@ -128,7 +131,7 @@ axs[1, 0].plot(Chl_A, depth, 'tab:green')
 axs[1, 0].set(xlabel="chlorophyll A (g/l)", ylabel='depth (m)')
 
 # axs[1, 1].plot(time, depth, 'tab:red')
-axs[1, 1].plot(time, depth_ref, 'tab:pink')
+axs[1, 1].plot(time, press, 'tab:pink')
 # axs[1, 1].set_title('Depth over Time')
 axs[1, 1].set(xlabel='time', ylabel='depth (m)')
 
