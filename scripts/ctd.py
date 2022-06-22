@@ -79,7 +79,7 @@ class ctd:
             "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'},
-            "Coor": {'var_name': 'Coordinates', 'dim': ('time'), 'unit':' ', 'longname': 'latitude and longitude'},
+            "lon": {'var_name': 'longitude', 'dim': ('time'), 'unit':' ', 'longname': 'longitude'},
         }
         
         self.data = {}
@@ -195,10 +195,10 @@ class ctd:
                 latitude    = float(re.sub(pattern, '', latitude))
                 longitude   = lines[5].replace(" ", "")
                 longitude   = float(re.sub(pattern, '', longitude))
-                # self.grid_variables["lon"]=longitude
+                self.data["lon"]=longitude
                 # self.grid_variables["lat"]=latitude
                 # Coor = (latitude, longitude)
-                self.grid_variables["Coor"]=[latitude, longitude]
+                # self.grid_variables["Coor"]=[latitude, longitude]
 
                     
     def extract_profile(self, remove_timesteps=3):

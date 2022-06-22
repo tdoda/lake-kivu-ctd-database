@@ -25,10 +25,10 @@ for file in files:
         CTD.quality_assurance(directories["quality_assurance"])
         CTD.to_netcdf(directories["Level1_dir"], "L1")
         if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
-            CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
+            # CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
             CTD.quality_assurance(directories["quality_assurance"])
             CTD.to_netcdf(directories["Level2A_dir"], "L2A")
             CTD.mask_data()
             CTD.profile_to_timeseries_grid()
-            CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
+            # CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
             CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="yearly", grid=True)
