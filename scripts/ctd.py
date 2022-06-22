@@ -13,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resample_guide,resample,index_of_max,position_in_array,round_to_days,advanced_quality_flags,json_converter,log,error,find_closest_index,is_number,isnt_number,first_centered_differences,default_salinity_temperature,salinity,density,Gamma_adiabatic,mask_single_data,potential_temperature,oxygen_saturation,parse_file,rename_duplicates,check_variable,parse_time,parse_chl
 from scipy import interpolate
 import seawater as sw
+import re as re
 
 class ctd:
     def __init__(self):
@@ -20,10 +21,7 @@ class ctd:
         self.bottom_of_profile_index = False
         self.air_press = False
         self.submerged_index = False
-        # self.fixed_depths = np.linspace(0, 120, 1201) 
-        # self.fixed_depths_ref = np.linspace(0, 480, 4801)
         self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
-
         self.general_attributes = {
             "institution": "Eawag",
             "source": "Lake Kivu Monitoring Program",
@@ -31,14 +29,7 @@ class ctd:
             "history": "See history on Renku",
             "conventions": "CF 1.7",
             "comment": "CTD profiles for Lake Kivu ",
-            "title": "Lake Kivu CTD",
-            # "TOB name in data base": file_name,
-            # "campaign number": campaign_number,
-            # "profile count": profile_count,
-            # "latitude S": latitude,
-            # "longitude E": longitude,
-            # "distance to GEF (m)": distance_to_gef,
-            # "purpose of sampling": purpose_of_sampling
+            "title": "Lake Kivu CTD"
         }
 
         self.dimensions = {
@@ -69,11 +60,10 @@ class ctd:
 
         self.grid_dimensions = {
             'time': {'dim_name': 'time', 'dim_size': None},
-            # 'depth': {'dim_name': 'depth', 'dim_size': None},
             "depth_ref": {'dim_name': "depth_ref", 'dim_size': None}
         }
         
-        self.grid_variables = { #gridding: changed 'dim': ('depth', 'time') to 'dim': ('depth_ref', 'time')
+        self.grid_variables = {
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             "depth": {'var_name': "depth", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth", },
             "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
@@ -88,70 +78,50 @@ class ctd:
             "pt": {'var_name': "pt", 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
             "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
-            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
-            #"Coor": {'var_name': 'Coordinates', 'dim': ('time',), 'unit': '', 'longname': 'latitude (S) and longitude (E)'},
+            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'},
+            "Coor": {'var_name': 'Coordinates', 'dim': ('time'), 'unit':' ', 'longname': 'latitude and longitude'},
         }
-        
-        # self.grid_variables = { #original version
-        #     'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
-        #     "depth": {'var_name': "depth", 'dim': ('depth',), 'unit': 'm', 'longname': "Depth", },
-        #     "depth_ref": {'var_name': "depth_ref", 'dim': ('depth',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
-        #     'Temp': {'var_name': 'Temp', 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': 'temperature'},#here I have add depth_ref" as dimension
-        #     'Cond': {'var_name': 'Cond', 'dim': ('depth', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
-        #     'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
-        #     'Turb': {'var_name': 'Turb', 'dim': ('depth', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
-        #     'pH': {'var_name': 'pH', 'dim': ('depth', 'time'), 'unit': ('_','0_14'), 'longname': 'pH'},
-        #     'sat': {'var_name': 'sat', 'dim': ('depth', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
-        #     'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
-        #     "rho": {'var_name': "rho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
-        #     "pt": {'var_name': "pt", 'dim': ('depth', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
-        #     "prho": {'var_name': "prho", 'dim': ('depth', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
-        #     "thorpe": {'var_name': "thorpe", 'dim': ('depth', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
-        #     "SALIN": {'var_name': 'SALIN', 'dim': ('depth', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'}
-        # }
         
         self.data = {}
         self.grid = {}
 
     def read_raw_data(self, infile,):
         log("Reading data from {}".format(infile), indent=1)
+        # extract_meta_data(infile)
         with open(infile, encoding="utf8", errors='ignore') as f:
             lines = f.readlines()
         try:
             ref_date = datetime.timestamp(dateparser.parse(lines[2]))
-            # ref_date2 = (dateparser.parse(lines[2]))
-            # referenced_datetime = pd.to_datetime(ref_date2, format="%Y, %m, %d", dayfirst=True)
+            log("Detected reference date {} on line 2".format(ref_date), indent=2)
         except:
-            log("Unable to convert date fom line 2: {}".format(lines[2]), indent=1) 
+            log("Unable to convert date fom line 2", indent=2)
             ref_date = False
         if ref_date == False:
             try:
                 ref_date = datetime.timestamp(dateparser.parse(lines[19]))
+                log("Detected reference date {} on line 20".format(ref_date), indent=2)
             except:
-                log("Unable to convert date from line 20: {}".format(lines[19])) 
+                log("Unable to convert date from line 20", indent=2)
                 ref_date = False
-        skip_rows, columns, units, valid, date_format,  = parse_file(infile, "Lines")
-        if valid==False:
+
+        skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines")
+
+        if valid == False:
             return False
-        df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding = "cp1252")
-        # df = parse_time(df, columns, units, ref_date, date_format)
-        # df = parse_time(df, self.variables[varaible], variable, columns, units, ref_date, date_format)
-        
+
+        df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
         df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
 
         if math.isnan(df.Cond.iloc[-1]):
-            df.drop(index=df.index[-1],axis=0,inplace=True)
+            df.drop(index=df.index[-1], axis=0, inplace=True)
 
-###### What to do with this part?
         for variable in self.variables:
-            if check_variable(variable, self.variables[variable]["unit"], columns, units):
-                self.data[variable] = np.array(df[variable].values)
-            elif "function" in self.variables[variable]:
+            if "function" in self.variables[variable]:
                 self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
+            elif variable in df.columns:
+                self.data[variable] = np.array(df[variable].values)
             else:
-                self.data[variable] = np.array([-999] * len(df)) # I do not understand this line. Why exactly [-999]? 
-                # For time the code always runs this line because of the unit/ units problem I mentioned in check_variable
-######
+                self.data[variable] = np.array([np.nan] * len(df))
 
         if self.data["time"][0] > datetime.utcnow().timestamp():
             return False
@@ -165,7 +135,7 @@ class ctd:
         xnew = self.data[time_label][0]
         if ".txt" in path:
             headers = ['Date', 'Waterlevel', 'Error_range']
-            df1 = pd.read_csv(path,skiprows=15,delimiter=' ',names=headers)
+            df1 = pd.read_csv(path, skiprows=15, delimiter=' ', names=headers)
             df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"], format= "%Y-%m-%d", dayfirst=True).values.astype(float) / 10 ** 9)
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
@@ -195,12 +165,42 @@ class ctd:
             self.depth_value = reference_depth - ynew
             
             
-    # def extract_meta_data():
-    #     first_line=
-    #     if first_line == "Meta Data":
-            
+    def extract_meta_data(self, infile,):
         
+        with open(infile, 'r') as f:
+            first_line=f.readline()
+            if "Meta Data" in first_line:
+                line_numbers = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]
+                lines = []
+                for i, line in enumerate(f):
+                    if i in line_numbers:
+                        lines.append(line.strip())
 
+                self.general_attributes["campaign_number"]     = lines[0].replace(" ", "")
+                self.general_attributes["profile_count"]       = lines[1].replace(" ", "")
+                self.general_attributes["profile"]             = lines[2].replace(" ", "")
+                self.general_attributes["date"]                = lines[3].replace(" ", "")
+                self.general_attributes["latitude"]            = lines[4].replace(" ", "")
+                self.general_attributes["longitude"]           = lines[5].replace(" ", "")
+                self.general_attributes["distance_to_GEF"]     = lines[6].replace(" ", "")
+                self.general_attributes["rope_length"]         = lines[7].replace(" ", "")
+                self.general_attributes["max_depth"]           = lines[8].replace(" ", "")
+                self.general_attributes["file_name"]           = lines[9].replace(" ", "")
+                self.general_attributes["purpose_of_sampling"] = lines[10].replace(" ", "")
+                self.general_attributes["pH_calibration"]      = (lines[11].replace(" ", ""),
+                                                                  lines[12].replace(" ", ""),
+                                                                  lines[13].replace(" ", ""))      
+                pattern     = ".*" + ":"
+                latitude    = lines[4].replace(" ", "")
+                latitude    = float(re.sub(pattern, '', latitude))
+                longitude   = lines[5].replace(" ", "")
+                longitude   = float(re.sub(pattern, '', longitude))
+                # self.grid_variables["lon"]=longitude
+                # self.grid_variables["lat"]=latitude
+                # Coor = (latitude, longitude)
+                self.grid_variables["Coor"]=[latitude, longitude]
+
+                    
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])
@@ -209,7 +209,7 @@ class ctd:
         self.bottom_of_profile_index = len(self.data["Press"])
 
         if not np.isnan(self.data["Cond"]).all():
-            diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])#diff_cond looks weird
+            diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])
             perc_cond = np.where(diff_cond > np.percentile(diff_cond, 85))
             water_entry_index = perc_cond[0][0]
             submerged_index = perc_cond[0][0]
@@ -344,17 +344,18 @@ class ctd:
                         var[:] = data[key]
                     elif len(values["dim"]) == 2:
                         var[:, 0] = data[key]
-
+            
                 nc.close()
 
             start = start + td
 
     def profile_to_timeseries_grid(self, time_label="time"):           
+                    
         log("Resampling profile to fixed grid...", indent=2)
         self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [self.data[time_label][0]]
         for key, values in self.grid_variables.items():
-            if key not in self.grid_dimensions:
+            if key not in self.grid_dimensions and key!= "Coor":
                 mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
                 depths_ref = self.data["depth_ref"][mask]
                 data = self.data[key][mask]
@@ -362,7 +363,13 @@ class ctd:
                     self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths_ref))
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
-    
+            elif key =="Coor":#################################   help
+                self.grid_variables["Coor"]
+                
+
+                          
+                    
+                    
     def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)

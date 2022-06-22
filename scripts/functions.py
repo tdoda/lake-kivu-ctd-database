@@ -301,42 +301,6 @@ def parse_file(input_file_path, string):
         valid=False
     return skip_rows, columns, units, valid, date_format, 
 
-#     columns = lines[i + 2].replace(";", "").split()
-# IndexError: list index out of range
-
-
-
-    # except: #here I want to add a function which simply goes to the next file if "try" does not work
-    #     log("parse file failed")
-    #     return invalid
-
-    # valid = True
-    # invalid= False
-    # with open(input_file_path, encoding="utf8", errors='ignore') as f:
-    #     lines = f.readlines()
-    # for i in range(len(lines)):
-    #     if string in lines[i]:
-    #         break
-    # date_format = "%m/%d/%Y %H:%M:%S"
-    # # try:                            #new try and except statement
-    # columns = lines[i + 2].replace(";", "").split() 
-    # columns.pop(0)
-    # columns = rename_duplicates(columns)
-    # units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
-    # skip_rows = i + 5
-    # n = 0
-    # while len(lines[i + 5].split()) - 1 > len(columns):
-    #     columns.append(n)
-    #     n = n + 1
-    # if len(lines) <= skip_rows + 1 or len(columns) < 5:
-    #     invalid
-    # return skip_rows, columns, units, valid, date_format, invalid
-    # # except: #here I want to add a function which simply goes to the next file if "try" does not work
-    # #     log("parse file failed")
-    # #     return invalid
-
-
-
         
 def rename_duplicates(arr):
     out = []
@@ -358,7 +322,6 @@ def check_variable(variable, unit, columns, units):
     if variable in columns:
         for i in range(len(columns)):
             if variable == columns[i]:
-                print(variable)
                 break
         if units[i] in unit: #IndexError: time has unit 'seconds since 1970-01-01 00:00:00' but in units is only "Time"
             return True
@@ -379,7 +342,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
             if bool([ele for ele in AM_PM if(ele in list(df["IntD"]))])==True:
                 del columns[-1]
                 columns.insert(columns.index("IntD"), 0) 
-                df.columns=columns
+                df.columns = columns
                 try:
                     datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                     try:
@@ -392,7 +355,8 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    df["time"] = arr
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise
@@ -409,14 +373,16 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return variable
+                    df["time"] = variable
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise
             else:
                 del columns[-1]
                 columns.insert(columns.index("IntT")+1, 0)
-                df.columns=columns
+                df.columns = columns
+                units.insert(columns.index(0), 0)
                 try:
                     datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
                     try:
@@ -429,7 +395,8 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    df["time"] = arr
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise
@@ -450,7 +417,8 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    df["time"] = arr
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise
@@ -467,14 +435,15 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr
+                    df["time"] = arr
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise
             else:
                 del columns[-1]
                 columns.insert(columns.index("IntDT1")+1, 0)
-                df.columns=columns
+                df.columns = columns
                 units.insert(columns.index(0), 0) #adjusting units
                 try:
                     datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
@@ -488,39 +457,29 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    return arr #return df, arr -> Creates tuple object. How to return individual objects?
+                    df["time"] = arr
+                    return df
                 except:
                     log("Datetime file parse failed")
                     raise              
     else: 
         if "IntDT" in columns and "IntDT1" in columns:
-            dateformat="%d/%m/%Y %H:%M:%S"
             try:
-                datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
-                try:
-                    arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=False).values.astype(float) / 10 ** 9)
-                    return arr #local variable 'arr' referenced before assignment
-                except:
-                    log("Datetime file parse failed")
-                return arr
+                arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=False).values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
             except:
                 log("Datetime file parse failed")
                 raise    
-        elif "IntD" in columns and "IntT" in columns: 
-            dateformat="%m/%d/%Y %H:%M:%S"
+        elif "IntD" in columns and "IntT" in columns:
             try:
-                datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-                try:
-                    arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
-                    return arr
-                
-                except:
-                    log("Datetime file parse failed")
-                return arr
+                arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
             except:
                 log("Datetime file parse failed")
                 raise 
