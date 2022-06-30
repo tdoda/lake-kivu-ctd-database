@@ -12,22 +12,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 #Set path to file
-file="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2B/L2B_20080101_000000.nc"
+file=""
 ncfile= nc.Dataset(file)
 ncfile.variables["depth_ref"]
 ncfile.variables["Temp"]
 ncfile.variables["time"]
-ncfile.variables["Coor"]
 
-try:
-    meta_data={ncfile.file_name,
-               ncfile.purpose_of_sampling,
-               ncfile.latitude,
-               ncfile.longitude,
-               ncfile.distance_to_GEF,
-              }
-except:
-    print("No meta data available")
 
 #heatmap - lvl2B
 depth_ref  = ncfile.variables["depth_ref"][:]
@@ -50,6 +40,7 @@ fig, ax = plt.subplots(dpi=150)
 plt.subplots_adjust(bottom=0.3)
 
 ax = sns.heatmap(dfx,vmin=22, vmax=25.5, yticklabels=100, cmap="jet")
+
 ax.set_title("CTD-Heatmap")
 ax.set_xlabel('Date', fontsize=10)
 ax.set_ylabel('Depth_ref [m]', fontsize=10)

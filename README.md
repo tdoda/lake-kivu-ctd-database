@@ -14,7 +14,7 @@ The CTD is an instrument used to measure the conductivity, temperature, and pres
 
 - Clone the repository to your local machine using the command: 
 
- `git clone https://renkulab.io/gitlab/lexplore/ctd.git`
+ `git clone https://renkulab.io/gitlab/eawag-surf/lake-kivu-ctd-profiles.git`
  
  Note that the repository will be copied to your current working directory.
 
@@ -22,7 +22,7 @@ The CTD is an instrument used to measure the conductivity, temperature, and pres
 
  `pip install -r requirements.txt`
 
- The python version can be checked by running the command `python --version`. In case python is not installed or only an older version of it, it is recommend to install python through the anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
+The python version can be checked by running the command `python --version`. In case python is not installed or only an older version of it, it is recommend to install python through the anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
 
 
 ## Usage
@@ -51,7 +51,7 @@ Both above mentioned python scripts are independent of the local file system.
 
 ### Visualize Data/ Add new meta Data
 
-There are 4 support scripts available to visualize the data and add new meta data. They be found in the folder `support_scripts`. The data is structured as follows:
+There are 4 support scripts available to visualize the data and add new meta data. They can be found in the folder `support_scripts`. The data is structured as follows:
 
 - **adding_meta_data.py**: Adds meta data from `../data/meta_data/All_CTD_Meta_data.csv` to the raw data in `level0`. If new meta data is available, add it to `All_CTD_Meta_data.csv` and run `adding_meta_data.py`.
 
@@ -82,13 +82,13 @@ The data is stored to a NetCDF file spanning over a time period one year.
 	**Note** that the filename of level 1, level 2A and level 2B show the date of the profile.
 
 - **lake_level**: Contains three different sources of lake level measurements for lake Kivu:
--- DAHITI: Offers continuous measurements with about two measurements per month from 2002-08 until 2021-08. However theres a gap of measurements from 2010-09 until 2013-04
--- In-situ (SNEL, Bukavu): Has the longest range of measurements starting 1941 until 2022-05. Alos shows highest density of measurements with monthly measurements from 1941 to 2008 and daily measuremnts from 2008 until 2022-05. The data is not updated regularly but offers the highest quality at the moment.
--- CGLS: Offers continuous measurements with about one measurement every two months from 1995 until 2022-02. Updated on a regular base.
+1) **DAHITI**: Offers continuous measurements with about two measurements per month from 2002-08 until 2021-08. However theres a gap of measurements from 2010-09 until 2013-04.
+2) **In-situ (SNEL, Bukavu)**: Has the longest range of measurements starting 1941 until 2022-05. Alos shows highest density of measurements with monthly measurements from 1941 to 2008 and daily measuremnts from 2008 until 2022-05. The data is not updated regularly but offers the highest quality at the moment.
+3) **CGLS**: Offers continuous measurements with about one measurement every two months from 1995 until 2022-02. Updated on a regular base.
 
-- **meta_data**: A csv.-file with all meta data up to now (21.06.2022).
+- **meta_data**: A csv.-file with all meta data. Latest update: 27.06.2022
 
 
 ## Quality assurance
 
-Quality checks include but are not limited to range validation, data type checking and flagging missing data.
+Quality checks include but are not limited to range validation, data type checking and flagging missing data. Check

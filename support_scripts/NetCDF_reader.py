@@ -13,7 +13,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
 
-file="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/data/Level2A/L2A_20081002_093913.nc"
+file=""
 ncfile = nc.Dataset(file)
 ncfile.source
 
@@ -32,8 +32,7 @@ except:
 
 # lvl2A multivariable plot
 time        = ncfile.variables["time"][:].astype(int)
-# time2       = np.array(time).astype(int)
-# datetime.utcfromtimestamp(time2).strftime('%Y-%m-%d %H:%M:%S')
+time2       = np.array(time).astype(int)
  
 depth       = -ncfile.variables["depth"][:]
 depth_ref   = -ncfile.variables["depth_ref"][:]

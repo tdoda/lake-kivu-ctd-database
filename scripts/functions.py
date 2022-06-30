@@ -162,7 +162,7 @@ def isnt_number(n):
     else:
         return False
 
-def first_centered_differences(x, y, fill=False): #does not work properly?
+def first_centered_differences(x, y, fill=False): 
     if x.size != y.size:
         log("first-centered differences: vectors do not have the same size")
     dy = np.full(x.size, np.nan)
@@ -172,7 +172,6 @@ def first_centered_differences(x, y, fill=False): #does not work properly?
     x0 = x[iif]
     y0 = y[iif]
     dy0 = np.full(x0.size, np.nan)
-    # calculates differences (here mistake happens)
     dy0[0] = (y0[1] - y0[0]) / (x0[1] - x0[0])
     dy0[-1] = (y0[-1] - y0[-2]) / (x0[-1] - x0[-2])
     dy0[1:-1] = (y0[2:] - y0[0:-2]) / (x0[2:] - x0[0:-2])
@@ -288,7 +287,7 @@ def parse_file(input_file_path, string):
             break
             print("yes")
     date_format = "%m/%d/%Y %H:%M:%S"
-    columns = lines[i + 2].replace(";", "").split() #IndexError: list index out of range
+    columns = lines[i + 2].replace(";", "").split() 
     columns.pop(0)
     columns = rename_duplicates(columns)
     units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
@@ -323,7 +322,7 @@ def check_variable(variable, unit, columns, units):
         for i in range(len(columns)):
             if variable == columns[i]:
                 break
-        if units[i] in unit: #IndexError: time has unit 'seconds since 1970-01-01 00:00:00' but in units is only "Time"
+        if units[i] in unit: 
             return True
         else:
             log("{} needs unit [{}] but has unit [{}]".format(variable, unit, units[i]))
@@ -332,8 +331,18 @@ def check_variable(variable, unit, columns, units):
         return False
 
     
-def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to add positional arguments?
-    # AM_PM_Files=[]
+def parse_time(df, variable, name, columns, units, ref_date, infolder,): 
+    """
+    Function description
+    Structure:  
+        - First level of if-else-statements checks if  AM or PM exists. 
+        - Second level of if-else-statements checks what the column names for the date and time are.
+        - The third level of if-else-statements is only triggered, if AM or PM exists and localizes in which column AM/PM 
+        is located. The statement then adjusts the column headers of the dataframe by giving the column with AM/ PM the header "0".          
+    Output:
+        New dataframe column with parsed time in it.
+        Dataframe with adjusted column headers.
+    """  
     AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
     res = [ele for ele in AM_PM if(ele in df.values)]
     if bool(res)==True:
@@ -486,7 +495,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,): #how to
     
 
     
-# def parse_chl(df, variable, name, columns, units, ref_date):
+
 def parse_chl(df, variable, name, columns, units, ref_date, date_format):
     if units == "g/l":
         try:

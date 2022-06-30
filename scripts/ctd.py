@@ -79,7 +79,6 @@ class ctd:
             "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'},
-            "lon": {'var_name': 'longitude', 'dim': ('time'), 'unit':' ', 'longname': 'longitude'},
         }
         
         self.data = {}
@@ -87,7 +86,6 @@ class ctd:
 
     def read_raw_data(self, infile,):
         log("Reading data from {}".format(infile), indent=1)
-        # extract_meta_data(infile)
         with open(infile, encoding="utf8", errors='ignore') as f:
             lines = f.readlines()
         try:
@@ -132,6 +130,15 @@ class ctd:
         return True
 
     def extract_water_level(self, path, reference_depth, time_label="time"):
+        """"
+        Function description
+        Inputs:
+            path: Link to the file with lake level measurements
+            reference_depth: Set to 1462 m.a.s.l.
+            time_label: time
+        Outputs: 
+            self.depth_value: Difference between the reference_depth and the lake level data for the date of the CTD-profile. 
+        """
         xnew = self.data[time_label][0]
         if ".txt" in path:
             headers = ['Date', 'Waterlevel', 'Error_range']
@@ -166,6 +173,13 @@ class ctd:
             
             
     def extract_meta_data(self, infile,):
+        """"
+        Function description
+        Input: 
+            Reads the added meta data which is in the first 15 lines of the files.
+        Outputs: 
+            Adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
+        """
         
         with open(infile, 'r') as f:
             first_line=f.readline()
@@ -196,9 +210,8 @@ class ctd:
                 longitude   = lines[5].replace(" ", "")
                 longitude   = float(re.sub(pattern, '', longitude))
                 self.data["lon"]=longitude
-                # self.grid_variables["lat"]=latitude
-                # Coor = (latitude, longitude)
-                # self.grid_variables["Coor"]=[latitude, longitude]
+                self.data["lat"]=latitude
+
 
                     
     def extract_profile(self, remove_timesteps=3):
@@ -355,7 +368,7 @@ class ctd:
         self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [self.data[time_label][0]]
         for key, values in self.grid_variables.items():
-            if key not in self.grid_dimensions and key!= "Coor":
+            if key not in self.grid_dimensions:
                 mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
                 depths_ref = self.data["depth_ref"][mask]
                 data = self.data[key][mask]
@@ -363,13 +376,8 @@ class ctd:
                     self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths_ref))
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
-            elif key =="Coor":#################################   help
-                self.grid_variables["Coor"]
-                
 
-                          
-                    
-                    
+     
     def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)
@@ -415,7 +423,7 @@ class ctd:
 
         try:
             log("Calculating potential temperature...", indent=2)
-            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) #should I use depth_ref to calculate potential temperature?
+            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) 
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature")
@@ -435,7 +443,7 @@ class ctd:
         try:
             log("Calculating Thorpe Dispacements...", indent=2)
             sorted_pt = np.argsort(self.data["pt"])[::-1]
-            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) #should I use depth_ref to calculate thorpe?
+            self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) 
         except Exception :
             log("Failed to calculate Thorpe Displacements", indent=2)
 

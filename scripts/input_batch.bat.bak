@@ -3,7 +3,7 @@
 :::: DO NOT CHANGE THE VARIABLE NAMES ::::
 
 :: Define python environment
-SET pythonenv="C:/ProgramData/Microsoft/Windows/Start Menu/Programs/Python 3.9"
+SET pythonenv="C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Python 3.9"
 
 :: Python script
 SET script="C:/Users/thomitob/Documents/git/lake-kivu-ctd-profiles/scripts/main_ctd.py"

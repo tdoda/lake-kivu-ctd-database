@@ -9,7 +9,7 @@ import os
 import pandas as pd
 
 
-directory = "../data/level0"
+directory = "../data/Level0/"
 df = pd.read_csv('../data/meta_data/All_CTD_Meta_data.csv', delimiter=';')
 
 for filename in os.listdir(directory):
@@ -38,4 +38,3 @@ for filename in os.listdir(directory):
     except:
         print(filename, "no meta data")
               
-
