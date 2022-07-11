@@ -21,6 +21,7 @@ class ctd:
         self.bottom_of_profile_index = False
         self.air_press = False
         self.submerged_index = False
+        self.depth_value = 0
         self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
         self.general_attributes = {
             "institution": "Eawag",
@@ -90,14 +91,14 @@ class ctd:
             lines = f.readlines()
         try:
             ref_date = datetime.timestamp(dateparser.parse(lines[2]))
-            log("Detected reference date {} on line 2".format(ref_date), indent=2)
+            log("Detected reference date {} on line 2".format(dateparser.parse(lines[2])), indent=2)
         except:
             log("Unable to convert date fom line 2", indent=2)
             ref_date = False
         if ref_date == False:
             try:
                 ref_date = datetime.timestamp(dateparser.parse(lines[19]))
-                log("Detected reference date {} on line 20".format(ref_date), indent=2)
+                log("Detected reference date {} on line 20".format(dateparser.parse(lines[19])), indent=2)
             except:
                 log("Unable to convert date from line 20", indent=2)
                 ref_date = False
@@ -170,8 +171,7 @@ class ctd:
             f = interpolate.interp1d(x, y)
             ynew = f(xnew)  
             self.depth_value = reference_depth - ynew
-            
-            
+
     def extract_meta_data(self, infile,):
         """"
         Function description
@@ -181,8 +181,8 @@ class ctd:
             Adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
         """
         
-        with open(infile, 'r') as f:
-            first_line=f.readline()
+        with open(infile, 'r', encoding="utf8", errors='ignore') as f:
+            first_line = f.readline()
             if "Meta Data" in first_line:
                 line_numbers = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]
                 lines = []
@@ -262,7 +262,6 @@ class ctd:
                         self.data[name] = self.quality_assurance_ctd(self.data[name])
 
     def quality_assurance_ctd(self, qa):
-
         if self.bottom_of_profile_index:
             qa[self.bottom_of_profile_index:] = 1
 
@@ -362,11 +361,10 @@ class ctd:
 
             start = start + td
 
-    def profile_to_timeseries_grid(self, time_label="time"):           
-                    
+    def profile_to_timeseries_grid(self, time_label="time"):
         log("Resampling profile to fixed grid...", indent=2)
         self.grid["depth_ref"] = self.fixed_depths_ref
-        self.grid["time"] = [self.data[time_label][0]]
+        self.grid["time"] = [np.nanmin(self.data[time_label])]
         for key, values in self.grid_variables.items():
             if key not in self.grid_dimensions:
                 mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
@@ -377,7 +375,6 @@ class ctd:
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
 
-     
     def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)
@@ -454,8 +451,7 @@ class ctd:
             if "_qual" not in var:
                 idx = self.data[var+"_qual"] > 0
                 self.data[var][idx] = np.nan               
-                
-                
+
     def read_processed_data(self, file):
         self.data = netCDF4.Dataset(file, 'r').variables
         for key in self.data.keys():
