@@ -14,6 +14,7 @@ from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resampl
 from scipy import interpolate
 import seawater as sw
 import re as re
+import matplotlib.pyplot as plt
 
 class ctd:
     def __init__(self):
@@ -194,8 +195,6 @@ class ctd:
                 self.general_attributes["profile_count"]       = lines[1].replace(" ", "")
                 self.general_attributes["profile"]             = lines[2].replace(" ", "")
                 self.general_attributes["date"]                = lines[3].replace(" ", "")
-                self.general_attributes["latitude"]            = lines[4].replace(" ", "")
-                self.general_attributes["longitude"]           = lines[5].replace(" ", "")
                 self.general_attributes["distance_to_GEF"]     = lines[6].replace(" ", "")
                 self.general_attributes["rope_length"]         = lines[7].replace(" ", "")
                 self.general_attributes["max_depth"]           = lines[8].replace(" ", "")
@@ -209,11 +208,9 @@ class ctd:
                 latitude    = float(re.sub(pattern, '', latitude))
                 longitude   = lines[5].replace(" ", "")
                 longitude   = float(re.sub(pattern, '', longitude))
-                self.data["lon"]=longitude
-                self.data["lat"]=latitude
+                self.general_attributes["latitude"] = latitude
+                self.general_attributes["longitude"] = longitude
 
-
-                    
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])
@@ -223,8 +220,12 @@ class ctd:
 
         if not np.isnan(self.data["Cond"]).all():
             diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])
-            perc_cond = np.where(diff_cond > np.percentile(diff_cond, 85))
-            water_entry_index = perc_cond[0][0]
+            perc_cond = np.where(diff_cond > np.percentile(diff_cond, 95))
+            perc_cond_begin = np.where(diff_cond[:round(len(diff_cond)*0.3)] > np.percentile(diff_cond, 99))
+            if len(perc_cond_begin[0]) > 0:
+                water_entry_index = perc_cond_begin[0][-1] + 1
+            else:
+                water_entry_index = perc_cond[0][0]
             submerged_index = perc_cond[0][0]
             for i in range(len(perc_cond[0])-1):
                 if perc_cond[0][i+1] - perc_cond[0][i] != 1:
@@ -234,10 +235,8 @@ class ctd:
                 self.water_entry_index = water_entry_index - 1
             if len(self.data["Press"]) > submerged_index > 0:
                 self.submerged_index = submerged_index + 1
-                
 
         self.bottom_of_profile_index = np.argmax(self.data["Press"]) - remove_timesteps
-
         if self.water_entry_index > 0:
             self.air_press = np.nanmean(self.data["Press"][0:self.water_entry_index])
         else:
