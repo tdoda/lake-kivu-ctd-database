@@ -39,7 +39,10 @@ def check_valid_profile(data, value):
         return True
     else:
         return False
-    
+
+
+def strip_metadata(metadata):
+    return metadata.replace(" ", "").split(":")[1]
 
 
 def fixed_grid_resample_guide(data, grid):

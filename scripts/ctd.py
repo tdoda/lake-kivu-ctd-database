@@ -10,7 +10,7 @@ from copy import deepcopy
 from envass import qualityassurance
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resample_guide,resample,index_of_max,position_in_array,round_to_days,advanced_quality_flags,json_converter,log,error,find_closest_index,is_number,isnt_number,first_centered_differences,default_salinity_temperature,salinity,density,Gamma_adiabatic,mask_single_data,potential_temperature,oxygen_saturation,parse_file,rename_duplicates,check_variable,parse_time,parse_chl
+from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resample_guide,resample,index_of_max,position_in_array,round_to_days,advanced_quality_flags,json_converter,log,error,find_closest_index,is_number,isnt_number,first_centered_differences,default_salinity_temperature,salinity,density,Gamma_adiabatic,mask_single_data,potential_temperature,oxygen_saturation,parse_file,rename_duplicates,check_variable,parse_time,parse_chl, strip_metadata
 from scipy import interpolate
 import seawater as sw
 import re as re
@@ -31,7 +31,9 @@ class ctd:
             "history": "See history on Renku",
             "conventions": "CF 1.7",
             "comment": "CTD profiles for Lake Kivu ",
-            "title": "Lake Kivu CTD"
+            "title": "Lake Kivu CTD",
+            "latitude": "-1.850964",
+            "longitude": "29.208903",
         }
 
         self.dimensions = {
@@ -185,31 +187,29 @@ class ctd:
         with open(infile, 'r', encoding="utf8", errors='ignore') as f:
             first_line = f.readline()
             if "Meta Data" in first_line:
-                line_numbers = [0,1,2,3,4,5,6,7,8,9,10,11,12,13]
+                line_numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
                 lines = []
                 for i, line in enumerate(f):
                     if i in line_numbers:
                         lines.append(line.strip())
+                self.general_attributes["campaign_number"] = strip_metadata(lines[0])
+                self.general_attributes["profile_count"] = strip_metadata(lines[1])
+                self.general_attributes["profile"] = strip_metadata(lines[2])
+                self.general_attributes["date"] = strip_metadata(lines[3])
+                self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
+                self.general_attributes["rope_length"] = strip_metadata(lines[7])
+                self.general_attributes["max_depth"] = strip_metadata(lines[8])
+                self.general_attributes["file_name"] = strip_metadata(lines[9])
+                self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
+                self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
+                    lines[11]) + " (9): " + strip_metadata(lines[12]) + " (4): " + strip_metadata(lines[13])
 
-                self.general_attributes["campaign_number"]     = lines[0].replace(" ", "")
-                self.general_attributes["profile_count"]       = lines[1].replace(" ", "")
-                self.general_attributes["profile"]             = lines[2].replace(" ", "")
-                self.general_attributes["date"]                = lines[3].replace(" ", "")
-                self.general_attributes["distance_to_GEF"]     = lines[6].replace(" ", "")
-                self.general_attributes["rope_length"]         = lines[7].replace(" ", "")
-                self.general_attributes["max_depth"]           = lines[8].replace(" ", "")
-                self.general_attributes["file_name"]           = lines[9].replace(" ", "")
-                self.general_attributes["purpose_of_sampling"] = lines[10].replace(" ", "")
-                self.general_attributes["pH_calibration"]      = (lines[11].replace(" ", ""),
-                                                                  lines[12].replace(" ", ""),
-                                                                  lines[13].replace(" ", ""))      
-                pattern     = ".*" + ":"
-                latitude    = lines[4].replace(" ", "")
-                latitude    = float(re.sub(pattern, '', latitude))
-                longitude   = lines[5].replace(" ", "")
-                longitude   = float(re.sub(pattern, '', longitude))
-                self.general_attributes["latitude"] = latitude
-                self.general_attributes["longitude"] = longitude
+                latitude = float(strip_metadata(lines[4]))
+                longitude = float(strip_metadata(lines[5]))
+                if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
+                    self.general_attributes["latitude"] = latitude
+                    self.general_attributes["longitude"] = longitude
+                    print("Here")
 
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)
@@ -219,9 +219,11 @@ class ctd:
         self.bottom_of_profile_index = len(self.data["Press"])
 
         if not np.isnan(self.data["Cond"]).all():
+            max_start = np.where(self.data["Press"] > np.nanmin(self.data["Press"]) + 1)[0][0]
             diff_cond = first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"])
             perc_cond = np.where(diff_cond > np.percentile(diff_cond, 95))
-            perc_cond_begin = np.where(diff_cond[:round(len(diff_cond)*0.3)] > np.percentile(diff_cond, 99))
+            perc_cond_begin = np.where(diff_cond[:max_start] > np.percentile(diff_cond, 95))
+
             if len(perc_cond_begin[0]) > 0:
                 water_entry_index = perc_cond_begin[0][-1] + 1
             else:
