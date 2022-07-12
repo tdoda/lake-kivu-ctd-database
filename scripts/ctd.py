@@ -209,7 +209,6 @@ class ctd:
                 if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
                     self.general_attributes["latitude"] = latitude
                     self.general_attributes["longitude"] = longitude
-                    print("Here")
 
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)

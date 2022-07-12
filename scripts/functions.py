@@ -240,7 +240,7 @@ def potential_temperature(T, S, p, z, lat=46.2):
             intGamma[i] = np.trapz(Gamma0[0:i + 1], x=z[0:i + 1])
         pt1 = T + intGamma
         j += 1
-        if j > 100 or np.nanmax(np.abs(pt1 - pt0)) < 1e-4:
+        if j > 100 or np.nanmax(np.abs(pt1 - pt0)) < 1e-3:
             iterate = False
         else:
             pt0 = np.copy(pt1)
