@@ -35,7 +35,7 @@ def is_number(n):
 
 
 def check_valid_profile(data, value):
-    if np.nanmax(data) > value:
+    if float(np.nanmax(data)) > float(value):
         return True
     else:
         return False

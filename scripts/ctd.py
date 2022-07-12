@@ -112,6 +112,7 @@ class ctd:
             return False
 
         df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
+        df = df.drop_duplicates()
         df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
 
         if math.isnan(df.Cond.iloc[-1]):
@@ -183,7 +184,7 @@ class ctd:
         Outputs: 
             Adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
         """
-        
+
         with open(infile, 'r', encoding="utf8", errors='ignore') as f:
             first_line = f.readline()
             if "Meta Data" in first_line:
@@ -209,6 +210,9 @@ class ctd:
                 if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
                     self.general_attributes["latitude"] = latitude
                     self.general_attributes["longitude"] = longitude
+                else:
+                    print(latitude, longitude)
+                    exit()
 
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)

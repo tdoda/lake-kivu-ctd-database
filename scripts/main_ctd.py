@@ -23,7 +23,6 @@ for file in files:
         CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
         CTD.extract_profile()
         CTD.quality_assurance(directories["quality_assurance"])
-        CTD.to_netcdf(directories["Level1_dir"], "L1")
         if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
             CTD.quality_assurance(directories["quality_assurance"])
             CTD.to_netcdf(directories["Level2A_dir"], "L2A")
