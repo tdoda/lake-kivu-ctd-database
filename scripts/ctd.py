@@ -59,7 +59,7 @@ class ctd:
             "pt": {'var_name': "pt", 'dim': ('time',), 'unit': 'degC', 'longname': "Potential Temperature", },
             "prho": {'var_name': "prho", 'dim': ('time',), 'unit': 'kg/m3', 'longname': "Potential Density", },
             "thorpe": {'var_name': "thorpe", 'dim': ('time',), 'unit': 'm', 'longname': "Thorpe Displacements", },
-            "SALIN": {'var_name': 'SALIN', 'dim': ('time',), 'unit': ['PSU', 'ppt'], 'longname': 'salinity', }
+            "SALIN": {'var_name': 'SALIN', 'dim': ('time',), 'unit': 'PSU', 'longname': 'salinity', }
         }
 
         self.grid_dimensions = {
@@ -71,18 +71,18 @@ class ctd:
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             "depth": {'var_name': "depth", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth", },
             "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
-            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': ('degC',"?C"), 'longname': 'temperature'},
+            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': 'temperature'},
             'Cond': {'var_name': 'Cond', 'dim': ('depth_ref', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
-            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_ref', 'time'), 'unit': ('g/l', 'g/L') , 'longname': 'chlorophyll A'},
+            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_ref', 'time'), 'unit': 'g/l', 'longname': 'chlorophyll A'},
             'Turb': {'var_name': 'Turb', 'dim': ('depth_ref', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
-            'pH': {'var_name': 'pH', 'dim': ('depth_ref', 'time'), 'unit': ('_','0_14'), 'longname': 'pH'},
+            'pH': {'var_name': 'pH', 'dim': ('depth_ref', 'time'), 'unit': '_', 'longname': 'pH'},
             'sat': {'var_name': 'sat', 'dim': ('depth_ref', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
             'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth_ref', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
             "rho": {'var_name': "rho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
             "pt": {'var_name': "pt", 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
             "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
-            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': ['PSU', 'ppt'], 'longname': 'salinity'},
+            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
         }
         
         self.data = {}

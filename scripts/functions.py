@@ -3,6 +3,7 @@ import json
 import math
 import numpy as np
 import pandas as pd
+import gsw
 import seawater as sw
 from shutil import copyfile
 from envass import qualityassurance
@@ -247,6 +248,14 @@ def potential_temperature(T, S, p, z, lat=46.2):
 
     PT[iif] = pt1
     return PT
+
+
+def potential_temperature_gsw(T, S, p):
+    return gsw.pt_from_t(S, T, p, 0)
+
+
+def potential_temperature_sw(T, S, p):
+    return False
 
 
 def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
