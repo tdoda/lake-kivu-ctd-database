@@ -10,11 +10,12 @@ from copy import deepcopy
 from envass import qualityassurance
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from functions import copyFiles,is_number,check_valid_profile,fixed_grid_resample_guide,resample,index_of_max,position_in_array,round_to_days,advanced_quality_flags,json_converter,log,error,find_closest_index,is_number,isnt_number,first_centered_differences,default_salinity_temperature,salinity,density,Gamma_adiabatic,mask_single_data,potential_temperature,oxygen_saturation,parse_file,rename_duplicates,check_variable,parse_time,parse_chl, strip_metadata
+from functions import *
 from scipy import interpolate
 import seawater as sw
 import re as re
 import matplotlib.pyplot as plt
+
 
 class ctd:
     def __init__(self):
@@ -90,49 +91,53 @@ class ctd:
 
     def read_raw_data(self, infile,):
         log("Reading data from {}".format(infile), indent=1)
-        with open(infile, encoding="utf8", errors='ignore') as f:
-            lines = f.readlines()
         try:
-            ref_date = datetime.timestamp(dateparser.parse(lines[2]))
-            log("Detected reference date {} on line 2".format(dateparser.parse(lines[2])), indent=2)
-        except:
-            log("Unable to convert date fom line 2", indent=2)
-            ref_date = False
-        if ref_date == False:
+            with open(infile, encoding="utf8", errors='ignore') as f:
+                lines = f.readlines()
             try:
-                ref_date = datetime.timestamp(dateparser.parse(lines[19]))
-                log("Detected reference date {} on line 20".format(dateparser.parse(lines[19])), indent=2)
+                ref_date = datetime.timestamp(dateparser.parse(lines[2]))
+                log("Detected reference date {} on line 2".format(dateparser.parse(lines[2])), indent=2)
             except:
-                log("Unable to convert date from line 20", indent=2)
+                log("Unable to convert date fom line 2", indent=2)
                 ref_date = False
+            if ref_date == False:
+                try:
+                    ref_date = datetime.timestamp(dateparser.parse(lines[19]))
+                    log("Detected reference date {} on line 20".format(dateparser.parse(lines[19])), indent=2)
+                except:
+                    log("Unable to convert date from line 20", indent=2)
+                    ref_date = False
 
-        skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines")
+            skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines")
 
-        if valid == False:
+            if valid == False:
+                return False
+
+            df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
+            df = df.drop_duplicates()
+            df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
+
+            if math.isnan(df.Cond.iloc[-1]):
+                df.drop(index=df.index[-1], axis=0, inplace=True)
+
+            for variable in self.variables:
+                if "function" in self.variables[variable]:
+                    self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
+                elif variable in df.columns:
+                    self.data[variable] = np.array(df[variable].values)
+                else:
+                    self.data[variable] = np.array([np.nan] * len(df))
+
+            if self.data["time"][0] > datetime.utcnow().timestamp():
+                return False
+
+            if not check_valid_profile(self.data["Press"], 3):
+                return False
+
+            return True
+        except:
+            log("Failed to parse raw data from file {}".format(infile), indent=1)
             return False
-
-        df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
-        df = df.drop_duplicates()
-        df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
-
-        if math.isnan(df.Cond.iloc[-1]):
-            df.drop(index=df.index[-1], axis=0, inplace=True)
-
-        for variable in self.variables:
-            if "function" in self.variables[variable]:
-                self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
-            elif variable in df.columns:
-                self.data[variable] = np.array(df[variable].values)
-            else:
-                self.data[variable] = np.array([np.nan] * len(df))
-
-        if self.data["time"][0] > datetime.utcnow().timestamp():
-            return False
-
-        if not check_valid_profile(self.data["Press"], 3): 
-            return False
-        
-        return True
 
     def extract_water_level(self, path, reference_depth, time_label="time"):
         """"
@@ -210,9 +215,11 @@ class ctd:
                 if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
                     self.general_attributes["latitude"] = latitude
                     self.general_attributes["longitude"] = longitude
+                elif (1.520405 < latitude < 2.555959) and (28.737987 < longitude < 29.501541):
+                    self.general_attributes["latitude"] = -latitude
+                    self.general_attributes["longitude"] = longitude
                 else:
-                    print(latitude, longitude)
-                    exit()
+                    log("Latitude and longitude fall outside lake bounds.")
 
     def extract_profile(self, remove_timesteps=3):
         log("Extracting profile...", indent=1)
@@ -424,7 +431,7 @@ class ctd:
 
         try:
             log("Calculating potential temperature...", indent=2)
-            self.data["pt"] = potential_temperature(data["Temp"], self.data["SALIN"], data["adj_press"], self.data["depth"], lat) 
+            self.data["pt"]  = potential_temperature_sw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature")

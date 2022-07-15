@@ -5,9 +5,6 @@
 # Level 0 output directory
 Level0_dir: "../data/Level0/"
 
-# Level 1B output directory
-Level1_dir: "../data/Level1/"
-
 # Level 2A output directory
 Level2A_dir: "../data/Level2A/"
 

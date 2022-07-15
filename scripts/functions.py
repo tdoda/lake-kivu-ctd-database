@@ -254,8 +254,25 @@ def potential_temperature_gsw(T, S, p):
     return gsw.pt_from_t(S, T, p, 0)
 
 
-def potential_temperature_sw(T, S, p):
-    return False
+def potential_temperature_sw(T, S, p, p_ref):
+    """
+    Calculates potential temperature as per UNESCO 1983 report.
+    Parameters
+    ----------
+    s(p) : array_like
+        salinity [psu (PSS-78)]
+    t(p) : array_like
+        temperature [℃ (ITS-90)]
+    p : array_like
+        pressure [db].
+    pr : array_like
+        reference pressure [db], default = 0
+    Returns
+    -------
+    pt : array_like
+        potential temperature relative to PR [℃ (ITS-90)]
+    """
+    return sw.ptmp(s=S,t=T,p=p,pr=p_ref)
 
 
 def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
@@ -394,11 +411,25 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,):
                     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
                         arr = list(
                             datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = variable
+                    df["time"] = arr
                     return df
                 except:
-                    log("Datetime file parse failed")
-                    raise
+                    datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format="%d-%b-%y %H:%M:%S")
+                    try:
+                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(
+                            hours=12)
+                    except:
+                        pass
+                    idx = np.argmin(np.diff(datetime_arr))
+                    if np.diff(datetime_arr)[idx].astype("float") < 0:
+                        datetime_arr[idx + 1:] = np.copy(datetime_arr[idx + 1:] + timedelta(hours=12))
+                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+                    if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
+                        arr = list(
+                            datetime_arr.values.astype(float) / 10 ** 9)
+                    df["time"] = arr
+                    return df
+
             else:
                 del columns[-1]
                 columns.insert(columns.index("IntT")+1, 0)
