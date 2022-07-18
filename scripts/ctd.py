@@ -70,7 +70,6 @@ class ctd:
         
         self.grid_variables = {
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
-            "depth": {'var_name': "depth", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth", },
             "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
             'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': 'temperature'},
             'Cond': {'var_name': 'Cond', 'dim': ('depth_ref', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
@@ -376,9 +375,8 @@ class ctd:
         log("Resampling profile to fixed grid...", indent=2)
         self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [np.nanmin(self.data[time_label])]
-        self.grid["depth"] = self.data["depth"]
         for key, values in self.grid_variables.items():
-            if key not in self.grid_dimensions and "depth" not in key:
+            if key not in self.grid_dimensions:
                 mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
                 depths_ref = self.data["depth_ref"][mask]
                 data = self.data[key][mask]
