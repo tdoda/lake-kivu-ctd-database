@@ -28,4 +28,4 @@ for file in files:
             CTD.to_netcdf(directories["Level2A_dir"], "L2A")
             CTD.mask_data()
             CTD.profile_to_timeseries_grid()
-            CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="yearly", grid=True)
+            CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
