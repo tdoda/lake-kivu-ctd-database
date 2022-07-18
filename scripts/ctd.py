@@ -376,8 +376,9 @@ class ctd:
         log("Resampling profile to fixed grid...", indent=2)
         self.grid["depth_ref"] = self.fixed_depths_ref
         self.grid["time"] = [np.nanmin(self.data[time_label])]
+        self.grid["depth"] = self.data["depth"]
         for key, values in self.grid_variables.items():
-            if key not in self.grid_dimensions:
+            if key not in self.grid_dimensions and "depth" not in key:
                 mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
                 depths_ref = self.data["depth_ref"][mask]
                 data = self.data[key][mask]
