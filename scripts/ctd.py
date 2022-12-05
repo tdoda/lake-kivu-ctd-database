@@ -88,7 +88,7 @@ class ctd:
         self.data = {}
         self.grid = {}
 
-    def read_raw_data(self, infile,):
+    def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
         log("Reading data from {}".format(infile), indent=1)
         try:
             with open(infile, encoding="utf8", errors='ignore') as f:
@@ -110,6 +110,7 @@ class ctd:
             skip_rows, columns, units, valid, date_format = parse_file(infile, "Lines")
 
             if valid == False:
+                log("Parse file failed.", indent=1)
                 return False
 
             df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
@@ -127,10 +128,12 @@ class ctd:
                 else:
                     self.data[variable] = np.array([np.nan] * len(df))
 
-            if self.data["time"][0] > datetime.utcnow().timestamp():
+            if self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp():
+                log("Time outside of project time range.", indent=1)
                 return False
 
             if not check_valid_profile(self.data["Press"], 3):
+                log("Invalid profile", indent=1)
                 return False
 
             return True
@@ -177,7 +180,7 @@ class ctd:
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
             f = interpolate.interp1d(x, y)
-            ynew = f(xnew)  
+            ynew = f(xnew)
             self.depth_value = reference_depth - ynew
 
     def extract_meta_data(self, infile,):

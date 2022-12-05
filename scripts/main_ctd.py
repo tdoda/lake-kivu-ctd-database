@@ -2,6 +2,7 @@
 import os
 import yaml
 from ctd import ctd
+from datetime import datetime
 
 lake_info = {"lat": -2, "alt": 1462}
 lake_level = "../data/lake_level/c_gls.json"
@@ -16,9 +17,11 @@ for directory in directories.values():
 files = os.listdir(directories["Level0_dir"])
 files.sort()
 
+failed = []
+
 for file in files:
     CTD = ctd()
-    if CTD.read_raw_data(os.path.join(directories["Level0_dir"], file)):
+    if CTD.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18)):
         CTD.extract_water_level(lake_level, lake_info["alt"])
         CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
         CTD.extract_profile()
@@ -29,3 +32,8 @@ for file in files:
             CTD.mask_data()
             CTD.profile_to_timeseries_grid()
             CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+    else:
+        failed.append(file)
+
+print(failed)
+

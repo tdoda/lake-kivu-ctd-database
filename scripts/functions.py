@@ -498,7 +498,11 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,):
                 df.columns = columns
                 units.insert(columns.index(0), 0) #adjusting units
                 try:
-                    datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
+                    try:
+                        datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
+                    except:
+                        datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format="%d-%b-%y %H:%M:%S",
+                                                      dayfirst=True)
                     try:
                         datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
                     except: pass
@@ -534,7 +538,25 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,):
                 return df
             except:
                 log("Datetime file parse failed")
-                raise 
+                raise
+        elif "IntD" in columns and "IntD1" in columns:
+            try:
+                datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntD1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
+                df["time"] = datetime_arr
+                return df
+            except:
+                log("Datetime file parse failed")
+                raise
+        elif "IntT" in columns and "IntT1" in columns:
+            try:
+                datetime_arr = pd.to_datetime(df["IntT"] + " " + df["IntT1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
+                df["time"] = datetime_arr
+                return df
+            except:
+                log("Datetime file parse failed")
+                raise
+        else:
+            raise ValueError("Cannot process unrecognised file.")
     
 
     
