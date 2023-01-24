@@ -343,6 +343,10 @@ vignettes/*.pdf
 # R package: bookdown caching files
 /*_files/
 
+
+# netCDF files
+*.nc
+
 ### Vim ###
 # Swap
 [._]*.s[a-v][a-z]
