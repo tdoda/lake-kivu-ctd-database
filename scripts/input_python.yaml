@@ -6,9 +6,11 @@
 Level0_dir: "../data/Level0/"
 
 # Level 2A output directory
-Level2A_dir: "../data/Level2A/"
+#Level2A_dir: "../data/Level2A/"
+Level2A_dir: "../data/Level2A_TD/"
 
 # Level 2B output directory
-Level2B_dir: "../data/Level2B/"
+#Level2B_dir: "../data/Level2B/"
+Level2B_dir: "../data/Level2B_TD/"
 
 quality_assurance: "../quality_assurance.json"

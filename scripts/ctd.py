@@ -8,7 +8,7 @@ import pandas as pd
 import math
 from copy import deepcopy
 from envass import qualityassurance
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from functions import *
 from scipy import interpolate
@@ -116,7 +116,6 @@ class ctd:
             df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
             df = df.drop_duplicates()
             df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
-
             if math.isnan(df.Cond.iloc[-1]):
                 df.drop(index=df.index[-1], axis=0, inplace=True)
 
@@ -130,7 +129,12 @@ class ctd:
 
             if self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp():
                 log("Time outside of project time range.", indent=1)
-                return False
+                if datetime.utcfromtimestamp(self.data["time"][0]).year==2004:
+                    log("Change year 2004 into 2008.", indent=1)
+                    tdate=[datetime.utcfromtimestamp(self.data["time"][i]) for i in np.arange(0,len(self.data["time"]),1)]
+                    self.data["time"]=np.array([datetime(2008,tdate[i].month,tdate[i].day,tdate[i].hour,tdate[i].minute,tdate[i].second).replace(tzinfo=timezone.utc).timestamp() for i in np.arange(0,len(self.data["time"]),1)])
+                else:
+                    return False
 
             if not check_valid_profile(self.data["Press"], 3):
                 log("Invalid profile", indent=1)
@@ -180,7 +184,12 @@ class ctd:
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
             f = interpolate.interp1d(x, y)
-            ynew = f(xnew)
+            ynew = f(xnew) # Water level at the time of the measurements
+            
+            # Difference between the reference water level and the actual water level 
+            # (>0 if the level is lower than the reference), which must be 
+            # added to the depth data to get the depth with respect to the reference
+            # water level:
             self.depth_value = reference_depth - ynew
 
     def extract_meta_data(self, infile,):

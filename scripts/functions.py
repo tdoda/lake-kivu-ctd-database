@@ -8,6 +8,7 @@ import seawater as sw
 from shutil import copyfile
 from envass import qualityassurance
 from datetime import datetime, timedelta
+import time
 
 
 def copyFiles(outfolder, infolder):
@@ -373,190 +374,346 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,):
         Dataframe with adjusted column headers.
     """  
     AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
-    res = [ele for ele in AM_PM if(ele in df.values)]
+    res = [ele for ele in AM_PM if(ele in df.values)] # Check if AM or PM or similar is present in the file
+    if "IntD" in columns and "IntT" in columns:     
+        df=df.rename(columns = {'IntD':'Date', 'IntT':'Time'})
+        columns[columns.index('IntD')]='Date'
+        columns[columns.index('IntT')]='Time'
+    elif "IntDT" in columns and "IntDT1" in columns:
+        df=df.rename(columns = {'IntDT':'Date', 'IntDT1':'Time'})
+        columns[columns.index('IntDT')]='Date'
+        columns[columns.index('IntDT1')]='Time'
+    elif "IntT" in columns and "IntT1" in columns:
+        df=df.rename(columns = {'IntT':'Date', 'IntT1':'Time'})
+        columns[columns.index('IntT')]='Date'
+        columns[columns.index('IntT1')]='Time'
+    elif "IntD" in columns and "IntD1" in columns:
+        df=df.rename(columns = {'IntD':'Date', 'IntD1':'Time'})
+        columns[columns.index('IntD')]='Date'
+        columns[columns.index('IntD1')]='Time'
+    else:
+        raise ValueError("Cannot process unrecognised file.")
+        
     if bool(res)==True:
-        dateformat="%m/%d/%Y %H:%M:%S"       
-        if "IntD" in columns and "IntT" in columns:            
-            if bool([ele for ele in AM_PM if(ele in list(df["IntD"]))])==True:
-                del columns[-1]
-                columns.insert(columns.index("IntD"), 0) 
-                df.columns = columns
-                try:
-                    datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-                    try:
-                        datetime_arr[df[df["IntD"] == "PM"].index] = datetime_arr[df[df["IntD"] == "PM"].index] + timedelta(hours=12)
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    log("Datetime file parse failed")
-                    raise
-            if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
-                try:
-                    datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12)
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format="%d-%b-%y %H:%M:%S")
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(
-                            hours=12)
-                    except:
-                        pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float") < 0:
-                        datetime_arr[idx + 1:] = np.copy(datetime_arr[idx + 1:] + timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-
-            else:
-                del columns[-1]
-                columns.insert(columns.index("IntT")+1, 0)
-                df.columns = columns
-                units.insert(columns.index(0), 0)
-                try:
-                    datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    log("Datetime file parse failed")
-                    raise
-        if "IntDT" in columns and "IntDT1" in columns:
-            if bool([ele for ele in AM_PM if(ele in list(df["IntDT1"]))])==True:
-                del columns[-1]
-                columns.insert(columns.index("IntDT1"), 0) 
-                df.columns=columns
-                try:
-                    datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    log("Datetime file parse failed")
-                    raise
-            if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:   
-                try:
-                    datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    log("Datetime file parse failed")
-                    raise
-            else:
-                del columns[-1]
-                columns.insert(columns.index("IntDT1")+1, 0)
-                df.columns = columns
-                units.insert(columns.index(0), 0) #adjusting units
-                try:
-                    try:
-                        datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
-                    except:
-                        datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format="%d-%b-%y %H:%M:%S",
-                                                      dayfirst=True)
-                    try:
-                        datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-                    except: pass
-                    idx = np.argmin(np.diff(datetime_arr))
-                    if np.diff(datetime_arr)[idx].astype("float")<0:
-                        datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-                    arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                    if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                        arr = list(
-                            datetime_arr.values.astype(float) / 10 ** 9)
-                    df["time"] = arr
-                    return df
-                except:
-                    log("Datetime file parse failed")
-                    raise              
-    else: 
-        if "IntDT" in columns and "IntDT1" in columns:
+        dateformat="%m/%d/%Y %H:%M:%S"
+            
+        if bool([ele for ele in AM_PM if(ele in list(df["Time"]))])==True:
+            df=df.rename(columns = {'Date':'Time', 'Time':'Date'}) # reverse time and date
+            ind_date=columns.index('Date')
+            ind_time=columns.index('Time')
+            columns[ind_date]='Time'
+            columns[ind_time]='Date'
+        
+        if bool([ele for ele in AM_PM if(ele in list(df["Date"]))])==True:  
+            del columns[-1]
+            columns.insert(columns.index("Date"), 0) 
+            df.columns = columns
+            if "?" in str([ele for ele in AM_PM if(ele in list(df["Date"]))]):
+                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
             try:
-                arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
+                datetime_arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat, dayfirst=True)
+                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=False).values.astype(float) / 10 ** 9)
+                    arr = list(
+                        datetime_arr.values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
-            except:
+            except Exception:
+                log("Datetime file parse failed")
+                raise
+        
+        if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
+            if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+            try:
+                datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(
+                        datetime_arr.values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
+            except Exception:
+                datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
+                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
+                    arr = list(
+                        datetime_arr.values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
+
+        else:
+            del columns[-1]
+            columns.insert(columns.index("Time")+1, 0)
+            df.columns = columns
+            units.insert(columns.index(0), 0)
+            if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+
+            try:
+                try:
+                    datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+                except Exception:
+                    try:
+                        datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
+                    except Exception:
+                        datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%Y-%m-%d %I:%M:%S %p")
+                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(
+                        datetime_arr.values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
+            except Exception:
+                breakpoint()
+                log("Datetime file parse failed")
+                raise
+    else:          
+            try:
+                arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True).values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=False).values.astype(float) / 10 ** 9)
+                df["time"] = arr
+                return df
+            except Exception:
+                breakpoint() # Possibility of error: date and time are reversed:
+                # arr = pd.to_datetime(df["Date"] + " " + df["Time"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
                 log("Datetime file parse failed")
                 raise    
-        elif "IntD" in columns and "IntT" in columns:
-            try:
-                arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except:
-                log("Datetime file parse failed")
-                raise
-        elif "IntD" in columns and "IntD1" in columns:
-            try:
-                datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntD1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-                df["time"] = datetime_arr
-                return df
-            except:
-                log("Datetime file parse failed")
-                raise
-        elif "IntT" in columns and "IntT1" in columns:
-            try:
-                datetime_arr = pd.to_datetime(df["IntT"] + " " + df["IntT1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-                df["time"] = datetime_arr
-                return df
-            except:
-                log("Datetime file parse failed")
-                raise
-        else:
-            raise ValueError("Cannot process unrecognised file.")
+        
+         
+    #--------------------------------------------------
+    # Previous code:      
+                
+        
+    #     if "IntD" in columns and "IntT" in columns:            
+    #         if bool([ele for ele in AM_PM if(ele in list(df["IntD"]))])==True:
+    #             input("Press Enter to continue...")
+    #             breakpoint()
+    #             del columns[-1]
+    #             columns.insert(columns.index("IntD"), 0) 
+    #             df.columns = columns
+    #             try:
+    #                 #datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                 datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
+    #                 try:
+    #                     datetime_arr[df[df["IntD"] == "PM"].index] = datetime_arr[df[df["IntD"] == "PM"].index] + timedelta(hours=12)
+    #                 except: pass
+    #                 idx = np.argmin(np.diff(datetime_arr))
+    #                 if np.diff(datetime_arr)[idx].astype("float")<0:
+    #                     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 log("Datetime file parse failed")
+    #                 raise
+    #         if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
+    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+    #                 # for k_row in df.index: # Remove ? and .
+    #                 #     timestr=df.loc[k_row,0]
+    #                 #     timestr=timestr.replace('?','')
+    #                 #     timestr=timestr.replace('.','')
+    #                 #     df.loc[k_row,0]=timestr
+    #             try:
+    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12)
+    #                 # except: pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
+    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
+    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format="%d-%b-%y %H:%M:%S")
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(
+    #                 #         hours=12)
+    #                 # except:
+    #                 #     pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float") < 0:
+    #                 #     datetime_arr[idx + 1:] = np.copy(datetime_arr[idx + 1:] + timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+
+    #         else:
+    #             del columns[-1]
+    #             columns.insert(columns.index("IntT")+1, 0)
+    #             df.columns = columns
+    #             units.insert(columns.index(0), 0)
+    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+    #                 # for k_row in df.index: # Remove ? and .
+    #                 #     timestr=df.loc[k_row,0]
+    #                 #     timestr=timestr.replace('?','')
+    #                 #     timestr=timestr.replace('.','')
+    #                 #     df.loc[k_row,0]=timestr
+    #             try:
+    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
+    #                 # except: pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
+    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 log("Datetime file parse failed")
+    #                 raise
+        
+    #     if "IntDT" in columns and "IntDT1" in columns:
+    #         if bool([ele for ele in AM_PM if(ele in list(df["IntDT1"]))])==True:
+    #             del columns[-1]
+    #             columns.insert(columns.index("IntDT1"), 0) 
+    #             df.columns=columns
+    #             if "?" in str([ele for ele in AM_PM if(ele in list(df["IntDT1"]))]):
+    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+    #                 # for k_row in df.index: # Remove ? and .
+    #                 #     timestr=df.loc[k_row,0]
+    #                 #     timestr=timestr.replace('?','')
+    #                 #     timestr=timestr.replace('.','')
+    #                 #     df.loc[k_row,0]=timestr
+    #             try:
+    #                 datetime_arr = pd.to_datetime(df["IntDT1"]+" "+df["IntDT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                 # datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
+    #                 # except: pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
+    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 log("Datetime file parse failed")
+    #                 raise
+    #         if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
+    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+    #                 # for k_row in df.index: # Remove ? and .
+    #                 #     timestr=df.loc[k_row,0]
+    #                 #     timestr=timestr.replace('?','')
+    #                 #     timestr=timestr.replace('.','')
+    #                 #     df.loc[k_row,0]=timestr
+    #             try:
+    #                 datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                 # datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
+    #                 # except: pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float")<0: #Negative time due to change of day?
+    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 log("Datetime file parse failed")
+    #                 raise
+    #         else:
+    #             del columns[-1]
+    #             columns.insert(columns.index("IntDT1")+1, 0)
+    #             df.columns = columns
+    #             units.insert(columns.index(0), 0) #adjusting units
+    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
+    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
+    #                 # for k_row in df.index: # Remove ? and .
+    #                 #     timestr=df.loc[k_row,0]
+    #                 #     timestr=timestr.replace('?','')
+    #                 #     timestr=timestr.replace('.','')
+    #                 #     df.loc[k_row,0]=timestr
+    #             try:
+    #                 try:
+    #                     datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
+    #                     #datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
+    #                 except:
+    #                     datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
+    #                     # datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format="%d-%b-%y %H:%M:%S",
+    #                                                   # dayfirst=True)
+    #                 # try:
+    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
+    #                 # except: pass
+    #                 # idx = np.argmin(np.diff(datetime_arr))
+    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
+    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
+    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
+    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                     arr = list(
+    #                         datetime_arr.values.astype(float) / 10 ** 9)
+    #                 df["time"] = arr
+    #                 return df
+    #             except:
+    #                 log("Datetime file parse failed")
+    #                 raise              
+        
+    # else: 
+    #     if "IntDT" in columns and "IntDT1" in columns:
+    #         try:
+    #             arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
+    #             if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                 arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=False).values.astype(float) / 10 ** 9)
+    #             df["time"] = arr
+    #             return df
+    #         except:
+    #             log("Datetime file parse failed")
+    #             raise    
+    #     elif "IntD" in columns and "IntT" in columns:
+    #         try:
+    #             arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
+    #             if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+    #                 arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
+    #             df["time"] = arr
+    #             return df
+    #         except:
+    #             log("Datetime file parse failed")
+    #             raise
+    #     elif "IntD" in columns and "IntD1" in columns:
+    #         try:
+    #             datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntD1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
+    #             df["time"] = datetime_arr
+    #             return df
+    #         except:
+    #             log("Datetime file parse failed")
+    #             raise
+    #     elif "IntT" in columns and "IntT1" in columns:
+    #         try:
+    #             datetime_arr = pd.to_datetime(df["IntT"] + " " + df["IntT1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
+    #             df["time"] = datetime_arr
+    #             return df
+    #         except:
+    #             log("Datetime file parse failed")
+    #             raise
+    #     else:
+    #         raise ValueError("Cannot process unrecognised file.")
     
 
     
