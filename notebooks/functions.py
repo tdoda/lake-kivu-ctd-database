@@ -114,4 +114,40 @@ def update_log(quality_assurance_dict,old_quality_assurance_dict,var_name):
         log(str(added_test) + " tests have been added to variable " +str(var))
     if len(removed_test)!=0:
         log(str(removed_test) + " tests have been removed to variable " +str(var))
+        
+def density(temperature, salinity,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
+    # C_CH4 and C_CO2 must be provided in g/L
+    rho = 1e3 * (
+                0.9998395 + 6.7914e-5 * temperature - 9.0894e-6 * temperature ** 2 + 1.0171e-7 * temperature ** 3 -
+                1.2846e-9 * temperature ** 4 + 1.1592e-11 * temperature ** 5 - 5.0125e-14 * temperature ** 6 + (
+                    8.181e-4 - 3.85e-6 * temperature + 4.96e-8 * temperature ** 2) * salinity)
+    # Approach: use the previous estimate of rho to calculate the next one (another option would be to use the same reference density for all estimates)
+    if isinstance(C_CH4,np.ndarray) or (not C_CH4==0):
+        rho=rho*(1+beta_CH4*C_CH4)
+        
+    if isinstance(C_CO2,np.ndarray) or (not C_CO2==0):
+        rho=rho*(1+beta_CO2*C_CO2) 
+        
+    return rho        
+	
+def first_centered_differences(x, y, fill=False): 
+    if x.size != y.size:
+        log("first-centered differences: vectors do not have the same size")
+    dy = np.full(x.size, np.nan)
+    iif = np.where((np.isfinite(x)) & (np.isfinite(y)))[0]
+    if iif.size == 0:
+        return dy
+    x0 = x[iif]
+    y0 = y[iif]
+    dy0 = np.full(x0.size, np.nan)
+    dy0[0] = (y0[1] - y0[0]) / (x0[1] - x0[0])
+    dy0[-1] = (y0[-1] - y0[-2]) / (x0[-1] - x0[-2])
+    dy0[1:-1] = (y0[2:] - y0[0:-2]) / (x0[2:] - x0[0:-2])
+
+    dy[iif] = dy0
+
+    if fill:
+        dy[0:iif[0]] = dy[iif[0]]
+        dy[iif[-1] + 1:] = dy[iif[-1]]
+    return dy
 
