@@ -9,6 +9,7 @@ from shutil import copyfile
 from envass import qualityassurance
 from datetime import datetime, timedelta
 import time
+from scipy.ndimage import uniform_filter1d
 
 
 def copyFiles(outfolder, infolder):
@@ -198,12 +199,27 @@ def salinity(Temp, Cond, y_cond, temperature_func= default_salinity_temperature)
     salin = y_cond * cond20
     return salin
 
-def density(temperature, salinity):
+def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
+    # C_CH4 and C_CO2 must be provided in g/L
     rho = 1e3 * (
                 0.9998395 + 6.7914e-5 * temperature - 9.0894e-6 * temperature ** 2 + 1.0171e-7 * temperature ** 3 -
                 1.2846e-9 * temperature ** 4 + 1.1592e-11 * temperature ** 5 - 5.0125e-14 * temperature ** 6 + (
                     8.181e-4 - 3.85e-6 * temperature + 4.96e-8 * temperature ** 2) * salinity)
+    # Approach: use the previous estimate of rho to calculate the next one (another option would be to use the same reference density for all estimates)
+    if isinstance(C_CH4,np.ndarray) or (not C_CH4==0):
+        rho=rho*(1+beta_CH4*C_CH4)
+        
+    if isinstance(C_CO2,np.ndarray) or (not C_CO2==0):
+        rho=rho*(1+beta_CO2*C_CO2) 
+        
+    if isinstance(press,np.ndarray) or (not press==0) and (len(press)==len(temperature)):
+        K=19652.17+148.113*temperature-2.293*temperature**2 + 1.256*1e-2*temperature**3\
+ -4.18*1e-5*temperature**4+(3.2726-2.147*1e-4*temperature+1.128*1e-4*temperature**2)*press/10+(53.238-0.313*temperature+5.728*1e-3*press/10)*salinity
+        rho=rho/(1-0.1*press/K)
+        
+        
     return rho
+
 
 
 def Gamma_adiabatic(T, S, p, lat=46.):
@@ -308,27 +324,39 @@ def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
 
 
 def parse_file(input_file_path, string):
-    
+    # Define the parameters used to read the files based on the data after the selected string
     valid = True
+    start_date=''
     with open(input_file_path, encoding="utf8", errors='ignore') as f:
         lines = f.readlines()
     for i in range(len(lines)):
+        if 'start_time' in lines[i]:
+            start_date_str=lines[i][lines[i].find("start_time")+13:lines[i].find("[Instrument")-1]
+            start_date=datetime.strptime(start_date_str,'%b %d %Y %H:%M:%S')
         if string in lines[i]:
             break
             print("yes")
-    date_format = "%m/%d/%Y %H:%M:%S"
-    columns = lines[i + 2].replace(";", "").split() 
-    columns.pop(0)
-    columns = rename_duplicates(columns)
-    units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
-    skip_rows = i + 5
-    n = 0
-    while len(lines[i + 5].split()) - 1 > len(columns):
-        columns.append(n)
-        n = n + 1
-    if len(lines) <= skip_rows + 1 or len(columns) < 5:
-        valid=False
-    return skip_rows, columns, units, valid, date_format, 
+    if input_file_path[-4:]=='.TOB':
+        date_format = "%m/%d/%Y %H:%M:%S"
+        columns = lines[i + 2].replace(";", "").split() 
+        columns.pop(0)
+        columns = rename_duplicates(columns)
+        units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
+        skip_rows = i + 5
+        n = 0
+        while len(lines[i + 5].split()) - 1 > len(columns):
+            columns.append(n)
+            n = n + 1
+        if len(lines) <= skip_rows + 1 or len(columns) < 5:
+            valid=False
+    elif input_file_path[-4:]=='.cnv':
+        skip_rows=i+1
+        # Should match the variable names and units of CTD class to save the variables
+        columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
+        units=['min','m','degC','_','mg/m^3','uS/cm','_']
+        valid=True
+        date_format='%b %d %Y %H:%M:%S'
+    return skip_rows, columns, units, valid, date_format, start_date, 
 
         
 def rename_duplicates(arr):
@@ -728,3 +756,27 @@ def parse_chl(df, variable, name, columns, units, ref_date, date_format):
         
     else:
         return [-999.] * len(df)
+
+def qa_std_moving(variable, window_size=15, factor=3, prior_flags=False):
+   """
+   Indicate outliers values based on std applied to moving average.
+   Parameters:
+       variable (np.array): Data array to which to apply the quality assurance
+       window_size (np.int): window size of data
+       factor (int): number n such that values higher than n*std are considered as outliers
+       prior_flags (np.array): An array of bools where True means non-trusted data
+   Returns:
+       flags (np.array): An array of bools where True means non-trusted data for this outlier dectection
+   """
+   if isinstance(prior_flags,np.ndarray): # Boolean array provided
+       flags = prior_flags
+   else: # No boolean array provided
+       flags=np.full(variable.shape,'False')
+
+   if len(variable) < window_size:
+       print("ERROR! Window size is larger than array length.")
+   else:
+       noise_data=abs(variable-uniform_filter1d(variable,size=window_size))
+       mask_std=noise_data>factor*np.std(noise_data)
+       flags=np.logical_or(flags,mask_std)
+   return flags
