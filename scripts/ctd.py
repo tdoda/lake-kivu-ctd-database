@@ -23,6 +23,9 @@ class ctd:
         self.water_entry_index = False
         self.bottom_of_profile_index = False
         self.air_press = False
+        self.cond_peak_first=False
+        self.cond_peak_last=False
+        self.air_meas=False
         self.submerged_index = False
         self.depth_value = 0
         self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
@@ -45,6 +48,7 @@ class ctd:
         self.variables = {
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             'Press': {'var_name':'Press', 'dim':('time',), 'unit': 'dbar', 'longname': 'pressure'},
+            'Depth_KW': {'var_name':'Depth_KW', 'dim':('time',), 'unit': 'm', 'longname': 'depth provided by Kivuwatt'},
             'Temp': {'var_name':'Temp', 'dim':('time',), 'unit': 'degC', 'longname': 'temperature'},
             'Cond': {'var_name': 'Cond', 'dim': ('time',), 'unit': 'mS/cm', 'longname': 'conductivity'},
             'Chl_A': {'var_name': 'Chl_A', 'dim': ('time',), 'unit': 'g/l', 'longname': 'chlorophyll A', "function": parse_chl},
@@ -66,26 +70,28 @@ class ctd:
 
         self.grid_dimensions = {
             'time': {'dim_name': 'time', 'dim_size': None},
-            "depth_ref": {'dim_name': "depth_ref", 'dim_size': None}
+            "depth_interp": {'dim_name': "depth_interp", 'dim_size': None}
         }
         
         self.grid_variables = {
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
-            'Press': {'var_name':'Press', 'dim':('depth_ref','time'), 'unit': 'dbar', 'longname': 'pressure'},
-            "depth": {'var_name': "depth", 'dim': ('depth_ref','time'), 'unit': 'm', 'longname': "Depth", },
-            "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_ref',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
-            'Temp': {'var_name': 'Temp', 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': 'temperature'},
-            'Cond': {'var_name': 'Cond', 'dim': ('depth_ref', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
-            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_ref', 'time'), 'unit': 'g/l', 'longname': 'chlorophyll A'},
-            'Turb': {'var_name': 'Turb', 'dim': ('depth_ref', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
-            'pH': {'var_name': 'pH', 'dim': ('depth_ref', 'time'), 'unit': '_', 'longname': 'pH'},
-            'sat': {'var_name': 'sat', 'dim': ('depth_ref', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
-            'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth_ref', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
-            "rho": {'var_name': "rho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
-            "pt": {'var_name': "pt", 'dim': ('depth_ref', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
-            "prho": {'var_name': "prho", 'dim': ('depth_ref', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
-            "thorpe": {'var_name': "thorpe", 'dim': ('depth_ref', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
-            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_ref', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
+            'Press': {'var_name':'Press', 'dim':('depth_interp','time'), 'unit': 'dbar', 'longname': 'pressure'},
+            'Depth_KW': {'var_name':'Depth_KW', 'dim':('time',), 'unit': 'm', 'longname': 'depth provided by Kivuwatt'},
+            "depth": {'var_name': "depth", 'dim': ('depth_interp','time'), 'unit': 'm', 'longname': "Depth", },
+            "depth_interp": {'var_name': "depth_interp", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Interpolated depth"},
+            "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
+            'Temp': {'var_name': 'Temp', 'dim': ('depth_interp', 'time'), 'unit': 'degC', 'longname': 'temperature'},
+            'Cond': {'var_name': 'Cond', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
+            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_interp', 'time'), 'unit': 'g/l', 'longname': 'chlorophyll A'},
+            'Turb': {'var_name': 'Turb', 'dim': ('depth_interp', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
+            'pH': {'var_name': 'pH', 'dim': ('depth_interp', 'time'), 'unit': '_', 'longname': 'pH'},
+            'sat': {'var_name': 'sat', 'dim': ('depth_interp', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
+            'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth_interp', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
+            "rho": {'var_name': "rho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
+            "pt": {'var_name': "pt", 'dim': ('depth_interp', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
+            "prho": {'var_name': "prho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
+            "thorpe": {'var_name': "thorpe", 'dim': ('depth_interp', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
+            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_interp', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
@@ -107,10 +113,13 @@ class ctd:
                 ref_date = False
             if ref_date == False:
                 try:
-                    ref_date = datetime.timestamp(dateparser.parse(lines[19]))
-                    log("Detected reference date {} on line 20".format(dateparser.parse(lines[19])), indent=2)
+                    for k in np.arange(len(lines)):
+                        if '.SPJ' in lines[k]:
+                            ref_date = datetime.timestamp(dateparser.parse(lines[k+1]))
+                            break
+                    log("Detected reference date {}".format(dateparser.parse(lines[k+1])), indent=2)
                 except:
-                    log("Unable to convert date from line 20", indent=2)
+                    log("Unable to get reference date", indent=2)
                     ref_date = False
 
             if infile[-4:]=='.TOB':
@@ -156,6 +165,7 @@ class ctd:
                 else:
                     return False
 
+
             if not check_valid_profile(self.data["Press"], 3):
                 log("Invalid profile", indent=1)
                 return False
@@ -163,6 +173,75 @@ class ctd:
             return True
         except:
             log("Failed to parse raw data from file {}".format(infile), indent=1)
+            return False
+        
+    def extract_meta_data_Kivuwatt(self, infile,):
+        """"
+        Function description: read the metadata file and add it to the general attributes.
+        Input: 
+            Metadata file
+        Output: 
+            None
+        """
+        log("Reading metadata...",indent=1)
+        df_meta=pd.read_csv(infile,sep=',',encoding='ISO-8859-1',header=0,names=['Profile_count','Date','Lat','Lon','Probe','Distance_GEF'],
+                              skiprows=[1],dtype={'Date':str})
+        self.general_attributes["profile_count"] = df_meta["Profile_count"].values
+        self.general_attributes["date"] = df_meta["Date"].values
+        self.general_attributes["distance_to_GEF"] = df_meta["Distance_GEF"].values
+        self.general_attributes["latitude"] = df_meta["Lat"].values
+        self.general_attributes["longitude"] = df_meta["Lon"].values
+
+    def split_profiles_Kivuwatt(self, df,CTD_meta,kprof,multip_cond=1,remove_botdist=1,remove_topdist=1):
+        ind_meta=np.where(CTD_meta.general_attributes["profile_count"]==kprof)[0][0]
+        bool_df=df["Profile"]==kprof
+        date_str=CTD_meta.general_attributes["date"][ind_meta]
+        self.general_attributes["profile_count"] = kprof
+        self.general_attributes["date"] = date_str
+        self.general_attributes["distance_to_GEF"] = CTD_meta.general_attributes["distance_to_GEF"][ind_meta]
+        self.general_attributes["latitude"] = CTD_meta.general_attributes["latitude"][ind_meta]
+        self.general_attributes["longitude"] = CTD_meta.general_attributes["longitude"][ind_meta]
+      
+        try: 
+            # Convert time into timestamps
+            date_str=CTD_meta.general_attributes["date"][ind_meta]
+            date_num=pd.to_datetime(date_str+' '+df.loc[bool_df,"Hour"]).astype(np.int64) // 10 ** 9
+            df_prof=df.loc[bool_df,:]
+            df_prof.insert(len(df_prof.columns),"Datetime",date_num)
+            
+            # Compute averages every second:
+            df_prof=df_prof.groupby(by="Datetime").mean(numeric_only=True)
+               
+            for variable in self.variables: 
+                if variable in df_prof.columns: 
+                    #data_val = np.array(df.loc[bool_df,variable].values)
+                    if variable=='Cond':
+                        data_val = np.array(df_prof.loc[:,variable].values*multip_cond)
+                    else:
+                        data_val = np.array(df_prof.loc[:,variable].values)
+                elif variable=='time':
+                    data_val=df_prof.index.to_numpy()
+                else: # Missing data
+                    data_val = np.array([np.nan] * len(df_prof.index))
+                
+                self.data[variable]=data_val
+
+            if not check_valid_profile(self.data["Press"], 3): # Check that pressure overcomes 3 dbar (i.e., profile deeper than 3 m)
+                log("Invalid profile", indent=1)
+                return False
+            
+            # Define top and bottom of the profile
+            self.water_entry_index=np.where(self.data["Depth_KW"]>remove_topdist)[0][0] # Always take water entry index at certain distance below air pressure to remove the upper surface layer
+            
+            if np.argmax(self.data["Press"])>0:
+                self.bottom_of_profile_index = np.where(self.data["Press"][0:np.argmax(self.data["Press"])]<=np.max(self.data["Press"])-remove_botdist)[0][-1]
+            else: 
+                log('Sinking part of the profile is missing', indent=1)
+                return False
+
+            return True
+        except Exception:
+            log("Failed to parse raw data from profile {}".format(kprof), indent=1)
             return False
 
     def extract_water_level(self, path, reference_depth, time_label="time"):
@@ -236,7 +315,6 @@ class ctd:
                 self.general_attributes["date"] = strip_metadata(lines[3])
                 self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
                 self.general_attributes["rope_length"] = strip_metadata(lines[7])
-                self.general_attributes["max_depth"] = strip_metadata(lines[8])
                 #self.general_attributes["file_name"] = strip_metadata(lines[9])
                 self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
                 self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
@@ -258,7 +336,7 @@ class ctd:
                 self.general_attributes["longitude"] = np.nan
                 
                 
-    def extract_profile(self, remove_distance=1,press_surface=100):
+    def extract_profile(self, remove_botdist=1,remove_topdist=1,press_surface=100):
         log("Extracting profile...", indent=1)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])
         self.water_entry_index = 0
@@ -279,7 +357,7 @@ class ctd:
             diff_cond = abs(first_centered_differences(np.arange(len(self.data["Cond"])), self.data["Cond"]))
             #Use conductivity data in the surface layer (less peaks) to define the threshold:
             diff_surface=diff_cond[:np.argmax(self.data["Press"])]
-            diff_surface=diff_surface[self.data["Press"][:np.argmax(self.data["Press"])]-np.nanmin(self.data["Press"])<press_surface]    
+            diff_surface=diff_surface[(self.data["Press"][:np.argmax(self.data["Press"])]-np.nanmin(self.data["Press"]))<press_surface]    
             perc_cond = np.where(diff_cond > np.percentile(diff_surface, 99))
             #perc_cond_begin = np.where(diff_cond[:max_start] > np.percentile(diff_cond, 95))
 
@@ -289,20 +367,36 @@ class ctd:
             #     water_entry_index = perc_cond[0][0]
             press_first_peak=self.data["Press"][perc_cond[0][0]]-np.nanmin(self.data["Press"])
             press_last_peak=self.data["Press"][perc_cond[0][-1]]-np.nanmin(self.data["Press"])
-            if perc_cond[0][0]>=1 and press_first_peak<1: # First conductivity peak is near the surface
-                self.air_press = np.percentile(self.data["Press"][:perc_cond[0][0]+1],0.05)
-            elif perc_cond[0][-1]<len(self.data["Press"])-1 and press_last_peak<1: # Last conductivity peak is near the surface
-                self.air_press = np.percentile(self.data["Press"][perc_cond[0][-1]:],0.05)
+            if perc_cond[0][0]>=1 and press_first_peak<0.5: # First conductivity peak is near the surface
+                #self.air_press = np.percentile(self.data["Press"][:perc_cond[0][0]+1],0.05)
+                self.air_press = np.nanmean(self.data["Press"][:perc_cond[0][0]+1])
+                self.air_meas=True
+                self.cond_peak_first=True
+            elif perc_cond[0][-1]<len(self.data["Press"])-1 and perc_cond[0][-1]>np.argmax(self.data["Press"]) and press_last_peak<0.5: # Last conductivity peak is near the surface
+                #self.air_press = np.percentile(self.data["Press"][perc_cond[0][-1]:],0.05)
+                self.air_press = np.nanmean(self.data["Press"][perc_cond[0][-1]:])
+                self.air_meas=True
+                self.cond_peak_last=True
             elif perc_cond[0][0]==0 or perc_cond[0][-1]==len(self.data["Press"])-1: # No data point in the air
-                breakpoint()
-                log('No data point above conductivity peak')
-                return False
-            else: #There is no conductivity peak: remove the profile
-                breakpoint()
+                #breakpoint()
+                log('No data point above conductivity peak',indent=1)
+                if perc_cond[0][0]==0:
+                    self.air_press = np.nanmean(self.data["Press"][:2]) # Mean of the two first values
+                    self.cond_peak_first=True
+                elif perc_cond[0][-1]==len(self.data["Press"])-1:
+                    self.air_press = np.nanmean(self.data["Press"][-2:]) # Mean of the two last values
+                    self.cond_peak_last=True
+                else:
+                    return False
+            else: #There is no conductivity peak
                 log("No conductivity peak detected (first peak: "+str(press_first_peak)+" dbar, last peak: "+str(press_last_peak)+" dbar)", indent=1)    
+                self.air_press =np.nanmin(self.data["Press"])
+            
+            if self.air_press-np.nanmin(self.data["Press"])>0.5:
+                log("Issue in air pressure calculation", indent=1)
                 return False
             
-            water_entry_index=np.where(self.data["Press"]>self.air_press+1)[0][0] # Always take water entry index as 1 m below air pressure to remove the upper 1m
+            water_entry_index=np.where(self.data["Press"]>self.air_press+remove_topdist)[0][0] # Always take water entry index at certain distance below air pressure to remove the upper layer
             
             submerged_index = perc_cond[0][0]
             for i in range(len(perc_cond[0])-1):# For each index of the conductivity peak
@@ -315,7 +409,7 @@ class ctd:
                 self.submerged_index = submerged_index + 1
         
         # Remove a given distance above the maximum pressure:
-        self.bottom_of_profile_index = np.where(self.data["Press"][0:np.argmax(self.data["Press"])]<=np.max(self.data["Press"])-remove_distance)[0][-1]
+        self.bottom_of_profile_index = np.where(self.data["Press"][0:np.argmax(self.data["Press"])]<=np.max(self.data["Press"])-remove_botdist)[0][-1]
         #self.bottom_of_profile_index = np.argmax(self.data["Press"]) - remove_timesteps
         
         # if self.water_entry_index > 0:
@@ -325,33 +419,32 @@ class ctd:
 
         #self.air_press = np.nanmin(self.data["Press"][:self.bottom_of_profile_index]) # Always take the minimum pressure as the air pressure
         #self.air_press = np.percentile(self.data["Press"][0:max_start],0.05)
-        
-        if (self.air_press-np.nanmin(self.data["Press"][:self.bottom_of_profile_index]))>0.5: # Large difference between estimated air pressure and min pressure
-            print('Difference of air pressures: '+str((self.air_press-np.nanmin(self.data["Press"][:self.bottom_of_profile_index]))))    
-            breakpoint()
         return True
 
     def quality_assurance(self, file_path, simple=True):
         log("Applying quality assurance", indent=1)
         quality_assurance_dict = json_converter(json.load(open(file_path)))
-        for key, values in self.variables.copy().items():
-            if ("_qual" not in key)and(key in quality_assurance_dict):
-                if (quality_assurance_dict[key]["advanced"]) or (quality_assurance_dict[key]["simple"]):
-                    name = key + "_qual"
-                    self.variables[name] = {'var_name': name, 'dim': values["dim"],
-                                            'unit': '0 = nothing to report, 1 = more investigation',
-                                            'longname': name, }
-                    if simple: #Always used
-                        self.data[name] = qualityassurance(np.array(self.data[key]), np.array(self.data["time"]), **quality_assurance_dict[key]["simple"])
-                        if "std_moving" in quality_assurance_dict[key].keys(): # Outlier removal based on std and moving average
-                            param_outliers=quality_assurance_dict[key]["std_moving"]
-                            qa_bool=qa_std_moving(np.array(self.data[key]), window_size=param_outliers["window_size"], factor=param_outliers["factor"], prior_flags=self.data[name].astype(bool))
-                            self.data[name]=qa_bool.astype(int)
-                    else:
-                        quality_assurance_all = dict(quality_assurance_dict[key]["simple"], **quality_assurance_dict[key]["advanced"])
-                        self.data[name] = qualityassurance(np.array(self.data[key]), np.array(self.data["time"]), **quality_assurance_all)
-                    if key != "time":
-                        self.data[name] = self.quality_assurance_ctd(self.data[name])
+        try:
+            for key, values in self.variables.copy().items():
+                if ("_qual" not in key)and(key in quality_assurance_dict)and(sum(~np.isnan(self.data[key]))>0): # Not all the data is nan
+                    if (quality_assurance_dict[key]["advanced"]) or (quality_assurance_dict[key]["simple"]):
+                        name = key + "_qual"
+                        self.variables[name] = {'var_name': name, 'dim': values["dim"],
+                                                'unit': '0 = nothing to report, 1 = more investigation',
+                                                'longname': name, }
+                        if simple: #Always used
+                            self.data[name] = qualityassurance(np.array(self.data[key]), np.array(self.data["time"]), **quality_assurance_dict[key]["simple"])
+                            if "std_moving" in quality_assurance_dict[key].keys(): # Outlier removal based on std and moving average      
+                                param_outliers=quality_assurance_dict[key]["std_moving"]
+                                qa_bool=qa_std_moving(np.array(self.data[key]), np.array(self.data["Press"]), window_size=param_outliers["window_size"], factor=param_outliers["factor"], prior_flags=self.data[name].astype(bool))
+                                self.data[name]=qa_bool.astype(int)
+                        else:
+                            quality_assurance_all = dict(quality_assurance_dict[key]["simple"], **quality_assurance_dict[key]["advanced"])
+                            self.data[name] = qualityassurance(np.array(self.data[key]), np.array(self.data["time"]), **quality_assurance_all)
+                        if key != "time":
+                            self.data[name] = self.quality_assurance_ctd(self.data[name])
+        except:
+            breakpoint()
 
     def quality_assurance_ctd(self, qa): # To remove data before water entry and after reaching the bottom
         #qa: quality assurance values (0 or 1)
@@ -480,36 +573,45 @@ class ctd:
 
             start = start + td
 
-    def profile_to_timeseries_grid(self, vars_nointerp,time_label="time"):
+    def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time"):
         log("Resampling profile to fixed grid...", indent=2)
-        self.grid["depth_ref"] = self.fixed_depths_ref
+        self.grid["depth_interp"] = self.fixed_depths_ref
         self.grid["time"] = [np.nanmin(self.data[time_label])]
+        if ~np.any(depthgrid): # Use the level-corrected depth to interpolate
+            depthgrid=self.data["depth_ref"]
+            
         for key, values in self.grid_variables.items():
             if key not in self.grid_dimensions and key not in vars_nointerp: # Apply the interpolation for variables that are not dimensions and that are not listed in vars_nointerp
-                mask = (~np.isnan(self.data[key])) & (~np.isnan(self.data["depth_ref"]))
-                depths_ref = self.data["depth_ref"][mask]
+                
+                mask = (~np.isnan(self.data[key])) & (~np.isnan(depthgrid))
+                depths_ref = depthgrid[mask]
                 data = self.data[key][mask]
                 if len(data) < 50:
                     self.grid[key] = np.asarray([np.nan] * len(self.fixed_depths_ref))
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
 
-    def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3, ):
+    def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False):
+        # Estimated_depth: must be a list
+        
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)
-        log("Masking variables for calculations", indent=2)
+        log("Masking variables for calculations", indent=1)
         for var in self.variables:
-            if "_qual" not in var: # Apply mask on variables of "data"
+            if ("_qual" not in var) and (var+"_qual" in data.keys()): # Create mask on variables of "data"
                 idx = data[var+"_qual"] > 0
                 float_data = data[var].astype(float)
                 float_data[idx] = np.nan
                 data[var] = float_data.copy()
-                                
-        data["adj_press"] = data["Press"] - self.air_press
+        if estimated_depth:
+            data["adj_press"]=np.array(estimated_depth)
+        else:
+            data["adj_press"] = data["Press"] - self.air_press
         threshold = data["Temp"].shape[0] * 0.9
         if sum(np.isnan(data["Temp"])) > threshold or sum(np.isnan(data["Cond"])) > threshold or \
                 sum(np.isnan(data["adj_press"])) > threshold:
             log("Not enough valid parameters for derived variables.", indent=2)
+            breakpoint()
             return False
         else:
             self.variables.update(self.derived_variables)
@@ -530,7 +632,10 @@ class ctd:
             self.data["rho"] = np.asarray([1000] * len(data["Press"]))
             #self.data["rho"] = density(data["Temp"], self.data["SALIN"])
             rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
-            depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+            if estimated_depth:
+                depth_TS=data["adj_press"]
+            else:
+                depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
             C_CH4=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CH4"])], df_gas["CH4"][~np.isnan(df_gas["CH4"])]*16/1000) # g/L
             C_CO2=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CO2"])], df_gas["CO2"][~np.isnan(df_gas["CO2"])]*44/1000) # g/L
             self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
@@ -539,10 +644,13 @@ class ctd:
             return False
 
         log("Calculating depth...", indent=2)
-        rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"],C_CH4=C_CH4,C_CO2=C_CO2)
-        self.data["depth"] = 1e4 * data["adj_press"] / rho_p / sw.g(lat)
+        rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
+        if estimated_depth:
+            self.data["depth"]=data["adj_press"]
+        else:
+            self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
         log("Calculating depth_ref...", indent=2)
-        self.data["depth_ref"] = (1e4 * data["adj_press"] / self.data["rho"] / sw.g(lat)) + self.depth_value
+        self.data["depth_ref"] = self.data["depth"] + self.depth_value
         b=(self.data["depth_ref"])
         try:
             log("Calculating potential temperature...", indent=2)
@@ -574,9 +682,10 @@ class ctd:
         
     def mask_data(self):
         for var in self.variables:
-            if "_qual" not in var:
+            if ("_qual" not in var) and (var+"_qual" in self.variables):
                 idx = self.data[var+"_qual"] > 0
-                self.data[var][idx] = np.nan               
+                if sum(idx)>0: # At least one value to remove
+                    self.data[var][idx] = np.nan               
 
     def read_processed_data(self, file):
         self.data = netCDF4.Dataset(file, 'r').variables

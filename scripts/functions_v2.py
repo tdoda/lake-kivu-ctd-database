@@ -389,16 +389,14 @@ def check_variable(variable, unit, columns, units):
         return False
 
     
-def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=True): 
+def parse_time(df, variable, name, columns, units, ref_date, infolder,): 
     """
     Function description
     Structure:  
         - First level of if-else-statements checks if  AM or PM exists. 
         - Second level of if-else-statements checks what the column names for the date and time are.
         - The third level of if-else-statements is only triggered, if AM or PM exists and localizes in which column AM/PM 
-        is located. The statement then adjusts the column headers of the dataframe by giving the column with AM/ PM the header "0
-    Inputs:
-        - day_month: if True, day is before month (only applied for format xx/xx/xxxx without AM/PM)         
+        is located. The statement then adjusts the column headers of the dataframe by giving the column with AM/ PM the header "0".          
     Output:
         New dataframe column with parsed time in it.
         Dataframe with adjusted column headers.
@@ -423,7 +421,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
         columns[columns.index('IntD1')]='Time'
     else:
         raise ValueError("Cannot process unrecognised file.")
-
+        
     if bool(res)==True:
         dateformat="%m/%d/%Y %H:%M:%S"
             
@@ -500,12 +498,9 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
                 raise
     else:          
             try:
-                
-                arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=day_month).values.astype(float) / 10 ** 9)
-                
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60: # More than a month of difference between reference date --> invert day and month
-                    breakpoint()    
-                    arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=not day_month).values.astype(float) / 10 ** 9)
+                arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True).values.astype(float) / 10 ** 9)
+                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                    arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=False).values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
             except Exception:
@@ -762,12 +757,11 @@ def parse_chl(df, variable, name, columns, units, ref_date, date_format):
     else:
         return [-999.] * len(df)
 
-def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_flags=False):
+def qa_std_moving(variable, window_size=15, factor=3, prior_flags=False):
    """
    Indicate outliers values based on std applied to moving average.
    Parameters:
        variable (np.array): Data array to which to apply the quality assurance
-       xdata (np.array): x-values used to resample the data (if not specified, data is not resample)
        window_size (np.int): window size of data
        factor (int): number n such that values higher than n*std are considered as outliers
        prior_flags (np.array): An array of bools where True means non-trusted data
@@ -777,20 +771,12 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
    if isinstance(prior_flags,np.ndarray): # Boolean array provided
        flags = prior_flags
    else: # No boolean array provided
-       flags=np.full(variable.shape,False)
+       flags=np.full(variable.shape,'False')
 
    if len(variable) < window_size:
        print("ERROR! Window size is larger than array length.")
    else:
-        # if ~np.any(xdata):
-        #     xdata:np.arange(len(variable))
-        #Interpolate data at constant intervals
-        # xinterp=np.linspace(np.min(xdata),np.max(xdata),len(variable))
-        # indsort=np.argsort(xdata)
-        # yinterp=np.interp(xinterp, xdata[indsort], variable[indsort])
-        # movmean=np.interp(xdata,xinterp,uniform_filter1d(yinterp,size=window_size))
-        movmean=uniform_filter1d(variable,size=window_size)
-        noise_data=abs(variable-movmean)
-        mask_std=noise_data>factor*np.std(noise_data)
-        flags=np.logical_or(flags,mask_std)
+       noise_data=abs(variable-uniform_filter1d(variable,size=window_size))
+       mask_std=noise_data>factor*np.std(noise_data)
+       flags=np.logical_or(flags,mask_std)
    return flags

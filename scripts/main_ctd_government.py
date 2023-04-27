@@ -5,6 +5,7 @@ from ctd import ctd
 from datetime import datetime, timezone
 import numpy as np
 import copy
+import time
 
 lake_info = {"lat": -2, "alt": 1462}
 lake_level = "../data/lake_level/c_gls.json"
@@ -16,19 +17,26 @@ for directory in directories.values():
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-files = os.listdir(directories["Level0_dir"])
-files.sort()
-failed = []
-
+files=['Eruption day 10_210603_1.TOB',
+'Eruption day 10_210603_2.TOB',
+'Eruption day 10_210603_3.TOB',
+'Eruption day 10_210603_5.TOB']
+#files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
 # files_SBE=[]
 # for k in np.arange(len(files)):
 #     if files[k].endswith(".cnv"):
 #         files_SBE.append(files[k])
 # files=files_SBE
 
+files.sort()
+failed = []
+
+
 # Period to remove:
-dateperiod_rem=[datetime(2020,3,17),datetime(2020,3,18)] # Time limits of the period
-tperiod_rem=[dateperiod_rem[k].replace(tzinfo=timezone.utc).timestamp() for k in np.arange(len(dateperiod_rem))]
+dateperiod_rem=[[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2020,6,3,11,0,0)]] # Time limits of the period (wrong conductivity/temperature)
+tperiod_rem=[None]*len(dateperiod_rem)
+for kperiod in np.arange(len(dateperiod_rem)):
+    tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
 
 # Files with several profiles:
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
@@ -36,11 +44,28 @@ indstart=[[1004,3719,10031],[1096,6352,12450]]
 indend=[[3718,9165,14210],[5090,10250,15603]]
 index_file=0
 
+# Files with data to remove
+files_datarem=['SBE19plus_01907894_2020_11_02_0002.cnv']
+indrem=[[15194]]
+
+start_time=time.time()
 for file in files:
     index_file=index_file+1
     print('********************************')
-    print('File '+str(index_file)+'/'+str(len(files))+' ('+str(round(index_file/len(files)*100))+ '%)')
+    
+    if index_file==11:
+        end_time=time.time()
+        time_prof=end_time-start_time
+    if index_file>=11:
+        time_rem=(len(files)-index_file)*time_prof/600
+        print('File {}/{} ({}%). Time remaining: {:.1f} min'.format(index_file,len(files),round(index_file/len(files)*100),time_rem))
+    else:
+        print('File {}/{} ({}%)'.format(index_file,len(files),round(index_file/len(files)*100)))
+    
+    
+    
     CTD = ctd()
+    
     if CTD.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18)):
         CTD.extract_water_level(lake_level, lake_info["alt"])
         CTD.extract_meta_data(os.path.join(directories["Level0_dir"], file))
@@ -49,9 +74,17 @@ for file in files:
             indfile=files_severalprof.index(file)
             for kprof in np.arange(0,len(indstart)+1,1):
                 CTD_copy=copy.deepcopy(CTD)
+                keep_period=1
                 for key, values in CTD_copy.data.items():
                     CTD_copy.data[key]=values[indstart[indfile][kprof]:indend[indfile][kprof]]
-                if CTD_copy.extract_profile() and CTD_copy.data["time"][0]<tperiod_rem[0] or CTD_copy.data["time"][0]>tperiod_rem[1]:
+                if CTD_copy.extract_profile():
+                    for kperiod in np.arange(len(dateperiod_rem)):
+                        if CTD_copy.data["time"][0]>tperiod_rem[kperiod][0] and CTD_copy.data["time"][0]<tperiod_rem[kperiod][1]:
+                            keep_period=0
+                            break
+                    if keep_period==0:
+                        failed.append(file)
+                        continue
                     CTD_copy.quality_assurance(directories["quality_assurance"])
                     if CTD_copy.derive_variables(lake_info["lat"], lake_info["alt"]):
                         CTD_copy.quality_assurance(directories["quality_assurance"])
@@ -66,7 +99,19 @@ for file in files:
                 else:
                     failed.append(file)   
         else:
-            if CTD.extract_profile() and CTD.data["time"][0]<tperiod_rem[0] or CTD.data["time"][0]>tperiod_rem[1]:
+            keep_period=1
+            if file in files_datarem:
+                indrem_file=indrem[files_datarem.index(file)]
+                for var_name in CTD.variables:
+                    CTD.data[var_name]=np.delete(CTD.data[var_name],indrem_file)
+            if CTD.extract_profile():
+                for kperiod in np.arange(len(dateperiod_rem)):
+                    if CTD.data["time"][0]>tperiod_rem[kperiod][0] and CTD.data["time"][0]<tperiod_rem[kperiod][1]:
+                        keep_period=0
+                        break
+                if keep_period==0:
+                    failed.append(file)
+                    continue
                 CTD.quality_assurance(directories["quality_assurance"])
                 if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
                     CTD.quality_assurance(directories["quality_assurance"]) # Re-apply quality assurance on newly created variables
