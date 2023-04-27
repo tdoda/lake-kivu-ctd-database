@@ -347,6 +347,15 @@ vignettes/*.pdf
 # netCDF files
 *.nc
 
+# Excel files (e.g., Kivuwatt)
+*.xlsx 
+*.csv
+
+# Raw data files 
+*.TOB
+*.cnv
+*.hex
+
 ### Vim ###
 # Swap
 [._]*.s[a-v][a-z]
@@ -385,3 +394,4 @@ tags
 venv
 log.txt
 scripts/log.txt
+
