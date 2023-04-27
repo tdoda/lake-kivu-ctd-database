@@ -355,6 +355,7 @@ vignettes/*.pdf
 *.TOB
 *.cnv
 *.hex
+*.xml
 
 ### Vim ###
 # Swap
