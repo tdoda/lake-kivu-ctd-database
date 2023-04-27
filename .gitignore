@@ -349,10 +349,9 @@ vignettes/*.pdf
 
 # Excel files (e.g., Kivuwatt)
 *.xlsx 
-*.csv
 
 # Raw data files 
-Level0/
+#Level0/
 
 ### Vim ###
 # Swap
