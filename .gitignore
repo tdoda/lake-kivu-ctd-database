@@ -352,10 +352,7 @@ vignettes/*.pdf
 *.csv
 
 # Raw data files 
-*.TOB
-*.cnv
-*.hex
-*.xml
+Level0/
 
 ### Vim ###
 # Swap
