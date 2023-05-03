@@ -31,7 +31,6 @@ class ctd:
         self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
         self.general_attributes = {
             "institution": "Eawag",
-            "source": "Lake Kivu Monitoring Program",
             "references": "james.runnalls@eawag.ch",
             "history": "See history on Renku",
             "conventions": "CF 1.7",
@@ -121,7 +120,6 @@ class ctd:
                 except:
                     log("Unable to get reference date", indent=2)
                     ref_date = False
-
             if infile[-4:]=='.TOB':
                 keyword_skip="Lines"
             elif infile[-4:]=='.cnv':
@@ -139,8 +137,9 @@ class ctd:
 
             df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
             df = df.drop_duplicates() # Remove duplicate rows
+
             if infile[-4:]=='.TOB':
-                df = parse_time(df, self.variables["time"], "time", columns, units, ref_date, date_format)
+                df = parse_time(df, self.variables["time"], "time", columns, units, ref_date)
             else:
                 df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+df["Minutes"]*60
                 df["Cond"]=df["Cond"]/1000 # Conversion from uS/cm to mS/cm
@@ -172,6 +171,7 @@ class ctd:
 
             return True
         except:
+            breakpoint()
             log("Failed to parse raw data from file {}".format(infile), indent=1)
             return False
         
@@ -192,7 +192,7 @@ class ctd:
         self.general_attributes["latitude"] = df_meta["Lat"].values
         self.general_attributes["longitude"] = df_meta["Lon"].values
 
-    def split_profiles_Kivuwatt(self, df,CTD_meta,kprof,multip_cond=1,remove_botdist=1,remove_topdist=1):
+    def split_profiles_Kivuwatt(self, df,CTD_meta,kprof,multip_cond=1,remove_botdist=1,remove_topdist=1,press_to_depth_factor=np.nan):
         ind_meta=np.where(CTD_meta.general_attributes["profile_count"]==kprof)[0][0]
         bool_df=df["Profile"]==kprof
         date_str=CTD_meta.general_attributes["date"][ind_meta]
@@ -205,7 +205,7 @@ class ctd:
         try: 
             # Convert time into timestamps
             date_str=CTD_meta.general_attributes["date"][ind_meta]
-            date_num=pd.to_datetime(date_str+' '+df.loc[bool_df,"Hour"]).astype(np.int64) // 10 ** 9
+            date_num=pd.to_datetime(date_str+' '+df.loc[bool_df,"Hour"],format='%m/%d/%Y %H:%M:%S').astype(np.int64) // 10 ** 9
             df_prof=df.loc[bool_df,:]
             df_prof.insert(len(df_prof.columns),"Datetime",date_num)
             
@@ -238,6 +238,12 @@ class ctd:
             else: 
                 log('Sinking part of the profile is missing', indent=1)
                 return False
+            
+            # Compute air pressure
+            if np.isnan(press_to_depth_factor):
+                self.air_press=np.nan
+            else:
+                self.air_press=np.nanmean(self.data["Press"]-self.data["Depth_KW"]*press_to_depth_factor)
 
             return True
         except Exception:
@@ -593,7 +599,11 @@ class ctd:
 
     def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False):
         # Estimated_depth: must be a list
-        
+        if estimated_depth and np.isnan(self.air_press):
+            calculate_depth=False
+        else:
+            calculate_depth=True
+            
         log("Calculating derived variables...", indent=1)
         data = deepcopy(self.data)
         log("Masking variables for calculations", indent=1)
@@ -603,10 +613,10 @@ class ctd:
                 float_data = data[var].astype(float)
                 float_data[idx] = np.nan
                 data[var] = float_data.copy()
-        if estimated_depth:
-            data["adj_press"]=np.array(estimated_depth)
-        else:
+        if calculate_depth:
             data["adj_press"] = data["Press"] - self.air_press
+        else:
+            data["adj_press"]=np.array(estimated_depth)
         threshold = data["Temp"].shape[0] * 0.9
         if sum(np.isnan(data["Temp"])) > threshold or sum(np.isnan(data["Cond"])) > threshold or \
                 sum(np.isnan(data["adj_press"])) > threshold:
@@ -632,10 +642,10 @@ class ctd:
             self.data["rho"] = np.asarray([1000] * len(data["Press"]))
             #self.data["rho"] = density(data["Temp"], self.data["SALIN"])
             rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
-            if estimated_depth:
-                depth_TS=data["adj_press"]
-            else:
+            if calculate_depth: 
                 depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+            else:
+                depth_TS=data["adj_press"]
             C_CH4=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CH4"])], df_gas["CH4"][~np.isnan(df_gas["CH4"])]*16/1000) # g/L
             C_CO2=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CO2"])], df_gas["CO2"][~np.isnan(df_gas["CO2"])]*44/1000) # g/L
             self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
@@ -645,10 +655,10 @@ class ctd:
 
         log("Calculating depth...", indent=2)
         rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
-        if estimated_depth:
-            self.data["depth"]=data["adj_press"]
-        else:
+        if calculate_depth: 
             self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
+        else:
+            self.data["depth"]=data["adj_press"]
         log("Calculating depth_ref...", indent=2)
         self.data["depth_ref"] = self.data["depth"] + self.depth_value
         b=(self.data["depth_ref"])

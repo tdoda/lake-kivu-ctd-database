@@ -17,11 +17,8 @@ for directory in directories.values():
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-files=['Eruption day 10_210603_1.TOB',
-'Eruption day 10_210603_2.TOB',
-'Eruption day 10_210603_3.TOB',
-'Eruption day 10_210603_5.TOB']
-#files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+
+files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
 # files_SBE=[]
 # for k in np.arange(len(files)):
 #     if files[k].endswith(".cnv"):
@@ -30,13 +27,6 @@ files=['Eruption day 10_210603_1.TOB',
 
 files.sort()
 failed = []
-
-
-# Period to remove:
-dateperiod_rem=[[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2020,6,3,11,0,0)]] # Time limits of the period (wrong conductivity/temperature)
-tperiod_rem=[None]*len(dateperiod_rem)
-for kperiod in np.arange(len(dateperiod_rem)):
-    tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
 
 # Files with several profiles:
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
@@ -65,6 +55,7 @@ for file in files:
     
     
     CTD = ctd()
+    CTD.general_attributes["source"]="Lake Kivu Monitoring Program"
     
     if CTD.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18)):
         CTD.extract_water_level(lake_level, lake_info["alt"])
@@ -78,13 +69,6 @@ for file in files:
                 for key, values in CTD_copy.data.items():
                     CTD_copy.data[key]=values[indstart[indfile][kprof]:indend[indfile][kprof]]
                 if CTD_copy.extract_profile():
-                    for kperiod in np.arange(len(dateperiod_rem)):
-                        if CTD_copy.data["time"][0]>tperiod_rem[kperiod][0] and CTD_copy.data["time"][0]<tperiod_rem[kperiod][1]:
-                            keep_period=0
-                            break
-                    if keep_period==0:
-                        failed.append(file)
-                        continue
                     CTD_copy.quality_assurance(directories["quality_assurance"])
                     if CTD_copy.derive_variables(lake_info["lat"], lake_info["alt"]):
                         CTD_copy.quality_assurance(directories["quality_assurance"])
@@ -105,13 +89,6 @@ for file in files:
                 for var_name in CTD.variables:
                     CTD.data[var_name]=np.delete(CTD.data[var_name],indrem_file)
             if CTD.extract_profile():
-                for kperiod in np.arange(len(dateperiod_rem)):
-                    if CTD.data["time"][0]>tperiod_rem[kperiod][0] and CTD.data["time"][0]<tperiod_rem[kperiod][1]:
-                        keep_period=0
-                        break
-                if keep_period==0:
-                    failed.append(file)
-                    continue
                 CTD.quality_assurance(directories["quality_assurance"])
                 if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
                     CTD.quality_assurance(directories["quality_assurance"]) # Re-apply quality assurance on newly created variables
@@ -121,7 +98,7 @@ for file in files:
                     CTD.grid["latitude"]=CTD.general_attributes["latitude"]
                     CTD.grid["longitude"]=CTD.general_attributes["longitude"]
                     CTD.grid["dist_GEF"]=CTD.general_attributes["distance_to_GEF"]
-                    CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"]) # Don't interpolate latitude and longitude
+                    CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
                     CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
             else:
                 failed.append(file)

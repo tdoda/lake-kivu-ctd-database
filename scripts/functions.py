@@ -389,7 +389,7 @@ def check_variable(variable, unit, columns, units):
         return False
 
     
-def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=True): 
+def parse_time(df, variable, name, columns, units, ref_date,day_month=True): 
     """
     Function description
     Structure:  
@@ -404,7 +404,7 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
         Dataframe with adjusted column headers.
     """  
     AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
-    res = [ele for ele in AM_PM if(ele in df.values)] # Check if AM or PM or similar is present in the file
+    res = [ele for ele in AM_PM if(ele in df.values[0])] # Check if AM or PM or similar is present in the first row of the dataframe
     if "IntD" in columns and "IntT" in columns:     
         df=df.rename(columns = {'IntD':'Date', 'IntT':'Time'})
         columns[columns.index('IntD')]='Date'
@@ -423,6 +423,11 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
         columns[columns.index('IntD1')]='Time'
     else:
         raise ValueError("Cannot process unrecognised file.")
+
+    if ":" in df["Date"][1]: #Flip date and time
+        hourdata=df["Date"]
+        df["Date"]=df["Time"]
+        df["Time"]=hourdata
 
     if bool(res)==True:
         dateformat="%m/%d/%Y %H:%M:%S"
@@ -443,9 +448,9 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
             try:
                 datetime_arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat, dayfirst=True)
                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
+                # if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                #     arr = list(
+                #         datetime_arr.values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
             except Exception:
@@ -458,17 +463,17 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
             try:
                 datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
+                # if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                #     arr = list(
+                #         datetime_arr.values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
             except Exception:
                 datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
+                # if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
+                #     arr = list(
+                #         datetime_arr.values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
 
@@ -489,30 +494,66 @@ def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=
                     except Exception:
                         datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%Y-%m-%d %I:%M:%S %p")
                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
+                # if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
+                #     arr = list(
+                #         datetime_arr.values.astype(float) / 10 ** 9)
                 df["time"] = arr
                 return df
             except Exception:
                 breakpoint()
                 log("Datetime file parse failed")
                 raise
-    else:          
-            try:
+    else:           
+            if ("-" in df["Date"][1]) and df["Date"][1].find("-")==2:
+                try:
+                    dateformat='%d-%b-%y %H:%M:%S'
+                    arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                except Exception:
+                    try:
+                        dateformat='%d-%b-%y %H:%M:%S %p'
+                        arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                    except Exception:
+                        breakpoint()
+                        raise Exception("Datetime file parse failed")    
+            elif ("-" in df["Date"][1]) and df["Date"][1].find("-")==4:
+                try:
+                    dateformat='%Y-%m-%d %H:%M:%S'
+                    arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                except Exception:
+                    try:
+                        dateformat='%Y-%m-%d %H:%M:%S %p'
+                        arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                    except Exception:
+                        breakpoint()
+                        raise Exception("Datetime file parse failed")   
+            else:
+                try:
+                    dateformat='%m/%d/%Y %H:%M:%S'
+                    arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                except Exception:
+                    try:
+                        dateformat='%m/%d/%Y %H:%M:%S %p'
+                        arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+                    except Exception:
+                        breakpoint()
+                        raise Exception("Datetime file parse failed")
                 
-                arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=day_month).values.astype(float) / 10 ** 9)
                 
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60: # More than a month of difference between reference date --> invert day and month
-                    breakpoint()    
-                    arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=not day_month).values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except Exception:
-                breakpoint() # Possibility of error: date and time are reversed:
-                # arr = pd.to_datetime(df["Date"] + " " + df["Time"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-                log("Datetime file parse failed")
-                raise    
+                #arr = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=day_month,dayfirst=day_month).values.astype(float) / 10 ** 9
+
+            if ref_date and abs(arr[0] - ref_date) > 30*24*60*60: # More than a month of difference between reference date --> invert day and month 
+                ind_day=dateformat.find('%d')
+                if '%b' in dateformat:
+                    month_format='%b'    
+                else:
+                    month_format='%m'
+                ind_month=dateformat.find(month_format) 
+                dateformat=dateformat[:ind_day]+month_format+dateformat[ind_day+2:]
+                dateformat=dateformat[:ind_month]+'%d'+dateformat[ind_month+2:]
+                arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat).values.astype(float) / 10 ** 9
+            
+            df["time"] = arr
+            return df 
         
          
     #--------------------------------------------------

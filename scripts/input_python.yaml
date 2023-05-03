@@ -16,5 +16,7 @@ Level2A_KW_dir: "../data/Level2A_TD/Kivuwatt/"
 Level2B_dir: "../data/Level2B_TD/Government/"
 Level2B_KW_dir: "../data/Level2B_TD/Kivuwatt/"
 
+Level3_dir: "../data/Level3_TD/"
+
 quality_assurance: "../quality_assurance.json"
 quality_assurance_KW: "../quality_assurance_KW.json"

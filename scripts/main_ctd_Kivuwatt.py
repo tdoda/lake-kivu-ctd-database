@@ -32,6 +32,9 @@ tperiod_rem=[dateperiod_rem[k].replace(tzinfo=timezone.utc).timestamp() for k in
 indprof_mSmm=np.arange(23,30,1)
 index_file=0
 
+# Profiles with different conversion pressure-depth (first profile: kprof=1):
+indprof_noconv_depth=np.arange(562,572,1)
+
 CTD_meta = ctd()
 CTD_meta.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"], 'Metadata.csv'))
 
@@ -60,29 +63,36 @@ failed_prof=[]
 
 # Split the data in different profiles
 start_time=time.time()
-#for kprof in np.unique(df_allCTD["Profile"].values):
-for kprof in np.arange(30,88,1):
+for kprof in np.unique(df_allCTD["Profile"].values):
     print('********************************')
-    # if kprof==11:
-    #     end_time=time.time()
-    #     time_prof=end_time-start_time
-    # if kprof>=11:
-    #     time_rem=(len(np.unique(df_allCTD["Profile"].values))-kprof)*time_prof/600
-    #     print('Profile {}/{} ({}%). Time remaining: {:.1f} min'.format(kprof,len(np.unique(df_allCTD["Profile"].values)),round(kprof/len(np.unique(df_allCTD["Profile"].values))*100),time_rem))
-    # else:
-        # print('Profile {}/{} ({}%)'.format(kprof,len(np.unique(df_allCTD["Profile"].values)),round(kprof/len(np.unique(df_allCTD["Profile"].values))*100)))
+    if kprof==11:
+        end_time=time.time()
+        time_prof=end_time-start_time
+    if kprof>=11:
+        time_rem=(len(np.unique(df_allCTD["Profile"].values))-kprof)*time_prof/600
+        print('Profile {}/{} ({}%). Time remaining: {:.1f} min'.format(kprof,len(np.unique(df_allCTD["Profile"].values)),round(kprof/len(np.unique(df_allCTD["Profile"].values))*100),time_rem))
+    else:
+        print('Profile {}/{} ({}%)'.format(kprof,len(np.unique(df_allCTD["Profile"].values)),round(kprof/len(np.unique(df_allCTD["Profile"].values))*100)))
     CTD=ctd()
+    CTD.general_attributes["source"]="KivuWatt profiles"
     try:
         if kprof in indprof_mSmm:
-            if not CTD.split_profiles_Kivuwatt(df_allCTD,CTD_meta,kprof,multip_cond=10):
-                raise Exception('Not possible to process profile')
+            fcond=10
         else:
-            if not CTD.split_profiles_Kivuwatt(df_allCTD,CTD_meta,kprof,multip_cond=1):
-                raise Exception('Not possible to process profile')
+            fcond=1
+            
+        if kprof in indprof_noconv_depth:
+            fdepth=np.nan
+        else:
+            fdepth=0.978
+        
+        if not CTD.split_profiles_Kivuwatt(df_allCTD,CTD_meta,kprof,multip_cond=fcond,press_to_depth_factor=fdepth):
+            raise Exception('Not possible to process profile')
+  
         print('Done')
         CTD.extract_water_level(lake_level, lake_info["alt"])
         #CTD.extract_profile() 
-        CTD.air_press=np.nan # Unkown air pressure
+        
         
         CTD.quality_assurance(directories["quality_assurance_KW"])
         if CTD.derive_variables(lake_info["lat"], lake_info["alt"],estimated_depth=list(CTD.data["Depth_KW"])):
@@ -93,10 +103,9 @@ for kprof in np.arange(30,88,1):
             CTD.grid["latitude"]=CTD.general_attributes["latitude"]
             CTD.grid["longitude"]=CTD.general_attributes["longitude"]
             CTD.grid["dist_GEF"]=CTD.general_attributes["distance_to_GEF"]
-            CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["Depth_KW"]) # Don't interpolate latitude and longitude
+            CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
             CTD.to_netcdf(directories["Level2B_KW_dir"], "L2B", output_period="monthly", grid=True)
     except Exception:
-        breakpoint()
         failed_prof.append(kprof)
 
 print('Profiles with errors:')
