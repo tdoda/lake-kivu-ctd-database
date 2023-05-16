@@ -24,7 +24,7 @@ data_folder = "../../data/Level3_TD/"
 hypsometry_file='../../../../Bathymetry/Bathymetry_Baerenbold2022.dat'
 data_files = ["data_gov.nc", "data_Kivuwatt.nc"]
 
-dmin=0 # Minimum depth of the profiles
+dmin=250 # Minimum depth of the profiles
 output_files=["database_gov_"+str(dmin)+"m.nc","database_Kivuwatt_"+str(dmin)+"m.nc"]
 databases_all=[]
 #%% Load hypsometry
@@ -43,7 +43,7 @@ for kdata in [0,1]:
     #%% Create all variables
     
     for var in database.variables:
-        if var in nc.variables: # Variabless from netCDF input file
+        if var in nc.variables: # Variables from netCDF input file
             if len(nc.variables[var][:].shape)==1: 
                 if nc.variables[var][:].shape[0]==len(profkeep): # Same dimension
                     database.data[var]=nc.variables[var][profkeep].data
@@ -61,7 +61,7 @@ for kdata in [0,1]:
     database.data["data_type"]=np.full(len(nc.variables["time"][profkeep]),kdata)
     database.compute_maxdens()
     prof_avg, prof_trend1,prof_trend2=database_periods.compute_trends(database)
-    #database.compute_stratification_pylake(lat=-2,deptha=-df_hypso["z"].values,area=df_hypso["area"].values)
+    database.compute_stratification_pylake(lat=-2,deptha=-df_hypso["z"].values,area=df_hypso["area"].values)
     nc.close() 
     
     

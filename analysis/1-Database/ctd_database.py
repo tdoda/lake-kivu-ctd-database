@@ -54,6 +54,8 @@ class ctd_database:
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
             "z_maxdens": {'var_name': 'z_maxdens', 'dim': ('time',), 'unit': 'm', 'longname': 'Depth of maxmimum density gradient'},
+            "z_therm": {'var_name': 'z_therm', 'dim': ('time',), 'unit': 'm', 'longname': 'Thermocline depth'},
+            "Sc": {'var_name': 'Sc', 'dim': ('time',), 'unit': 'J.m-2', 'longname': 'Schmidt stability'},
             "trendprof_Temp": {'var_name': 'trendprof_Tem', 'dim': ('depth_interp', 'time'), 'unit': 'degC/yr', 'longname': 'Temnperature trends with respect to reference period'},
             "trendprof_Cond": {'var_name': 'trendprof_Cond', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm/yr', 'longname': 'Conductivity dtrends with respect to reference period'},
             "trendprof_rho": {'var_name': 'trendprof_rho', 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3/yr', 'longname': 'Density trends with respect to reference period'},
@@ -104,10 +106,15 @@ class ctd_database:
             var.units = values["unit"]
             var.long_name = values["longname"]
             try:
-                #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
-                if isinstance(data[key], str) and data[key]=='N/a':     
+                if (key not in data.keys()) or (isinstance(data[key], str) and data[key]=='N/a'): # No data
+                    if len(values["dim"])==1:
+                        data[key]=np.full(len(data[values["dim"][0]]),np.nan)
+                    else:
+                        data[key]=np.full((len(data[values["dim"][0]]),len(data[values["dim"][1]])),np.nan)
+                
                     data[key]=np.nan 
                 var[:] = data[key]
+
             except:
                 breakpoint()
                 nc.close()

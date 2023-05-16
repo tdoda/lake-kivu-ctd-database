@@ -10,6 +10,7 @@ from envass import qualityassurance
 from datetime import datetime, timedelta
 import time
 from scipy.ndimage import uniform_filter1d
+from sklearn.linear_model import LinearRegression
 
 
 def copyFiles(outfolder, infolder):
@@ -794,3 +795,13 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         mask_std=noise_data>factor*np.std(noise_data)
         flags=np.logical_or(flags,mask_std)
    return flags
+
+def regression_period(t,z,t_extract):
+
+    zchem_periods=[z[np.logical_and(z>200,t<t_extract)],z[np.logical_and(z>200,t>=t_extract)]]
+    tchem_periods=[t[np.logical_and(z>200,t<t_extract)].reshape(-1,1),t[np.logical_and(z>200,t>=t_extract)].reshape(-1,1)]
+    model=[LinearRegression().fit(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
+    R2=[model[i].score(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
+    pfit=[[model[i].coef_[0],model[i].intercept_] for i in [0,1]]
+    #pfit=[np.polyfit(tchem_periods[i],zchem_periods[i],1) for i in [0,1]]
+    return pfit, R2
