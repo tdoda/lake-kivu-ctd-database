@@ -217,10 +217,10 @@ yearstr_periods=[[str(datetime.utcfromtimestamp(time_periods[0,i]).year) for i i
                [str(datetime.utcfromtimestamp(time_periods[1,i]).year) for i in [0,1,2]]]
 if fig_zoom:
     ax[0,0].set_ylim(220,280)
-    figname="trends_zoom"
+    figname="avgprof_zoom"
     legloc='upper center'
 else:
-    figname="trends"
+    figname="avgprof"
     legloc='center right'
 ax[0,0].legend(handles=[hp_all[i] for i in  [0,1,2]],labels=['Reference ({}-{})'.format(yearstr_periods[0][0],yearstr_periods[1][0]),
                                                              'Before extraction ({}-{})'.format(yearstr_periods[0][1],yearstr_periods[1][1]),
@@ -244,22 +244,56 @@ if savefig_bool:
 zchem_series=data_comb.z_maxdens[data_comb.z_maxdens>200]
 datechem_series=data_comb.time[data_comb.z_maxdens>200]
 date_extract=np.datetime64(datetime(2016,1,1))
+xlimval=(datetime(2008,1,1),datetime(2023,1,1))
+ylimval=(254,266)
 
 
-pfit_gov,R2_gov=regression_period(data_gov.time.values.astype(np.int64)*1e-9,data_gov.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
-pfit_KW,R2_KW=regression_period(data_KW.time.values.astype(np.int64)*1e-9,data_KW.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
-pfit_comb,R2_comb=regression_period(data_comb.time.values.astype(np.int64)*1e-9,data_comb.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
+pfit_gov,t_gov,zfit_gov,R2_gov=regression_period(data_gov.time.values.astype(np.int64)*1e-9,data_gov.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
+pfit_KW,t_KW,zfit_KW,R2_KW=regression_period(data_KW.time.values.astype(np.int64)*1e-9,data_KW.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
+pfit_comb,t_comb,zfit_comb,R2_comb=regression_period(data_comb.time.values.astype(np.int64)*1e-9,data_comb.z_maxdens,datetime(2016,1,1).replace(tzinfo=timezone.utc).timestamp())
 
-fig,ax=plt.subplots(1,2,figsize=(10,8),sharey=True,sharex=True)
-ax[0].plot(data_gov.time[data_gov.z_maxdens>200],data_gov.z_maxdens[data_gov.z_maxdens>200],'k.-')
-ax[0].plot([date_extract,date_extract],[254,264],'--r')
-ax[0].set_ylim(254,264)
-ax[1].plot(data_KW.time[data_KW.z_maxdens>200],data_KW.z_maxdens[data_KW.z_maxdens>200],'k.-')
-ax[1].plot([date_extract,date_extract],[254,264],'--r')
+fig,ax=plt.subplots(3,1,figsize=(10,8),sharey=True,sharex=True)
+ax[0].plot(data_gov.time[data_gov.z_maxdens>200],data_gov.z_maxdens[data_gov.z_maxdens>200],'.-',color='C0')
+ax[0].plot([date_extract,date_extract],ylimval,'-b')
+ax[0].plot([datetime.utcfromtimestamp(int(t_gov[0][i])) for i in np.arange(len(t_gov[0]))],zfit_gov[0],'--r')
+ax[0].plot([datetime.utcfromtimestamp(int(t_gov[1][i])) for i in np.arange(len(t_gov[1]))],zfit_gov[1],'--r')
+ax[0].set_ylabel('$z_{\\rm chem}$ [m]')
+xtext=date_extract+0.25*(np.datetime64(xlimval[1])-np.datetime64(xlimval[0]))
+ytext=ylimval[0]+0.95*(ylimval[1]-ylimval[0])
+# ax[0].text(xtext,ytext,"z[m] = {:.1f} t[yr]+{:.1f}\n $R^2$ = {:.2f}".format(pfit_gov[1][0]*3600*24*365,pfit_gov[1][1],R2_gov[1]),
+#            color='r',horizontalalignment='center',verticalalignment='center',bbox={"facecolor":"grey","alpha":0.5})
+ax[0].text(xtext,ytext,"dz/dt = {:.2f} m/yr\n $R^2$ = {:.2f}".format(pfit_gov[1][0]*3600*24*365,R2_gov[1]),
+           color='r',horizontalalignment='center',verticalalignment='top',bbox={"facecolor":"grey","alpha":0.5})
+ax[0].set_ylim(ylimval)
+ax[0].set_xlim(xlimval)
+ax[0].set_title('Government')
 
-# fig,ax=plt.subplots(1,2,figsize=(10,8),sharey=True)
-# ax[0].plot(data_gov.time[data_gov.z_therm>200],data_gov.z_therm[data_gov.z_therm>200],'k.-')
-# ax[1].plot(data_KW.time[data_KW.z_therm>200],data_KW.z_therm[data_KW.z_therm>200],'k.-')
+ax[1].plot(data_KW.time[data_KW.z_maxdens>200],data_KW.z_maxdens[data_KW.z_maxdens>200],'.-',color='C1')
+ax[1].plot([date_extract,date_extract],ylimval,'-b')
+ax[1].plot([datetime.utcfromtimestamp(int(t_KW[0][i])) for i in np.arange(len(t_KW[0]))],zfit_KW[0],'--r')
+ax[1].plot([datetime.utcfromtimestamp(int(t_KW[1][i])) for i in np.arange(len(t_KW[1]))],zfit_KW[1],'--r')
+ax[1].set_ylabel('$z_{\\rm chem}$ [m]')
+ax[1].text(xtext,ytext,"dz/dt = {:.2f} m/yr\n $R^2$ = {:.2f}".format(pfit_KW[1][0]*3600*24*365,R2_KW[1]),
+           color='r',horizontalalignment='center',verticalalignment='top',bbox={"facecolor":"grey","alpha":0.5})
+ax[1].set_title('Kivuwatt')
+
+
+ax[2].plot(data_comb.time[data_comb.z_maxdens>200],data_comb.z_maxdens[data_comb.z_maxdens>200],'k-')
+ax[2].plot(data_gov.time[data_gov.z_maxdens>200],data_gov.z_maxdens[data_gov.z_maxdens>200],'.',color='C0')
+ax[2].plot(data_KW.time[data_KW.z_maxdens>200],data_KW.z_maxdens[data_KW.z_maxdens>200],'.',color='C1')
+ax[2].plot([date_extract,date_extract],ylimval,'-b')
+ax[2].plot([datetime.utcfromtimestamp(int(t_comb[0][i])) for i in np.arange(len(t_comb[0]))],zfit_comb[0],'--r')
+ax[2].plot([datetime.utcfromtimestamp(int(t_comb[1][i])) for i in np.arange(len(t_comb[1]))],zfit_comb[1],'--r')
+ax[2].set_ylabel('$z_{\\rm chem}$ [m]')
+ax[2].text(xtext,ytext,"dz/dt = {:.2f} m/yr\n $R^2$ = {:.2f}".format(pfit_comb[1][0]*3600*24*365,R2_comb[1]),
+           color='r',horizontalalignment='center',verticalalignment='top',bbox={"facecolor":"grey","alpha":0.5})
+ax[2].set_title('Combined')
+
+if savefig_bool:
+    #fig.savefig("Figures/trend_zchem.png",dpi=400) 
+    
+    fig.savefig("Figures/trend_zchem.svg")  
+    print('Figure saved')
 
 
 #%% Close datasets

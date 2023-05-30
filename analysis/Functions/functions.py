@@ -797,11 +797,11 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
    return flags
 
 def regression_period(t,z,t_extract):
-
     zchem_periods=[z[np.logical_and(z>200,t<t_extract)],z[np.logical_and(z>200,t>=t_extract)]]
     tchem_periods=[t[np.logical_and(z>200,t<t_extract)].reshape(-1,1),t[np.logical_and(z>200,t>=t_extract)].reshape(-1,1)]
     model=[LinearRegression().fit(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
     R2=[model[i].score(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
     pfit=[[model[i].coef_[0],model[i].intercept_] for i in [0,1]]
     #pfit=[np.polyfit(tchem_periods[i],zchem_periods[i],1) for i in [0,1]]
-    return pfit, R2
+    zfit=[np.polyval(pfit[i],tchem_periods[i]) for i in [0,1]]
+    return pfit, tchem_periods, zfit, R2
