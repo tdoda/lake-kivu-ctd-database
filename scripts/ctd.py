@@ -128,7 +128,7 @@ class ctd:
             else:
                 log("Wrong file format", indent=1)
                 return False
-            
+        
             
             # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
             skip_rows, columns, units, valid, date_format, start_date = parse_file(infile,keyword_skip)
@@ -147,7 +147,6 @@ class ctd:
                 df["Press"]=df["Depth"]/1.019716 # Estimate of pressure [dbar] from depth values according to SeaBird software
             if math.isnan(df.Cond.iloc[-1]):
                 df.drop(index=df.index[-1], axis=0, inplace=True)
-
             for variable in self.variables:
                 if "function" in self.variables[variable]:
                     self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
@@ -172,7 +171,8 @@ class ctd:
 
             return True
         except:
-            breakpoint()
+            if infile!='../data/Level0/Government/171123_18.TOB':
+                breakpoint()
             log("Failed to parse raw data from file {}".format(infile), indent=1)
             return False
         
@@ -656,8 +656,10 @@ class ctd:
 
         log("Calculating depth...", indent=2)
         rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
+        rho_avg=np.array([np.nanmean(rho_p[:i+1]) for i in range(len(rho_p))])
         if calculate_depth: 
-            self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
+            #self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
+            self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
         else:
             self.data["depth"]=data["adj_press"]
         log("Calculating depth_ref...", indent=2)
