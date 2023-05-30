@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Combine profiles from monitoring program and Kivuwatt.
+Combine all profiles from monitoring program and Kivuwatt separately (one file per data type).
 
 @author: T. Doda
 """
@@ -14,7 +14,7 @@ from functions import *
 
 #%% Folders
 data_folders = ["../data/Level2B_TD/Government/", "../data/Level2B_TD/Kivuwatt/"]
-netcdf_files = ["data_gov.nc", "data_Kivuwatt.nc"]
+netcdf_files = ["data_gov2.nc", "data_Kivuwatt2.nc"]
 
 with open("input_python.yaml", "r") as f:
     directories = yaml.load(f, Loader=yaml.FullLoader)
@@ -36,7 +36,8 @@ for kperiod in np.arange(len(dateperiod_rem_KW)):
     
     
 
-for kdata in [0,1]:
+#for kdata in [0,1]:
+for kdata in [1]:
     print('***************************************')
     log("Loading data from {}".format(data_folders[kdata]))
     #%% Load the data
