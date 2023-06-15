@@ -12,6 +12,7 @@ from envass import qualityassurance
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from scipy import interpolate
+from scipy.optimize import curve_fit
 import seawater as sw
 import re as re
 import collections
@@ -32,10 +33,11 @@ class ctd_database:
 
         self.dimensions = {
             'time': {'dim_name': 'time', 'dim_size': None},
-            "depth_interp": {'dim_name': "depth_interp", 'dim_size': None}
+            "depth_interp": {'dim_name': "depth_interp", 'dim_size': None},
+            "bounds": {'dim_name': "bounds", 'dim_size': 2}
         }
 
-        
+        # Create variables: primary keys should match name of variables in the script and var_name is the variable name in netCDF file
         self.variables = {
             'data_type': {'var_name': 'data_type', 'dim': ('time',), 'unit': '-', 'longname': 'Data type: 0 (government) or 1 (KW)'},
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
@@ -53,7 +55,15 @@ class ctd_database:
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
+            "rho_top": {'var_name': "rho_top", 'dim': ('time',), 'unit': 'kg.m^(-3)', 'longname': 'Density of the upper layer'},
+            "rho_bot": {'var_name': "rho_bot", 'dim': ('time',), 'unit': 'kg.m^(-3)', 'longname': 'Density of the lower layer'},
+            "z_bounds": {'var_name': "z_bounds", 'dim': ('bounds',), 'unit': 'm', 'longname': 'Depth bounds of the fitted profile'},
             "z_maxdens": {'var_name': 'z_maxdens', 'dim': ('time',), 'unit': 'm', 'longname': 'Depth of maxmimum density gradient'},
+            "z_maxdens_smooth": {'var_name': 'z_maxdens_smooth', 'dim': ('time',), 'unit': 'm', 'longname': 'Depth of maxmimum density gradient (smoothed)'},
+            "z_meta_middle": {'var_name': 'z_meta_middle', 'dim': ('time',), 'unit': 'm', 'longname': 'Mean depth of the metalimnion'},
+            "z_middens": {'var_name': "z_middens", 'dim': ('time',), 'unit': 'm', 'longname': 'Chemocline depth based on surface and bottom mean densities'},
+            "z_chemfit": {'var_name': 'z_chemfit', 'dim': ('time',), 'unit': 'm', 'longname': 'Chemocline depth from fitted profile'},
+            "delta_metafit": {'var_name': 'delta_metafit', 'dim': ('time',), 'unit': 'm', 'longname': 'Thickness of the metalimnion from fitted profile'},
             "z_therm": {'var_name': 'z_therm', 'dim': ('time',), 'unit': 'm', 'longname': 'Thermocline depth'},
             "Sc": {'var_name': 'Sc', 'dim': ('time',), 'unit': 'J.m-2', 'longname': 'Schmidt stability'},
             "trendprof_Temp": {'var_name': 'trendprof_Tem', 'dim': ('depth_interp', 'time'), 'unit': 'degC/yr', 'longname': 'Temnperature trends with respect to reference period'},
@@ -63,11 +73,117 @@ class ctd_database:
         
         self.data = {}
 
-    def compute_maxdens(self):
-        # Maximum density gradient
-        grad_rho=np.abs(np.gradient(self.data["rho"], axis=0))
-        self.data["z_maxdens"]=self.data["depth_interp"][np.nanargmax(grad_rho,axis=0)]
+    def compute_maxdens(self,zmin=220,zmax=300):
+        """
+        # Computes chemocline depth as the depth of maximum density gradient 
+        # (saved as "z_maxdens")
+        #
+        # Inputs: 
+            # zmin [m]: minimum depth of the profile to analyze
+            # zmax [m]: maximum depth of the profile to analyze
+        """
+        rhoval=self.data["rho"][np.logical_and(self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmax),:]
+        boolnan=np.sum(np.isnan(rhoval),axis=0)==rhoval.shape[0]
+        self.data["z_maxdens"]=np.array([np.nan]*rhoval.shape[1])
+
+        grad_rho=np.abs(np.gradient(rhoval, axis=0))
+        depthval=self.data["depth_interp"][np.logical_and(self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmax)]
+        self.data["z_maxdens"][~boolnan]=depthval[np.nanargmax(grad_rho[:,~boolnan],axis=0)]
         
+        
+    def compute_metalimnion(self,grad_threshold=0.07,windowsize=10,zmin=220,zmax=300):
+        """
+        # Finds upper and lower bounds of metalimnion based on density gradient
+        # from smoothed density profile. The depth of maximum gradient is saved as
+        # "z_maxdens_smooth" and the average depth of the metalimnion as 
+        # "z_meta_middle".
+        #
+        # Inputs:
+            # grad_threshold [kg.m^(-3).m^(-1)]: gradient threshold defining the upper and lower bounds of the metalimnion 
+            # windowsize: window size used to smooth the profile
+            # zmin [m]: minimum depth of the profile to analyze
+            # zmax [m]: maximum depth of the profile to analyze
+        """
+        dz=np.expand_dims(self.data["depth_interp"][2:]-self.data["depth_interp"][:-2],axis=1)
+        # Create smooth density:
+        # rho_smooth=np.full(self.data["rho"].shape,np.nan)
+        # for k in range(len(self.data["time"])): 
+        #     df=pd.DataFrame({'rho':self.data["rho"][:,k]})
+        #     rho_smooth[:,k]=df.rolling(windowsize).mean().values[:,0]
+        rho_smooth=movmean(self.data["rho"],windowsize)
+        grad_rho=(rho_smooth[2:,:]-rho_smooth[:-2,:])/dz # [kg.m-3.m-1]
+        zval=self.data["depth_interp"][1:-1]
+        grad_rho=grad_rho[np.logical_and(zval>=zmin,zval<=zmax),:]
+        zval=zval[np.logical_and(zval>=zmin,zval<=zmax)]
+        indnonan=np.where(np.sum(np.isnan(grad_rho),axis=0)<grad_rho.shape[0])[0]
+        
+        zmax=np.full((grad_rho.shape[1],),np.nan)
+        ztop=np.full((grad_rho.shape[1],),np.nan)
+        zbot=np.full((grad_rho.shape[1],),np.nan)
+        for k in indnonan:
+            #df=pd.DataFrame({'Grad':grad_rho[:,k]})
+            #grad_smooth=df.rolling(windowsize).mean().values
+            # indmax=np.nanargmax(grad_smooth,axis=0)[0]
+            grad_smooth=grad_rho[:,k]
+            indmax=np.nanargmax(grad_smooth,axis=0)
+            zmax[k]=zval[indmax]
+            indtop=np.where(grad_smooth[:indmax]<grad_threshold)[0]
+            indbot=indmax+np.where(grad_smooth[indmax:]<grad_threshold)[0]
+            if np.any(indtop): # Not empty
+                ztop[k]=zval[indtop[-1]]
+            if np.any(indbot):
+                zbot[k]=zval[indbot[0]]
+        self.data["z_maxdens_smooth"]=zmax
+        self.data["z_meta_middle"]=np.mean([zbot,ztop],axis=0)
+        #return zmax,ztop,zbot
+        
+    def compute_chemfit(self,dz=10,windowsize=10,param=[10,260],zmin=230,zmax=280):
+        """
+        # Computes the chemocline depth based on a symmetrical function, i.e. 
+        # as the middle point between surface and bottom densities (saved as "z_middens" and "z_chemfit" with fitting).
+        #
+        # Inputs:
+            # dz [m]: thickness of the layer where surface and bottom densities are calculated
+            # windowsize: window size used to smooth the profile
+            # param=[delta,zchem] [m]: initial guess for the parameters
+            # zmin [m]: minimum depth of the profile to analyze
+            # zmax [m]: maximum depth of the profile to analyze
+        """
+        rho_smooth=movmean(self.data["rho"],windowsize,axis=0)
+        zchemval=np.full((rho_smooth.shape[1],),np.nan)
+        maxdepth=self.data["depth_interp"][[np.where(~np.isnan(rho_smooth[:,k]))[0][-1] for k in range(rho_smooth.shape[1])]]
+        keepprof=maxdepth>zmax
+        rho_smooth=rho_smooth[:,keepprof]
+        rho_top=np.nanmean(rho_smooth[np.logical_and(self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmin+dz),:],axis=0)
+        rho_bot=np.nanmean(rho_smooth[np.logical_and(self.data["depth_interp"]>=zmax-dz,self.data["depth_interp"]<=zmax),:],axis=0)
+        zchemval[keepprof]=np.array([self.data["depth_interp"][np.where(rho_smooth[:,k]>=np.mean([rho_top[k],rho_bot[k]],axis=0))[0][0]] for k in range(len(rho_top))])
+        self.data["bounds"]=np.array([0,1])
+        self.data["z_bounds"]=np.array([zmin,zmax])
+        self.data["rho_top"]=np.full(zchemval.shape,np.nan)
+        self.data["rho_top"][keepprof]=rho_top
+        self.data["rho_bot"]=np.full(zchemval.shape,np.nan)
+        self.data["rho_bot"][keepprof]=rho_bot
+        self.data["z_middens"]=zchemval
+        
+        # zchemfit=np.full((rho_smooth.shape[1],),np.nan)
+        # deltafit=np.full((rho_smooth.shape[1],),np.nan)
+        # for kt in range(rho_smooth.shape[1]):
+        #     # Fitting function:
+        #     def densfunc(z,delta,zchem): 
+        #         # z>0 downward
+        #         return rho_top[kt]+(rho_bot[kt]-rho_top[kt])/2*(np.tanh((z-zchem)/delta)+1)
+        #     keepdepth=np.logical_and.reduce((~np.isnan(rho_smooth[:,kt]),self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmax))
+        #     param,_= curve_fit(densfunc, self.data["depth_interp"][keepdepth],rho_smooth[keepdepth,kt],p0=param)
+        #     zchemfit[kt]=param[1]
+        #     deltafit[kt]=param[0]
+        zchemfit, deltafit,_,_=fit_rho(self.data["depth_interp"],rho_smooth,rho_top,rho_bot,[zmin,zmax],param)
+
+        self.data["z_chemfit"]=np.full(zchemval.shape,np.nan)
+        self.data["z_chemfit"][keepprof]=zchemfit
+        
+        self.data["delta_metafit"]=np.full(zchemval.shape,np.nan)
+        self.data["delta_metafit"][keepprof]=deltafit
+    
     def compute_stratification_pylake(self,lat,deptha,area):
         z_therm=np.full(len(self.data["time"]),np.nan)
         Sc=np.full(len(self.data["time"]),np.nan)

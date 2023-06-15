@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 import time
 from scipy.ndimage import uniform_filter1d
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
+
 
 
 def copyFiles(outfolder, infolder):
@@ -195,8 +197,9 @@ def default_salinity_temperature(temperature):
     return 1.8626 - 0.052908 * temperature + 0.00093057 * temperature ** 2 - 6.78e-6 * temperature ** 3
 
 def salinity(Temp, Cond, y_cond, temperature_func= default_salinity_temperature):
+    # Cond in [mS/cm], y_cond in [g/kg/(uS/cm)]
     ft = temperature_func(Temp)
-    cond20 = ft * Cond * 1000
+    cond20 = ft * Cond * 1000 # uS/cm
     salin = y_cond * cond20
     return salin
 
@@ -796,12 +799,211 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         flags=np.logical_or(flags,mask_std)
    return flags
 
-def regression_period(t,z,t_extract):
-    zchem_periods=[z[np.logical_and(z>200,t<t_extract)],z[np.logical_and(z>200,t>=t_extract)]]
-    tchem_periods=[t[np.logical_and(z>200,t<t_extract)].reshape(-1,1),t[np.logical_and(z>200,t>=t_extract)].reshape(-1,1)]
-    model=[LinearRegression().fit(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
-    R2=[model[i].score(tchem_periods[i],zchem_periods[i]) for i in [0,1]]
-    pfit=[[model[i].coef_[0],model[i].intercept_] for i in [0,1]]
-    #pfit=[np.polyfit(tchem_periods[i],zchem_periods[i],1) for i in [0,1]]
-    zfit=[np.polyval(pfit[i],tchem_periods[i]) for i in [0,1]]
+def regression_oneline(tval,zval):
+    
+    zchem_periods=zval
+    tchem_periods=tval
+    model=LinearRegression().fit(tchem_periods[~np.isnan(zchem_periods)].reshape(-1, 1),zchem_periods[~np.isnan(zchem_periods)])
+    R2=model.score(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
+    pfit=[model.coef_[0],model.intercept_]
+    zfit=np.polyval(pfit,tchem_periods)
+        
+    return pfit, zfit, R2
+
+def regression_period(tval,zval,t_extract,interceptval=np.full(2,np.nan)):
+    zchem_periods=[zval[tval<t_extract],zval[tval>=t_extract]]
+    tchem_periods=[tval[tval<t_extract].reshape(-1,1),tval[tval>=t_extract].reshape(-1,1)]
+    model=[None]*2
+    R2=[None]*2
+    pfit=[None]*2
+    zfit=[None]*2
+    for i in [0,1]:
+        if np.isnan(interceptval[i]):
+            model[i]=LinearRegression().fit(tchem_periods[i][~np.isnan(zchem_periods[i])],zchem_periods[i][~np.isnan(zchem_periods[i])])
+            R2[i]=model[i].score(tchem_periods[i][~np.isnan(zchem_periods[i])],zchem_periods[i][~np.isnan(zchem_periods[i])])
+            pfit[i]=[model[i].coef_[0],model[i].intercept_]
+            zfit[i]=np.polyval(pfit[i],tchem_periods[i])
+        else:
+            model[i]=LinearRegression(fit_intercept=False).fit(tchem_periods[i][~np.isnan(zchem_periods[i])],zchem_periods[i][~np.isnan(zchem_periods[i])]-interceptval) 
+            R2[i]=model[i].score(tchem_periods[i][~np.isnan(zchem_periods[i])],zchem_periods[i][~np.isnan(zchem_periods[i])]-interceptval)
+            pfit[i]=[model[i].coef_[0],interceptval]
+            zfit[i]=np.polyval(pfit[i],tchem_periods[i])
+    
     return pfit, tchem_periods, zfit, R2
+
+def regression_period_intersect(tval,zval,t_extract, param0):
+    x0=t_extract
+    # Force intersection between two lines    
+    def two_linear_models(x, a1, b1, a2):
+        #nonlocal x0
+        # Define the piecewise linear model
+        y = np.where(x < x0, a1 * x + b1, a2 * x + x0*(a1-a2)+b1)
+        return y
+    params,pcov = curve_fit(two_linear_models, tval[~np.isnan(zval)], zval[~np.isnan(zval)], p0=param0)
+    zfit=two_linear_models(tval,params[0],params[1],params[2])
+    R2=[1-np.nansum((zval[tval<t_extract]-zfit[tval<t_extract])**2)/np.nansum((zval[tval<t_extract]-np.nanmean(zval[tval<t_extract]))**2),
+        1-np.nansum((zval[tval>t_extract]-zfit[tval>t_extract])**2)/np.nansum((zval[tval>t_extract]-np.nanmean(zval[tval>t_extract]))**2)]
+    return [[params[0],params[1]], [params[2],x0*(params[0]-params[2])+params[1]]], zfit, R2, pcov
+
+
+def divide_paths(x,y,maxdist=1e-5):
+    x_corr=[]
+    y_corr=[]
+    distval=(x[1:]-x[:-1])**2+(y[1:]-y[:-1])**2
+    indsegments_start=np.concatenate(([0],np.where(distval>maxdist)[0]+1),axis=0)
+    indsegments_end=np.concatenate((np.where(distval>maxdist)[0],[len(x)-1]),axis=0)
+    
+    for kseg in range(len(indsegments_start)):
+        x_corr.append(x[indsegments_start[kseg]:indsegments_end[kseg]])
+        y_corr.append(y[indsegments_start[kseg]:indsegments_end[kseg]])
+    
+    return x_corr, y_corr
+
+def movmean(X,windowsize,axis=0):
+    # Moving average centered at the given index
+    if len(X.shape)==1:
+        X=np.expand_dims(X,axis=1)
+    if axis==1:
+        X=X.transpose()
+    X_smooth=np.full(X.shape,np.nan)
+    for k in range(X.shape[1]): 
+        df=pd.DataFrame({'val':X[:,k]})
+        X_smooth[:,k]=df.rolling(windowsize,center=True).mean().values[:,0]
+    if axis==1:
+        X_smooth=X_smooth.transpose()
+    return X_smooth
+
+def fit_rho(depthval,rhoval,rho_top,rho_bot,z_bounds,param_ini): 
+    # All input arguments are numpy arrays
+    zmin=z_bounds[0]
+    zmax=z_bounds[1]
+    if len(rhoval.shape)==1:
+        rhoval=np.expand_dims(rhoval,axis=1)
+    if not isinstance(rho_top,np.ndarray):
+        rho_top=np.array([rho_top])
+    if not isinstance(rho_bot,np.ndarray):
+        rho_bot=np.array([rho_bot])
+    nprof=rhoval.shape[1]
+    if len(rho_bot)!=nprof or len(rho_top)!=nprof:
+        raise Exception('Wrong dimension of upper and lower densities')
+    zchemfit=np.full((nprof,),np.nan)
+    deltafit=np.full((nprof,),np.nan)
+    log("Fitting density profile",indent=2)
+    for kt in range(nprof):
+        # Fitting function:
+        def densfunc(z,zchem,delta): 
+            # z>0 downward
+            return rho_top[kt]+(rho_bot[kt]-rho_top[kt])/2*(np.tanh((z-zchem)/delta)+1)
+        keepdepth=np.logical_and.reduce((~np.isnan(rhoval[:,kt]),depthval>=zmin,depthval<=zmax))
+        param,pcov,infodict,_,_= curve_fit(densfunc, depthval[keepdepth],rhoval[keepdepth,kt],p0=param_ini,full_output=True)
+        zchemfit[kt]=param[0]
+        deltafit[kt]=param[1]
+    return zchemfit, deltafit, pcov, infodict
+
+def densprofile(z,delta,zchem,rho_top,rho_bot): 
+    # z>0 downward
+    return rho_top+(rho_bot-rho_top)/2*(np.tanh((z-zchem)/delta)+1)
+
+def compute_hypso(depthval,dA,dz):
+    # depth val: numerical array with grid of POSITIVE depth values [m]
+    # dA: surface area of a grid cell [m^2]
+    # dz: vertical resolution for the output [m]
+    
+    
+    hypso_z=np.arange(0,np.nanmax(depthval),dz)
+    hypso_A=np.array([np.nan]*len(hypso_z))
+    for k in range(len(hypso_z)):
+        hypso_A[k]=np.nansum(depthval>=hypso_z[k])*dA # [m^2]
+    
+    return hypso_z, hypso_A
+
+def compute_balance(database,indprof,zval,Aval,Cp=4.18):
+    
+    H=np.full((len(zval),len(indprof)),np.nan)
+    S=np.full((len(zval),len(indprof)),np.nan)
+    M=np.full((len(zval),len(indprof)),np.nan)
+    
+    for kz in range(len(zval)-1):
+        tempval=np.nanmean(database.Temp.values[np.logical_and(database.depth_interp>=zval[kz],database.depth_interp<zval[kz+1])][:,indprof],axis=0)
+        salval=np.nanmean(database.SALIN.values[np.logical_and(database.depth_interp>=zval[kz],database.depth_interp<zval[kz+1])][:,indprof],axis=0)
+        densval=np.nanmean(database.rho.values[np.logical_and(database.depth_interp>=zval[kz],database.depth_interp<zval[kz+1])][:,indprof],axis=0)
+        
+        H[kz,:]=tempval*densval*Cp*0.5*(Aval[kz]+Aval[kz+1])*(zval[kz+1]-zval[kz]) # [J]
+        S[kz,:]=salval*densval*0.5*(Aval[kz]+Aval[kz+1])*(zval[kz+1]-zval[kz])/1000 # [kg salt]
+        M[kz,:]=densval*0.5*(Aval[kz]+Aval[kz+1])*(zval[kz+1]-zval[kz]) # [kg water]   
+    
+    return H, S, M
+
+def sort_paths(x,y,maxdist=0.01):
+    # x, y: 1D numpy arrays
+    # returns x_corr and y_corr: lists of numpy 1D arrays (one element for each contour)
+    breakpoint()
+    x_corr=[]
+    y_corr=[]
+    distval=(x[1:]-x[:-1])**2+(y[1:]-y[:-1])**2
+    indsegments_start=np.concatenate(([0],np.where(distval>maxdist)[0]+1),axis=0)
+    indsegments_end=np.concatenate((np.where(distval>maxdist)[0],[len(x)-1]),axis=0)
+    
+    if len(indsegments_start)==1: # No jump
+        print('Already sorted!')
+        x_corr=[x]
+        y_corr=[y]
+        return x_corr, y_corr
+    
+    indbefore=np.full(len(indsegments_start),np.nan) # Index of the segment preceding the current location
+    indseg_all=np.arange(len(indsegments_start))
+    
+    for kseg in indseg_all:   
+        ind_other=np.delete(indseg_all,kseg)
+        dist_other=(x[indsegments_start[kseg]]-x[indsegments_end[ind_other]])**2+(y[indsegments_start[kseg]]-y[indsegments_end[ind_other]])**2
+        ind_close=np.nanargmin(dist_other) # Put current segment after this one
+        if dist_other[ind_close]>maxdist: #Still jump: move the segment to the beginning
+            indbefore[kseg]=-1
+        else:
+            indbefore[kseg]=ind_other[ind_close]
+
+    if -1 not in indbefore:
+        print('No clear starting point (loop)')
+        indsort=np.full(len(indbefore),np.nan) # Indices of the segments in the right order
+        indsort[0]=indbefore[0]
+    else:
+        ind_isolated=np.where([i not in indbefore for i in indseg_all[np.where(indbefore==-1)[0]]])[0]
+        # Add segments with only one point:
+        ind_isolated=np.concatenate((ind_isolated,np.where(indsegments_start==indsegments_end)[0]))
+        #if np.any(ind_isolated):
+        if len(ind_isolated)>=1:
+            #indseg_all[np.where(indbefore==-1)[0]] not in indbefore: # Isolated segment
+            print('Isolated segments!')
+            for k in range(len(ind_isolated)):
+                x_corr.append(x[indsegments_start[int(ind_isolated[k])]:indsegments_end[int(ind_isolated[k])]])
+                y_corr.append(y[indsegments_start[int(ind_isolated[k])]:indsegments_end[int(ind_isolated[k])]])
+            indkeep=np.delete(indbefore,np.where(indbefore==-1)[0])
+            if np.any(indkeep):
+                indsort=np.full(len(indkeep),np.nan) # Indices of the segments in the right order
+                indsort[0]=indkeep[0]
+            else: # No segment left
+                return x_corr, y_corr
+        else: # No isolated segment
+            indsort=np.full(len(indbefore),np.nan) # Indices of the segments in the right order
+            indsort[0]=np.where(indbefore==-1)[0]
+            
+            
+    #print(indbefore)
+    for k in np.arange(1,len(indsort),1):
+        indbef_val=np.where(indbefore==indsort[k-1])[0]
+        if isinstance(indbef_val,np.ndarray) and len(indbef_val)>1:
+            breakpoint()
+            raise Exception('Several segments are repeated')
+        else:
+            indsort[k]=indbef_val
+    #print(indsort)
+    xval_corr=x[indsegments_start[int(indsort[0])]:indsegments_end[int(indsort[0])]]
+    yval_corr=y[indsegments_start[int(indsort[0])]:indsegments_end[int(indsort[0])]]
+    for k in np.arange(1,len(indsort),1):
+        xval_corr=np.concatenate((xval_corr,x[indsegments_start[int(indsort[k])]:indsegments_end[int(indsort[k])]]))
+        yval_corr=np.concatenate((yval_corr,y[indsegments_start[int(indsort[k])]:indsegments_end[int(indsort[k])]]))
+    
+    x_corr.append(xval_corr)
+    y_corr.append(yval_corr)
+    
+    return x_corr, y_corr
