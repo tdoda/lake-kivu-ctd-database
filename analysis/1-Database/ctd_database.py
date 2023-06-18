@@ -63,6 +63,7 @@ class ctd_database:
             "z_meta_middle": {'var_name': 'z_meta_middle', 'dim': ('time',), 'unit': 'm', 'longname': 'Mean depth of the metalimnion'},
             "z_middens": {'var_name': "z_middens", 'dim': ('time',), 'unit': 'm', 'longname': 'Chemocline depth based on surface and bottom mean densities'},
             "z_chemfit": {'var_name': 'z_chemfit', 'dim': ('time',), 'unit': 'm', 'longname': 'Chemocline depth from fitted profile'},
+            "z_centermass": {'var_name': 'z_centermass', 'dim': ('time',), 'unit': 'm', 'longname': 'Center of mass of the layer near chemocline (z_bounds)'},
             "delta_metafit": {'var_name': 'delta_metafit', 'dim': ('time',), 'unit': 'm', 'longname': 'Thickness of the metalimnion from fitted profile'},
             "z_therm": {'var_name': 'z_therm', 'dim': ('time',), 'unit': 'm', 'longname': 'Thermocline depth'},
             "Sc": {'var_name': 'Sc', 'dim': ('time',), 'unit': 'J.m-2', 'longname': 'Schmidt stability'},
@@ -184,6 +185,24 @@ class ctd_database:
         self.data["delta_metafit"]=np.full(zchemval.shape,np.nan)
         self.data["delta_metafit"][keepprof]=deltafit
     
+    def compute_centermass(self,hypso_z=[],hypso_A=[],zmin=230,zmax=280):
+        zval=self.data["depth_interp"][np.logical_and(self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmax)].reshape(-1,1)       
+        rhoval=self.data["rho"][np.logical_and(self.data["depth_interp"]>=zmin,self.data["depth_interp"]<=zmax),:]
+        
+        # Including lake area
+        if np.any(hypso_z):
+            Aval=np.interp(zval,hypso_z,hypso_A)
+            total_mass=np.trapz(rhoval*Aval,zval,axis=0)
+            self.data["z_centermass"]=1/total_mass*np.trapz(rhoval*Aval*zval,zval,axis=0)
+        else:
+        # Without including lake area
+            total_mass=np.trapz(rhoval,zval,axis=0)
+            self.data["z_centermass"]=1/total_mass*np.trapz(rhoval*zval,zval,axis=0)
+        
+        
+        
+    
+    
     def compute_stratification_pylake(self,lat,deptha,area):
         z_therm=np.full(len(self.data["time"]),np.nan)
         Sc=np.full(len(self.data["time"]),np.nan)
@@ -244,12 +263,13 @@ class ctd_periods:
             "history": "See history on Renku",
             "conventions": "CF 1.7",
             "title": "Lake Kivu database organized in periods",
-            "comment": "Variables computed for three periods: reference, p1 before extraction, p2 after extraction",
+            "comment": "Variables averaged over periods (e.g., reference, p1 before extraction, p2 after extraction)",
         }
     
         self.dimensions = {
             'time0_periods': {'dim_name': 'time0_periods', 'dim_size': None},
-            "depth_interp": {'dim_name': "depth_interp", 'dim_size': None}
+            "depth_interp": {'dim_name': "depth_interp", 'dim_size': None},
+            "depth_trend": {'dim_name': "depth_trend", 'dim_size': None}
         }
     
         
@@ -257,70 +277,175 @@ class ctd_periods:
             'time0_periods': {'var_name': 'time0_periods', 'dim': ('time0_periods',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'Starting time of periods'},
             'timef_periods': {'var_name': 'timef_periods', 'dim': ('time0_periods',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'Ending time of periods'},
             "depth_interp": {'var_name': "depth_interp", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Interpolated depth"},
+            "depth_trend": {'var_name': "depth_trend", 'dim': ('depth_trend',), 'unit': 'm', 'longname': "Depth for trends"},
             
             "meanprof_Temp_avg":{'var_name': "meanprof_Temp_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'degC', 'longname': "Mean temperature profile"},
             "meanprof_Temp_std":{'var_name': "meanprof_Temp_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'degC', 'longname': "Profile of temperature std"},        
-            "meantrendprof_Temp_avg":{'var_name': "meantrendprof_Temp_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'degC/yr', 'longname': "Mean profile of temperature trend"},
-            "meantrendprof_Temp_std":{'var_name': "meantrendprof_Temp_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'degC/yr', 'longname': "Std profile of temperature trend"},
+            "trendavg_Temp":{'var_name': "trendavg_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': 'degC/yr', 'longname': "Average temperature trend"},
+            "trendfit_Temp":{'var_name': "trendfit_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': 'degC/yr', 'longname': "Temperature trend from linear fit"},
             
             "meanprof_Cond_avg":{'var_name': "meanprof_Cond_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'mS/cm', 'longname': "Mean conductivity profile"},
             "meanprof_Cond_std":{'var_name': "meanprof_Cond_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'mS/cm', 'longname': "Profile of conductivity std"}, 
-            "meantrendprof_Cond_avg":{'var_name': "meantrendprof_Cond_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'mS/cm/yr', 'longname': "Mean profile of conductivity trend"},
-            "meantrendprof_Cond_std":{'var_name': "meantrendprof_Cond_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'mS/cm/yr', 'longname': "Std profile of conductivity trend"},
+            "trendavg_Cond":{'var_name': "trendavg_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': 'mS.cm-1.yr-1', 'longname': "Average conductivity trend"},
+            "trendfit_Cond":{'var_name': "trendfit_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': 'mS.cm-1.yr-1', 'longname': "Conductivity trend from linear fit"},
+            
+            
+            "meanprof_SALIN_avg":{'var_name': "meanprof_SALIN_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'g/kg', 'longname': "Mean salinity profile"},
+            "meanprof_SALIN_std":{'var_name': "meanprof_SALIN_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'g/kg', 'longname': "Profile of salinity std"}, 
+            "trendavg_SALIN":{'var_name': "trendavg_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': 'g.kg-1.yr-1', 'longname': "Average salinity trend"},
+            "trendfit_SALIN":{'var_name': "trendfit_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': 'g.kg-1.yr-1', 'longname': "Salinity trend from linear fit"},
             
             "meanprof_rho_avg":{'var_name': "meanprof_rho_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3', 'longname': "Mean density profile"},
             "meanprof_rho_std":{'var_name': "meanprof_rho_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3', 'longname': "Profile of density std"},  
-            "meantrendprof_rho_avg":{'var_name': "meantrendprof_rho_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3/yr', 'longname': "Mean profile of density trend"},
-            "meantrendprof_rho_std":{'var_name': "meantrendprof_rho_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3/yr', 'longname': "Std profile of density trend"},    
-        }
+            "trendavg_rho":{'var_name': "trendavg_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3.yr-1', 'longname': "Average density trend"},
+            "trendfit_rho":{'var_name': "trendfit_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3.yr-1', 'longname': "Density trend from linear fit"},
+            }
         
         self.data = {}
         
         
-    def compute_trends(self,database,period_ref=[datetime(2008,1,1),datetime(2011,1,1)],date_extraction=datetime(2016,1,1)):
-        # Average reference profile
+    # def compute_avgprof_3p(self,database,period_ref=[datetime(2008,1,1),datetime(2011,1,1)],date_extraction=datetime(2016,1,1)):
+    #     # Average reference profile
+    #     self.data["depth_interp"]=database.data["depth_interp"]
+        
+    #     tperiod_ref=[period_ref[k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
+    #     textraction=date_extraction.replace(tzinfo=timezone.utc).timestamp()
+    #     self.data["time0_periods"]=np.array([tperiod_ref[0],tperiod_ref[1],textraction])
+    #     self.data["timef_periods"]=np.array([tperiod_ref[1],textraction,np.max(database.data["time"])])
+    #     indprof_ref=np.where(np.logical_and(database.data["time"]>tperiod_ref[0],database.data["time"]<tperiod_ref[1]))[0]
+    #     indprof_p1=np.where(np.logical_and(database.data["time"]>tperiod_ref[1],database.data["time"]<textraction))[0]
+    #     indprof_p2=np.where(database.data["time"]>=textraction)[0]
+    #     prof_avg=dict()
+    #     prof_trend=dict()
+    #     prof_trendavg=dict()
+        
+    #     for var in ["Temp","Cond","rho"]:
+    #         prof_avg[var+"_ref"]=np.nanmean(database.data[var][:,indprof_ref],axis=1)
+    #         prof_avg[var+"_ref_std"]=np.nanstd(database.data[var][:,indprof_ref],axis=1)
+    #         prof_avg[var+"_p1"]=np.nanmean(database.data[var][:,indprof_p1],axis=1)
+    #         prof_avg[var+"_p1_std"]=np.nanstd(database.data[var][:,indprof_p1],axis=1)
+    #         prof_avg[var+"_p2"]=np.nanmean(database.data[var][:,indprof_p2],axis=1)
+    #         prof_avg[var+"_p2_std"]=np.nanstd(database.data[var][:,indprof_p2],axis=1)
+    #         refprof=prof_avg[var+"_ref"][:,np.newaxis]
+    #         prof_trend[var]=(database.data[var]-refprof)/((database.data["time"]-np.mean(tperiod_ref))/(3600*24*365))
+    #         # prof_trendavg[var+"_p1"]=np.nanmean(prof_trend[var][:,indprof_p1],axis=1)
+    #         # prof_trendavg[var+"_p1_std"]=np.nanstd(prof_trend[var][:,indprof_p1],axis=1)
+    #         # prof_trendavg[var+"_p2"]=np.nanmean(prof_trend[var][:,indprof_p2],axis=1)
+    #         # prof_trendavg[var+"_p2_std"]=np.nanstd(prof_trend[var][:,indprof_p2],axis=1)
+            
+            
+    #         trend_p1=(database.data[var][:,indprof_p1[1:]]-database.data[var][:,indprof_p1[0]][:,np.newaxis])/((database.data["time"][indprof_p1[1:]]-database.data["time"][indprof_p1[0]])/(3600*24*365))
+    #         trend_p2=(database.data[var][:,indprof_p2[1:]]-database.data[var][:,indprof_p2[0]][:,np.newaxis])/((database.data["time"][indprof_p2[1:]]-database.data["time"][indprof_p2[0]])/(3600*24*365))
+    #         prof_trendavg[var+"_p1"]=np.nanmean(trend_p1,axis=1)
+    #         prof_trendavg[var+"_p1_std"]=np.nanstd(trend_p1,axis=1)
+    #         prof_trendavg[var+"_p2"]=np.nanmean(trend_p2,axis=1)
+    #         prof_trendavg[var+"_p2_std"]=np.nanstd(trend_p2,axis=1)
+            
+    #         self.data["meanprof_"+var+"_avg"]=np.concatenate((prof_avg[var+"_ref"][:,np.newaxis],prof_avg[var+"_p1"][:,np.newaxis],prof_avg[var+"_p2"][:,np.newaxis]),axis=1)
+    #         self.data["meanprof_"+var+"_std"]=np.concatenate((prof_avg[var+"_ref_std"][:,np.newaxis],prof_avg[var+"_p1_std"][:,np.newaxis],prof_avg[var+"_p2_std"][:,np.newaxis]),axis=1)
+    #         database.data["trendprof_"+var]=prof_trend[var]
+    #         self.data["meantrendprof_"+var+"_avg"]=np.concatenate((np.zeros((len(database.data["depth_interp"]),1)),prof_trendavg[var+"_p1"][:,np.newaxis],prof_trendavg[var+"_p2"][:,np.newaxis]),axis=1)
+    #         self.data["meantrendprof_"+var+"_std"]=np.concatenate((np.zeros((len(database.data["depth_interp"]),1)),prof_trendavg[var+"_p1_std"][:,np.newaxis],prof_trendavg[var+"_p2_std"][:,np.newaxis]),axis=1)
+        
+    #     return prof_avg, prof_trend,prof_trendavg
+    
+    
+    
+    def compute_avgprof(self,database,t0_periods,tf_periods,varnames=["Temp","Cond","SALIN","rho"]):
+        # t0_periods: initial time of each period
+        # tf_periods: final time of each period
+        
+        
+        # Convert datetime periods into timestamp:
+        t0_periods=np.array([dateval.replace(tzinfo=timezone.utc).timestamp() for dateval in t0_periods])
+        tf_periods=np.array([dateval.replace(tzinfo=timezone.utc).timestamp() for dateval in tf_periods])
+        
+        
         self.data["depth_interp"]=database.data["depth_interp"]
+        self.data["time0_periods"]=t0_periods
+        self.data["timef_periods"]=tf_periods
         
-        tperiod_ref=[period_ref[k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
-        textraction=date_extraction.replace(tzinfo=timezone.utc).timestamp()
-        self.data["time0_periods"]=np.array([tperiod_ref[0],tperiod_ref[1],textraction])
-        self.data["timef_periods"]=np.array([tperiod_ref[1],textraction,np.max(database.data["time"])])
-        indprof_ref=np.where(np.logical_and(database.data["time"]>tperiod_ref[0],database.data["time"]<tperiod_ref[1]))[0]
-        indprof_p1=np.where(np.logical_and(database.data["time"]>tperiod_ref[1],database.data["time"]<textraction))[0]
-        indprof_p2=np.where(database.data["time"]>=textraction)[0]
         prof_avg=dict()
-        prof_trend=dict()
-        prof_trendavg=dict()
+        prof_std=dict()
+        # trend_avg=dict()
+        # trend_std=dict()
+        # trend_fit=dict()
         
-        for var in ["Temp","Cond","rho"]:
-            prof_avg[var+"_ref"]=np.nanmean(database.data[var][:,indprof_ref],axis=1)
-            prof_avg[var+"_ref_std"]=np.nanstd(database.data[var][:,indprof_ref],axis=1)
-            prof_avg[var+"_p1"]=np.nanmean(database.data[var][:,indprof_p1],axis=1)
-            prof_avg[var+"_p1_std"]=np.nanstd(database.data[var][:,indprof_p1],axis=1)
-            prof_avg[var+"_p2"]=np.nanmean(database.data[var][:,indprof_p2],axis=1)
-            prof_avg[var+"_p2_std"]=np.nanstd(database.data[var][:,indprof_p2],axis=1)
-            refprof=prof_avg[var+"_ref"][:,np.newaxis]
-            prof_trend[var]=(database.data[var]-refprof)/((database.data["time"]-np.mean(tperiod_ref))/(3600*24*365))
-            # prof_trendavg[var+"_p1"]=np.nanmean(prof_trend[var][:,indprof_p1],axis=1)
-            # prof_trendavg[var+"_p1_std"]=np.nanstd(prof_trend[var][:,indprof_p1],axis=1)
-            # prof_trendavg[var+"_p2"]=np.nanmean(prof_trend[var][:,indprof_p2],axis=1)
-            # prof_trendavg[var+"_p2_std"]=np.nanstd(prof_trend[var][:,indprof_p2],axis=1)
+        for var in varnames:
+            prof_avg[var]=np.full((len(self.data["depth_interp"]),len(t0_periods)),np.nan)
+            prof_std[var]=np.full((len(self.data["depth_interp"]),len(t0_periods)),np.nan)
+            # trend_avg[var]=np.full((len(self.data["depth_interp"]),len(t0_periods)),np.nan)
+            # trend_std[var]=np.full((len(self.data["depth_interp"]),len(t0_periods)),np.nan)
+            # trend_fit[var]=np.full((len(self.data["depth_interp"]),len(t0_periods)),np.nan)
             
+            log('Calculation average prof for '+var,indent=1)
+            for kp in range(len(t0_periods)):       
+                indprof=np.where(np.logical_and(database.data["time"]>t0_periods[kp],database.data["time"]<tf_periods[kp]))[0]   
+                prof_avg[var][:,kp]=np.nanmean(database.data[var][:,indprof],axis=1)
+                prof_std[var][:,kp]=np.nanstd(database.data[var][:,indprof],axis=1)
+                # trendval=np.diff(database.data[var][:,indprof],axis=1)/(np.diff(database.data['time'][indprof])/(3600*24*365)) # x/yr
+                # trend_avg[var][:,kp]=np.nanmean(trendval,axis=1)
+                # trend_std[var][:,kp]=np.nanstd(trendval,axis=1) 
+                # trend_prof=np.full((len(database.data["depth_interp"]),),np.nan) # Profile of trends
+                # for kz in range(len(database.data["depth_interp"])): 
+                #     if sum(np.isnan(database.data[var][kz,indprof]))<len(indprof)-2: # At least 3 samples
+                #         pfit,_,_=regression_oneline(database.data['time'][indprof]/(3600*24*365),database.data[var][kz,indprof])
+                #         trend_prof[kz]=pfit[0]
+                # trend_fit[var][:,kp]=trend_prof
+                
+            self.data["meanprof_"+var+"_avg"]=prof_avg[var]
+            self.data["meanprof_"+var+"_std"]=prof_std[var]
             
-            trend_p1=(database.data[var][:,indprof_p1[1:]]-database.data[var][:,indprof_p1[0]][:,np.newaxis])/((database.data["time"][indprof_p1[1:]]-database.data["time"][indprof_p1[0]])/(3600*24*365))
-            trend_p2=(database.data[var][:,indprof_p2[1:]]-database.data[var][:,indprof_p2[0]][:,np.newaxis])/((database.data["time"][indprof_p2[1:]]-database.data["time"][indprof_p2[0]])/(3600*24*365))
-            prof_trendavg[var+"_p1"]=np.nanmean(trend_p1,axis=1)
-            prof_trendavg[var+"_p1_std"]=np.nanstd(trend_p1,axis=1)
-            prof_trendavg[var+"_p2"]=np.nanmean(trend_p2,axis=1)
-            prof_trendavg[var+"_p2_std"]=np.nanstd(trend_p2,axis=1)
-            
-            self.data["meanprof_"+var+"_avg"]=np.concatenate((prof_avg[var+"_ref"][:,np.newaxis],prof_avg[var+"_p1"][:,np.newaxis],prof_avg[var+"_p2"][:,np.newaxis]),axis=1)
-            self.data["meanprof_"+var+"_std"]=np.concatenate((prof_avg[var+"_ref_std"][:,np.newaxis],prof_avg[var+"_p1_std"][:,np.newaxis],prof_avg[var+"_p2_std"][:,np.newaxis]),axis=1)
-            database.data["trendprof_"+var]=prof_trend[var]
-            self.data["meantrendprof_"+var+"_avg"]=np.concatenate((np.zeros((len(database.data["depth_interp"]),1)),prof_trendavg[var+"_p1"][:,np.newaxis],prof_trendavg[var+"_p2"][:,np.newaxis]),axis=1)
-            self.data["meantrendprof_"+var+"_std"]=np.concatenate((np.zeros((len(database.data["depth_interp"]),1)),prof_trendavg[var+"_p1_std"][:,np.newaxis],prof_trendavg[var+"_p2_std"][:,np.newaxis]),axis=1)
+        return prof_avg, prof_std
+    
+    
+    
+    def compute_avgtrend(self,database,t0_periods,tf_periods,dz,varnames=["Temp","Cond","SALIN","rho"]):
+        # t0_periods: initial time of each period
+        # tf_periods: final time of each period
+        # dz: new depth step to compute trend
         
-        return prof_avg, prof_trend,prof_trendavg
+        # Convert datetime periods into timestamp:
+        t0_periods=np.array([dateval.replace(tzinfo=timezone.utc).timestamp() for dateval in t0_periods])
+        tf_periods=np.array([dateval.replace(tzinfo=timezone.utc).timestamp() for dateval in tf_periods])
+        
+        depth_trend=np.arange(self.data["depth_interp"][0],self.data["depth_interp"][-1],dz)
+        self.data["depth_trend"]=depth_trend
+        if "time0_periods" not in self.data.keys():
+            self.data["time0_periods"]=t0_periods
+            self.data["timef_periods"]=tf_periods
+        
+        
+        trend_avg=dict()
+        trend_fit=dict()
+
+        for var in varnames:
+            nlayers=round((self.data["depth_interp"][-1]-self.data["depth_interp"][0])/dz)
+            nval=round(dz/(self.data["depth_interp"][1]-self.data["depth_interp"][0]))
+            prof_avg=np.mean(database.data[var].reshape((nval,-1),order='F'),axis=0).reshape((nlayers,-1),order='F')
+            trend_avg[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
+            trend_fit[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
+            
+            log('Calculation trend for '+var,indent=1)
+            for kp in range(len(t0_periods)):       
+                indprof=np.where(np.logical_and(database.data["time"]>t0_periods[kp],database.data["time"]<tf_periods[kp]))[0]   
+                if len(indprof)>1:
+                    #trendval=np.diff(prof_avg[:,indprof],axis=1)/(np.diff(database.data['time'][indprof])/(3600*24*365)) # x/yr
+                    trend_avg[var][:,kp]=(prof_avg[:,indprof[-1]]-prof_avg[:,indprof[0]])/(database.data['time'][indprof[-1]]-database.data['time'][indprof[0]])*3600*24*365
+                    trend_prof=np.full((len(depth_trend),),np.nan) # Profile of trends
+                    for kz in range(len(depth_trend)): 
+                        if sum(np.isnan(prof_avg[kz,indprof]))<len(indprof)-2: # At least 3 samples
+                            pfit,_,_=regression_oneline(database.data['time'][indprof]/(3600*24*365),prof_avg[kz,indprof])
+                            trend_prof[kz]=pfit[0]
+                    trend_fit[var][:,kp]=trend_prof
+                
+            self.data["trendavg_"+var]=trend_avg[var]
+            self.data["trendfit_"+var]=trend_fit[var]
+            
+        return trend_avg,trend_fit
+    
+    
+    
     
     def to_netcdf(self, filename, mode='a', time_label="time",):
         log("Saving to NetCDF", indent=1)
@@ -344,8 +469,15 @@ class ctd_periods:
             var.units = values["unit"]
             var.long_name = values["longname"]
             try:
-                #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
-                if isinstance(data[key], str) and data[key]=='N/a':     
+                # #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                # if isinstance(data[key], str) and data[key]=='N/a':     
+                #     data[key]=np.nan 
+                if (key not in data.keys()) or (isinstance(data[key], str) and data[key]=='N/a'): # No data
+                    if len(values["dim"])==1:
+                        data[key]=np.full(len(data[values["dim"][0]]),np.nan)
+                    else:
+                        data[key]=np.full((len(data[values["dim"][0]]),len(data[values["dim"][1]])),np.nan)
+                
                     data[key]=np.nan 
                 var[:] = data[key]
             except:

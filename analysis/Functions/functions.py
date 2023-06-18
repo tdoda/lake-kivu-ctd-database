@@ -800,10 +800,10 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
    return flags
 
 def regression_oneline(tval,zval):
-    
+    # For 1D array
     zchem_periods=zval
     tchem_periods=tval
-    model=LinearRegression().fit(tchem_periods[~np.isnan(zchem_periods)].reshape(-1, 1),zchem_periods[~np.isnan(zchem_periods)])
+    model=LinearRegression().fit(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
     R2=model.score(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
     pfit=[model.coef_[0],model.intercept_]
     zfit=np.polyval(pfit,tchem_periods)
@@ -917,7 +917,7 @@ def compute_hypso(depthval,dA,dz):
     
     return hypso_z, hypso_A
 
-def compute_balance(database,indprof,zval,Aval,Cp=4.18):
+def compute_balance(database,indprof,zval,Aval,Cp=4.18,Sbot=5.5):
     
     H=np.full((len(zval),len(indprof)),np.nan)
     S=np.full((len(zval),len(indprof)),np.nan)

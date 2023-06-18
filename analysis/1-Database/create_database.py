@@ -26,6 +26,14 @@ hypsometry_file='../0-Bathymetry/hypsometry_1m.csv'
 data_files = ["data_gov2.nc", "data_Kivuwatt2.nc"]
 
 dmin=260 # Minimum depth of the profiles
+
+# Periods to average
+year_periods=np.arange(2008,2023,1)
+t0=[datetime(yearval,1,1) for yearval in year_periods]
+tf=[datetime(yearval+1,1,1) for yearval in year_periods]
+# t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
+# tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
+
 output_files=["database_gov2_"+str(dmin)+"m.nc","database_Kivuwatt2_"+str(dmin)+"m.nc"]
 databases_all=[]
 #%% Load hypsometry
@@ -52,7 +60,7 @@ for kdata in [0,1]:
                 else:
                     database.data[var]=nc.variables[var][:].data   
             else:
-                database.data[var]=nc.variables[var][:,profkeep].data
+                database.data[var]=nc.variables[var][:].data[:,profkeep] # Faster than applying .data at the end
         else: # Set to NaN for variables that are not present in netCDF file
             if len(database.variables[var]['dim'])==1:
                 database.data[var]=np.full(nc.variables["time"][profkeep].shape,np.nan)
@@ -65,7 +73,13 @@ for kdata in [0,1]:
     database.compute_maxdens()
     database.compute_metalimnion()
     database.compute_chemfit()
-    prof_avg, prof_trend1,prof_trend2=database_periods.compute_trends(database)
+    database.compute_centermass()
+    #database.compute_centermass(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values)
+    # prof_avg, prof_trend1,prof_trend2=database_periods.compute_avgprof_3p(database)
+    
+    # Periods to average
+    prof_avg, prof_std=database_periods.compute_avgprof(database,t0_periods=t0,tf_periods=tf)
+    trend_avg,trend_fit=database_periods.compute_avgtrend(database,t0_periods=t0,tf_periods=tf,dz=1)
     #database.compute_stratification_pylake(lat=-2,deptha=-df_hypso["z"].values,area=df_hypso["area"].values)
     nc.close() 
     
@@ -108,7 +122,7 @@ for kdata in [0,1]:
     ax.set_xlabel('$\\rho$ [kg.m$^{-3}$]')
     #%% Save netCDF 
     database.to_netcdf(output_files[kdata])
-    database_periods.to_netcdf(output_files[kdata][:output_files[kdata].find('.nc')-1]+'_periods.nc')
+    database_periods.to_netcdf(output_files[kdata][:output_files[kdata].find('.nc')-1]+"_"+str(len(t0))+'periods.nc')
     databases_all.append(database)
 #%% Combine databases
 print('***************************************')
@@ -136,10 +150,11 @@ for var in databases_all[0].variables:
         database_comb.data[var]=var_comb[:,indsort]
 
 # Period database
-database_periods_comb.compute_trends(database_comb)
+database_periods_comb.compute_avgprof(database_comb,t0_periods=t0,tf_periods=tf)
+trend_avg,trend_fit=database_periods_comb.compute_avgtrend(database_comb,t0_periods=t0,tf_periods=tf,dz=1)
   
 # Save netCDF   
 database_comb.to_netcdf("database_combined2_"+str(dmin)+"m.nc")
-database_periods_comb.to_netcdf("database_combined2_"+str(dmin)+"m_periods.nc")
+database_periods_comb.to_netcdf("database_combined2_"+str(dmin)+"m_"+str(len(t0))+"periods.nc")
 
 
