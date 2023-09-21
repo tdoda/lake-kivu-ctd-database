@@ -34,6 +34,5 @@ dy_bathy=distance.distance((np.mean(bathy_lat),np.mean(bathy_long)), (np.mean(ba
 hypso_z,hypso_A=compute_hypso(-bathy_depth,dA=dx_bathy*dy_bathy,dz=1) #m, m^2
 
 #%% Save data
-
-df_hypso=pd.DataFrame({'z [m]':-hypso_z,'A [m2]':np.round(hypso_A).astype(int)})
+df_hypso=pd.DataFrame({'z [m]':-hypso_z,'A [m2]':np.round(hypso_A)})
 df_hypso.to_csv('hypsometry_1m.csv', sep=",")

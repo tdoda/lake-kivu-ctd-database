@@ -934,6 +934,13 @@ def compute_balance(database,indprof,zval,Aval,Cp=4.18,Sbot=5.5):
     
     return H, S, M
 
+def compute_N2(zval,rhoval,g=9.81):
+    # zval increases downward
+    rho0=np.nanmean(rhoval,axis=0)
+    N2=1/rho*np.diff(rhoval,axis=0)/np.diff(zval)*g
+    
+    return N2
+
 def sort_paths(x,y,maxdist=0.01):
     # x, y: 1D numpy arrays
     # returns x_corr and y_corr: lists of numpy 1D arrays (one element for each contour)

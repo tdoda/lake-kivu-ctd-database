@@ -13,7 +13,8 @@ import pandas as pd
 from datetime import datetime, timezone
 import math
 import cmocean
-from ctd_database import ctd_database, ctd_periods 
+from ctd_database import ctd_database, ctd_periods
+import seawater as sw 
 # adding Functions to the system path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Functions'))
 from functions import *
@@ -29,10 +30,10 @@ dmin=260 # Minimum depth of the profiles
 
 # Periods to average
 year_periods=np.arange(2008,2023,1)
-t0=[datetime(yearval,1,1) for yearval in year_periods]
-tf=[datetime(yearval+1,1,1) for yearval in year_periods]
-# t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
-# tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
+# t0=[datetime(yearval,1,1) for yearval in year_periods] # Yearly periods
+# tf=[datetime(yearval+1,1,1) for yearval in year_periods]
+t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
+tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
 
 output_files=["database_gov2_"+str(dmin)+"m.nc","database_Kivuwatt2_"+str(dmin)+"m.nc"]
 databases_all=[]
@@ -74,6 +75,8 @@ for kdata in [0,1]:
     database.compute_metalimnion()
     database.compute_chemfit()
     database.compute_centermass()
+    N2=database.compute_N2_database(g=sw.g(lat=-2))
+    Sc1,Sc2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=2,zmax=300,g=sw.g(lat=-2))
     #database.compute_centermass(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values)
     # prof_avg, prof_trend1,prof_trend2=database_periods.compute_avgprof_3p(database)
     
