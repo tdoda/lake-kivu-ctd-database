@@ -12,6 +12,7 @@ import time
 from scipy.ndimage import uniform_filter1d
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
+import netCDF4
 
 
 
@@ -937,7 +938,7 @@ def compute_balance(database,indprof,zval,Aval,Cp=4.18,Sbot=5.5):
 def compute_N2(zval,rhoval,g=9.81):
     # zval increases downward
     rho0=np.nanmean(rhoval,axis=0)
-    N2=1/rho*np.diff(rhoval,axis=0)/np.diff(zval)*g
+    N2=1/rho0*np.diff(rhoval,axis=0)/np.diff(zval)*g
     
     return N2
 
@@ -1014,3 +1015,91 @@ def sort_paths(x,y,maxdist=0.01):
     y_corr.append(yval_corr)
     
     return x_corr, y_corr
+
+def extract_dict_netcdf(nc):
+    # Returns the four disctionaries used to create the netCDF file (generat attributes, dimensions, variables and data)
+    
+    # General attributes
+    gen_att_nc=nc.__dict__
+    
+    # Dimensions
+    dim_names=list(nc.dimensions)
+    dim_nc=dict()
+    for kdim in range(len(dim_names)):
+        dim_nc[dim_names[kdim]]={'dim_name':dim_names[kdim],'dim_size': None}
+        
+    # Variables
+    var_names=list(nc.variables)
+    var_nc=dict()
+    for kvar in range(len(var_names)):
+        var_nc[var_names[kvar]]={'var_name': var_names[kvar], 
+                                 'dim': nc.variables[var_names[kvar]].dimensions, 
+                                 'unit': nc.variables['time'].units, 
+                                 'longname': nc.variables['time'].long_name}
+    
+    
+    # Data
+    data_nc=extract_data_netcdf(nc)
+    
+    
+    return gen_att_nc,dim_nc,var_nc,data_nc
+
+def extract_data_netcdf(nc):
+    # Returns the variables of a netcdf file as a dictionary
+    varnames=list(nc.variables)
+    data=dict()
+    
+    for kvar in range(len(varnames)):
+        data[varnames[kvar]]=nc.variables[varnames[kvar]][:].data
+    return data
+
+def select_data(data,var,dim_selected,ind_selected):
+    # Select data according to boolean array along a specific dimension
+    # data: dictionary with data of each variable
+    # var: dictionary with attributes of each variable
+    # dim_selected (string): name of dimension along which data must be selected
+    # ind_selected: numpy array with indices of values to select along the selected dimension
+    
+    data_selected=data.copy()
+    
+    for varname,var_dict in var.items():
+        if dim_selected in var_dict["dim"]: # One of the dimensions of the variable is the selected dimension
+            ind_dim=np.where(np.array(var_dict["dim"])==dim_selected)[0][0]
+            try:
+                data_selected[varname]=np.take(data_selected[varname],ind_selected,axis=ind_dim)
+            except:
+                    breakpoint()
+    return data_selected
+
+def export_to_netcdf(general_attributes,dimensions,variables,data,filename, mode='a', time_label="time",):
+    log("Saving to NetCDF", indent=1)
+
+
+    log("Writing data to NetCDF file {}".format(filename), indent=1)
+ 
+    nc = netCDF4.Dataset(filename, mode='w', format='NETCDF4')
+
+    for key in general_attributes:
+        setattr(nc, key, general_attributes[key])
+
+    for key, values in dimensions.items():
+        nc.createDimension(values['dim_name'], values['dim_size'])
+
+    for key, values in variables.items():
+        var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
+        var.units = values["unit"]
+        var.long_name = values["longname"]
+        try: 
+            if (key not in data.keys()) or (isinstance(data[key], str) and data[key]=='N/a'): # No data
+                if len(values["dim"])==1:
+                    data[key]=np.full(len(data[values["dim"][0]]),np.nan)
+                else:
+                    data[key]=np.full((len(data[values["dim"][0]]),len(data[values["dim"][1]])),np.nan)
+            
+                data[key]=np.nan 
+            var[:] = data[key]
+        except:
+            breakpoint()
+            nc.close()
+    nc.close()
+    log("netCDF file created!", indent=1)
