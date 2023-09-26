@@ -85,6 +85,8 @@ class ctd_periods:
             "z_iso_rho":{'var_name': "z_iso_rho", 'dim': ('rho_trend','time'), 'unit': 'm', 'longname': "Depth of isopycnals"},
             "trendavg_iso_rho":{'var_name': "trendavg_iso_rho", 'dim': ('rho_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average ispoyncals displacements"},
             "trendfit_iso_rho":{'var_name': "trendfit_iso_rho", 'dim': ('rho_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Ispoyncals displacements from linear fit"},
+            
+            "z_chem":{'var_name': "z_chem", 'dim': ('time0_periods',), 'unit': 'm', 'longname': "Chemocline depth from maximum density gradient"},
             }
         
         self.data = {}
@@ -139,11 +141,15 @@ class ctd_periods:
     
     
     
-    def compute_avgtrend(self,database,t0_periods,tf_periods,dz,dvar=[0.01,0.01,0.01,0.01],varnames=["Temp","Cond","SALIN","rho"]):
+    def compute_avgtrend(self,database,t0_periods,tf_periods,dz,dvar=[0.01,0.01,0.01,0.01],varnames=["Temp","Cond","SALIN","rho"],nmin=10,mindur=1):
         # t0_periods: initial time of each period
         # tf_periods: final time of each period
         # dz: new depth step to compute trend
-        # drho: density step for trends of isopycnals location
+        # dvar: step for trends of isolines (for each variable)
+        # varnames: variable names
+        # nmin: minimum number of values needed to ompute trend
+        # mindur [yr]: minimum duration spanned by the data to calculate trend 
+        
         
         # Convert datetime periods into timestamp:
         t0_periods=np.array([dateval.replace(tzinfo=timezone.utc).timestamp() for dateval in t0_periods])
@@ -191,7 +197,7 @@ class ctd_periods:
                 if var=="Temp":
                     data_prof[database["depth_interp"]<100]=np.nan
                 indsort=np.argsort(data_prof) # Sort values
-                z_iso[:,kp]=np.interp(var_trend,data_prof[indsort],database["depth_interp"][indsort]) 
+                z_iso[:,kp]=np.interp(var_trend,data_prof[indsort],database["depth_interp"][indsort],left=np.nan,right=np.nan) 
             
             z_iso_all[var]=z_iso
             trend_iso_avg[var]=np.full((len(var_trend),len(t0_periods)),np.nan)
@@ -214,10 +220,13 @@ class ctd_periods:
                     # Calculate trends of isolines movements
                     trend_iso_avg[var][:,kp]=(z_iso[:,indprof[-1]]-z_iso[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365 # m/yr
                     trend_prof=np.full((len(var_trend),),np.nan) # Profile of trends
-                    for kz in range(len(var_trend)): 
-                        if sum(np.isnan(z_iso[kz,indprof]))<len(indprof)-2: # At least 3 samples
-                            pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),z_iso[kz,indprof])
-                            trend_prof[kz]=pfit[0] # m/yr
+                    for kz in range(len(var_trend)):
+                        if np.any(~np.isnan(z_iso[kz,indprof])): # Non NaN values are present
+                            indval0=np.where(~np.isnan(z_iso[kz,indprof]))[0][0]# First profile used
+                            indvalf=np.where(~np.isnan(z_iso[kz,indprof]))[0][-1]# Last profile used
+                            if sum(~np.isnan(z_iso[kz,indprof]))>nmin and (database['time'][indprof[indvalf]]-database['time'][indprof[indval0]])>=mindur*365*24*3600: # At least nmin samples over mindur years
+                                pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),z_iso[kz,indprof])
+                                trend_prof[kz]=pfit[0] # m/yr
                     trend_iso_fit[var][:,kp]=trend_prof
              
             self.data["z_iso_"+var]=z_iso
@@ -269,3 +278,16 @@ class ctd_periods:
                 nc.close()
         nc.close()
         log("netCDF file created!", indent=1)
+        
+        
+    def zchem(self,database):
+        """
+        # Computes average chemocline depth as the depth of maximum density gradient 
+        # (saved as "z_maxdens")
+        #
+        # Inputs: 
+            # database: dictionary with the database quantities for all the profiles
+
+        """
+        self.data["z_chem"]=[np.nanmean(database["z_maxdens_smooth"][np.logical_and(database["time"]>self.data["time0_periods"][i],
+                                                                      database["time"]<self.data["timef_periods"][i])]) for i in range(len(self.data["time0_periods"]))]
