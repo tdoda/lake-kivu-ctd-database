@@ -629,7 +629,8 @@ class ctd:
 
         try:
             log("Calculating salinity...", indent=2)
-            self.data["SALIN"] = salinity(data["Temp"], data["Cond"], y_cond, temperature_func=default_salinity_temperature)
+            # self.data["SALIN"] = salinity(data["Temp"], data["Cond"], y_cond, temperature_func=default_salinity_temperature)
+            self.data["SALIN"] = salinity_Kivu(data["Temp"], data["Cond"], temperature_func=fcond20_temperature_Kivu)
         except Exception:
             log("Failed to calculate salinity", indent=2)
             return False
@@ -641,21 +642,23 @@ class ctd:
         try:
             log("Calculating density...", indent=2)
             self.data["rho"] = np.asarray([1000] * len(data["Press"]))
-            #self.data["rho"] = density(data["Temp"], self.data["SALIN"])
-            rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
+            # rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
+            rho_TS = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             if calculate_depth: 
                 depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
             else:
                 depth_TS=data["adj_press"]
             C_CH4=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CH4"])], df_gas["CH4"][~np.isnan(df_gas["CH4"])]*16/1000) # g/L
             C_CO2=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CO2"])], df_gas["CO2"][~np.isnan(df_gas["CO2"])]*44/1000) # g/L
-            self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
+            # self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
+            self.data["rho"] = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
         except Exception :
             log("Failed to calculate density", indent=2)
             return False
 
         log("Calculating depth...", indent=2)
-        rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
+        # rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
+        rho_p=density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
         rho_avg=np.array([np.nanmean(rho_p[:i+1]) for i in range(len(rho_p))])
         if calculate_depth: 
             #self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
@@ -674,7 +677,8 @@ class ctd:
 
         try:
             log("Calculating potential density...", indent=2)
-            self.data["prho"] = density(self.data["pt"], self.data["SALIN"])
+            # self.data["prho"] = density(self.data["pt"], self.data["SALIN"])
+            self.data["prho"] = density_Kivu(self.data["pt"], self.data["SALIN"])
         except Exception:
             log("Failed to calculate potential density", indent=2)
 

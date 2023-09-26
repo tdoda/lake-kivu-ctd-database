@@ -193,14 +193,27 @@ def first_centered_differences(x, y, fill=False):
 def default_salinity_temperature(temperature):
     return 1.8626 - 0.052908 * temperature + 0.00093057 * temperature ** 2 - 6.78e-6 * temperature ** 3
 
+def fcond20_temperature_Kivu(temperature):
+    # Compute f(T)=cond_20/cond(T)
+    # Based on measurements in Lake Kivu by N. Gruber and A. Wüest in 2002
+    return (-6E-06*temperature**3+0.0008*temperature**2-0.0465*temperature+1.6636)
+
 def salinity(Temp, Cond, y_cond, temperature_func= default_salinity_temperature):
     ft = temperature_func(Temp)
-    cond20 = ft * Cond * 1000
-    salin = y_cond * cond20
+    cond20 = ft * Cond * 1000 # uS/cm
+    salin = y_cond * cond20 # g/kg
     return salin
+
+def salinity_Kivu(Temp, Cond,temperature_func=fcond20_temperature_Kivu):
+    # Compute salinity from conductivity
+    # Based on measurements in Lake Kivu by N. Gruber and A. Wüest in 2002
+    ft = temperature_func(Temp)
+    cond20 = ft * Cond * 1000 # uS/cm
+    salin=3E-08*cond20**2 + 0.001*cond20 - 0.0351 # g/kg
 
 def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
     # C_CH4 and C_CO2 must be provided in g/L
+    # Density from Chen & Millero (1986):
     rho = 1e3 * (
                 0.9998395 + 6.7914e-5 * temperature - 9.0894e-6 * temperature ** 2 + 1.0171e-7 * temperature ** 3 -
                 1.2846e-9 * temperature ** 4 + 1.1592e-11 * temperature ** 5 - 5.0125e-14 * temperature ** 6 + (
@@ -211,6 +224,36 @@ def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta
         
     if isinstance(C_CO2,np.ndarray) or (not C_CO2==0):
         rho=rho*(1+beta_CO2*C_CO2) 
+        
+    if isinstance(press,np.ndarray) or (not press==0) and (len(press)==len(temperature)):
+        K=19652.17+148.113*temperature-2.293*temperature**2 + 1.256*1e-2*temperature**3\
+ -4.18*1e-5*temperature**4+(3.2726-2.147*1e-4*temperature+1.128*1e-4*temperature**2)*press/10+(53.238-0.313*temperature+5.728*1e-3*press/10)*salinity
+        rho=rho/(1-0.1*press/K)
+        
+        
+    return rho
+
+
+def density_Kivu(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_S=0.75E-3,beta_CH4=-1.25E-3,beta_CO2=0.284E-3):
+    # C_CH4 and C_CO2 must be provided in g/L
+    # beta coefficients from Schmid et al., 2004
+    rho_T = 1e3 * (
+                0.9998395 + 6.7914e-5 * temperature - 9.0894e-6 * temperature ** 2 + 1.0171e-7 * temperature ** 3 -
+                1.2846e-9 * temperature ** 4 + 1.1592e-11 * temperature ** 5 - 5.0125e-14 * temperature ** 6)
+    
+    contrib_S=beta_S*salinity
+    # Approach: use the previous estimate of rho to calculate the next one (another option would be to use the same reference density for all estimates)
+    if isinstance(C_CH4,np.ndarray) or (not C_CH4==0):
+        contrib_CH4=beta_CH4*C_CH4
+    else:
+        contrib_CH4=0
+        
+    if isinstance(C_CO2,np.ndarray) or (not C_CO2==0):
+        contrib_CO2=beta_CO2*C_CO2
+    else:
+        contrib_CO2=0
+        
+    rho=rho_T*(1+contrib_S+contrib_CH4+contrib_CO2)
         
     if isinstance(press,np.ndarray) or (not press==0) and (len(press)==len(temperature)):
         K=19652.17+148.113*temperature-2.293*temperature**2 + 1.256*1e-2*temperature**3\
