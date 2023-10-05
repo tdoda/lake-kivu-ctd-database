@@ -14,7 +14,7 @@ from functions import *
 
 #%% Folders
 data_folders = ["../data/Level2B_TD/Government/", "../data/Level2B_TD/Kivuwatt/"]
-netcdf_files = ["data_gov2.nc", "data_Kivuwatt2.nc"]
+netcdf_files = ["data_gov3.nc", "data_Kivuwatt3.nc"]
 
 with open("input_python.yaml", "r") as f:
     directories = yaml.load(f, Loader=yaml.FullLoader)
@@ -22,13 +22,13 @@ with open("input_python.yaml", "r") as f:
 if not os.path.exists(directories["Level3_dir"]):
     os.makedirs(directories["Level3_dir"])
     
-# Periods to remov (government):
+# Periods to remove (government):
 dateperiod_rem=[[datetime(2019,10,28),datetime(2019,10,29)],[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2021,6,3,11,0,0)]] # Time limits of the period (wrong conductivity/temperature)
 tperiod_rem=[None]*len(dateperiod_rem)
 for kperiod in np.arange(len(dateperiod_rem)):
     tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
     
- # Periods to remov (Kivuwatt):   
+ # Periods to remove (Kivuwatt):   
 dateperiod_rem_KW=[[datetime(2021,6,3),datetime(2021,6,11)]] # Time limits of the period (different depth calculation)
 tperiod_rem_KW=[None]*len(dateperiod_rem)
 for kperiod in np.arange(len(dateperiod_rem_KW)):
@@ -36,8 +36,8 @@ for kperiod in np.arange(len(dateperiod_rem_KW)):
     
     
 
-#for kdata in [0,1]:
-for kdata in [1]:
+for kdata in [0,1]:
+# for kdata in [1]:
     print('***************************************')
     log("Loading data from {}".format(data_folders[kdata]))
     #%% Load the data

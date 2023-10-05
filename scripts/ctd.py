@@ -16,6 +16,7 @@ import seawater as sw
 import re as re
 import matplotlib.pyplot as plt
 import collections
+import time
 
 
 class ctd:
@@ -76,7 +77,7 @@ class ctd:
         self.grid_variables = {
             'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
             'Press': {'var_name':'Press', 'dim':('depth_interp','time'), 'unit': 'dbar', 'longname': 'pressure'},
-            'Depth_KW': {'var_name':'Depth_KW', 'dim':('time',), 'unit': 'm', 'longname': 'depth provided by Kivuwatt'},
+            'Depth_KW': {'var_name':'Depth_KW', 'dim':('depth_interp','time'), 'unit': 'm', 'longname': 'depth provided by Kivuwatt'},
             "depth": {'var_name': "depth", 'dim': ('depth_interp','time'), 'unit': 'm', 'longname': "Depth", },
             "depth_interp": {'var_name': "depth_interp", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Interpolated depth"},
             "depth_ref": {'var_name': "depth_ref", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Depth adjusted to reference depth"},
@@ -129,7 +130,6 @@ class ctd:
                 log("Wrong file format", indent=1)
                 return False
         
-            
             # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
             skip_rows, columns, units, valid, date_format, start_date = parse_file(infile,keyword_skip)
             if valid == False:
@@ -145,6 +145,7 @@ class ctd:
                 df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+df["Minutes"]*60
                 df["Cond"]=df["Cond"]/1000 # Conversion from uS/cm to mS/cm
                 df["Press"]=df["Depth"]/1.019716 # Estimate of pressure [dbar] from depth values according to SeaBird software
+            
             if math.isnan(df.Cond.iloc[-1]):
                 df.drop(index=df.index[-1], axis=0, inplace=True)
             for variable in self.variables:
@@ -171,7 +172,7 @@ class ctd:
 
             return True
         except:
-            if infile!='../data/Level0/Government/171123_18.TOB':
+            if not os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # There is not a second version of the file (with corrected data)
                 breakpoint()
             log("Failed to parse raw data from file {}".format(infile), indent=1)
             return False
@@ -464,6 +465,7 @@ class ctd:
         return qa
 
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
+        
         log("Saving to NetCDF", indent=1)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -553,15 +555,21 @@ class ctd:
                     nc.close()
 
             else:
+                
                 nc = netCDF4.Dataset(out_file, mode='w', format='NETCDF4')
 
                 for key in self.general_attributes:
                     setattr(nc, key, self.general_attributes[key])
 
                 for key, values in dimensions.items():
-                    nc.createDimension(values['dim_name'], values['dim_size'])
+                    # nc.createDimension(values['dim_name'], values['dim_size'])
+                    if key !="time":
+                        nc.createDimension(values['dim_name'], len(data[key]))
+                    else: # Need to set time sze to None in order to increase it at each iteration
+                        nc.createDimension(values['dim_name'], values['dim_size'])
 
-                for key, values in variables.items():
+
+                for key, values in variables.items(): 
                     var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
                     var.units = values["unit"]
                     var.long_name = values["longname"]
@@ -573,6 +581,7 @@ class ctd:
                             var[:] = data[key]
                         elif len(values["dim"]) == 2:
                             var[:, 0] = data[key]
+                        
                     except:
                         breakpoint()
                         nc.close()
@@ -598,7 +607,7 @@ class ctd:
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
 
-    def derive_variables(self, lat, alt, y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False):
+    def derive_variables(self, lat, alt, df_gas,y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False):
         # Estimated_depth: must be a list
         if estimated_depth and np.isnan(self.air_press):
             calculate_depth=False
@@ -635,10 +644,6 @@ class ctd:
             log("Failed to calculate salinity", indent=2)
             return False
         
-        log("Loading gas data...", indent=2)
-        df_gas=pd.read_excel('..\data\gas_profile\Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
-        
-        
         try:
             log("Calculating density...", indent=2)
             self.data["rho"] = np.asarray([1000] * len(data["Press"]))
@@ -659,7 +664,20 @@ class ctd:
         log("Calculating depth...", indent=2)
         # rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
         rho_p=density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
-        rho_avg=np.array([np.nanmean(rho_p[:i+1]) for i in range(len(rho_p))])
+        rho_avg=np.full(rho_p.shape,np.nan)
+        ind0=np.where(~np.isnan(rho_p))[0][0] # First non NaN value
+        
+        # Method 1 (loop):
+        # rho_avg[ind0:]=np.array([np.nanmean(rho_p[:i+1]) for i in range(ind0,len(rho_p))]) # Average density above depth of interest
+        
+        # Method 2 (loop and warning message):
+        # rho_avg=np.array([np.nanmean(rho_p[:i+1]) for i in range(len(rho_p))])
+        
+        # Method 3 (no loop=faster)
+        indrho=np.full((len(rho_p)-ind0,),1.0)
+        indrho[np.isnan(rho_p[ind0:])]=np.nan
+        rho_avg[ind0:]=np.nancumsum(rho_p[ind0:])/np.nancumsum(indrho)
+    
         if calculate_depth: 
             #self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
             self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))

@@ -23,6 +23,9 @@ files=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv"
 files.sort()
 failed = []
 
+# Load gas data
+df_gas=pd.read_excel('..\data\gas_profile\Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
+
 
 # Period to remove:
 dateperiod_rem=[] # Time limits of the period
@@ -95,7 +98,7 @@ for kprof in np.unique(df_allCTD["Profile"].values):
         
         
         CTD.quality_assurance(directories["quality_assurance_KW"])
-        if CTD.derive_variables(lake_info["lat"], lake_info["alt"],estimated_depth=list(CTD.data["Depth_KW"])):
+        if CTD.derive_variables(lake_info["lat"], lake_info["alt"],df_gas,estimated_depth=list(CTD.data["Depth_KW"])):
             CTD.quality_assurance(directories["quality_assurance_KW"]) # Re-apply quality assurance on newly created variables
             CTD.to_netcdf(directories["Level2A_KW_dir"], "L2A")
             CTD.mask_data() # Apply the mask from quality check

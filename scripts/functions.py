@@ -210,6 +210,7 @@ def salinity_Kivu(Temp, Cond,temperature_func=fcond20_temperature_Kivu):
     ft = temperature_func(Temp)
     cond20 = ft * Cond * 1000 # uS/cm
     salin=3E-08*cond20**2 + 0.001*cond20 - 0.0351 # g/kg
+    return salin
 
 def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
     # C_CH4 and C_CO2 must be provided in g/L
@@ -448,7 +449,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
     """  
     AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
     res = [ele for ele in AM_PM if(ele in df.values[0])] # Check if AM or PM or similar is present in the first row of the dataframe
-    
+   
     if "IntD" in columns and "IntT" in columns:     
         df=df.rename(columns = {'IntD':'Date', 'IntT':'Time'})
         columns[columns.index('IntD')]='Date'
@@ -467,7 +468,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
         columns[columns.index('IntD1')]='Time'
     else:
         raise ValueError("Cannot process unrecognised file.")
-
+        
     if ":" in df["Date"][df.index[0]]: #Flip date and time
         hourdata=df["Date"]
         df["Date"]=df["Time"]
@@ -483,7 +484,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
             columns[ind_date]='Time'
             columns[ind_time]='Date'
         
-        if bool([ele for ele in AM_PM if(ele in list(df["Date"]))])==True: 
+        elif bool([ele for ele in AM_PM if(ele in list(df["Date"]))])==True: 
             # Invert column names
             columns[columns.index('Date')]='AMPM'
             columns[columns.index(0)]='Date'
@@ -504,7 +505,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
                 log("Datetime file parse failed")
                 raise
         
-        if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
+        elif bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
             
@@ -614,7 +615,6 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
                 
                 
                 #arr = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=day_month,dayfirst=day_month).values.astype(float) / 10 ** 9
-
     if ref_date and abs(arr[0] - ref_date) > 30*24*60*60: # More than a month of difference between reference date --> invert day and month 
         ind_day=dateformat.find('%d')
         if '%b' in dateformat:

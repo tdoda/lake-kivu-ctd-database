@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import numpy as np
 import copy
 import time
+import pandas as pd
 
 lake_info = {"lat": -2, "alt": 1462}
 lake_level = "../data/lake_level/c_gls.json"
@@ -19,6 +20,7 @@ for directory in directories.values():
 
 
 files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+
 # files_SBE=[]
 # for k in np.arange(len(files)):
 #     if files[k].endswith(".cnv"):
@@ -37,6 +39,9 @@ index_file=0
 # Files with data to remove
 files_datarem=['SBE19plus_01907894_2020_11_02_0002.cnv']
 indrem=[[15194]]
+
+# Load gas data
+df_gas=pd.read_excel('..\data\gas_profile\Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
 
 start_time=time.time()
 for file in files:
@@ -70,7 +75,7 @@ for file in files:
                     CTD_copy.data[key]=values[indstart[indfile][kprof]:indend[indfile][kprof]]
                 if CTD_copy.extract_profile():
                     CTD_copy.quality_assurance(directories["quality_assurance"])
-                    if CTD_copy.derive_variables(lake_info["lat"], lake_info["alt"]):
+                    if CTD_copy.derive_variables(lake_info["lat"], lake_info["alt"],df_gas):
                         CTD_copy.quality_assurance(directories["quality_assurance"])
                         CTD_copy.to_netcdf(directories["Level2A_dir"], "L2A")
                         CTD_copy.mask_data() # Apply the mask from quality check
@@ -90,7 +95,7 @@ for file in files:
                     CTD.data[var_name]=np.delete(CTD.data[var_name],indrem_file)
             if CTD.extract_profile():
                 CTD.quality_assurance(directories["quality_assurance"])
-                if CTD.derive_variables(lake_info["lat"], lake_info["alt"]):
+                if CTD.derive_variables(lake_info["lat"], lake_info["alt"],df_gas):
                     CTD.quality_assurance(directories["quality_assurance"]) # Re-apply quality assurance on newly created variables
                     CTD.to_netcdf(directories["Level2A_dir"], "L2A")
                     CTD.mask_data() # Apply the mask from quality check
