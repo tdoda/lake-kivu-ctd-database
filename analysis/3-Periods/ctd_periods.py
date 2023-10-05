@@ -86,6 +86,12 @@ class ctd_periods:
             "trendavg_iso_rho":{'var_name': "trendavg_iso_rho", 'dim': ('rho_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average ispoyncals displacements"},
             "trendfit_iso_rho":{'var_name': "trendfit_iso_rho", 'dim': ('rho_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Ispoyncals displacements from linear fit"},
             
+            "meanprof_N2_avg":{'var_name': "meanprof_N2_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 's-2', 'longname': "Mean squared buoyancy frequency"},
+            "meanprof_N2_std":{'var_name': "meanprof_N2_std", 'dim': ('depth_interp','time0_periods'), 'unit': 's-2', 'longname': "Profile of squared buoyancy frequency std"}, 
+            "trendavg_N2":{'var_name': "trendavg_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2.yr-1', 'longname': "Average N2 trend"},
+            "trendfit_N2":{'var_name': "trendfit_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2.yr-1', 'longname': "N2 trend from linear fit"},           
+            
+            
             "z_chem":{'var_name': "z_chem", 'dim': ('time0_periods',), 'unit': 'm', 'longname': "Chemocline depth from maximum density gradient"},
             }
         
@@ -141,7 +147,7 @@ class ctd_periods:
     
     
     
-    def compute_avgtrend(self,database,t0_periods,tf_periods,dz,dvar=[0.01,0.01,0.01,0.01],varnames=["Temp","Cond","SALIN","rho"],nmin=10,mindur=1):
+    def compute_avgtrend(self,database,t0_periods,tf_periods,dz,dvar=[0.001,0.001,0.001,0.001],varnames=["Temp","Cond","SALIN","rho"],nmin=10,mindur=1):
         # t0_periods: initial time of each period
         # tf_periods: final time of each period
         # dz: new depth step to compute trend
@@ -160,7 +166,6 @@ class ctd_periods:
         # cond_trend=np.arange(round(np.nanmin(database["Cond"])/dC)*dC,round(np.nanmax(database["Cond"])/dC)*dC,dC)
         # salin_trend=np.arange(round(np.nanmin(database["SALIN"])/dS)*dS,round(np.nanmax(database["SALIN"])/dS)*dS,dS)
         # rho_trend=np.arange(round(np.nanmin(database["rho"])/drho)*drho,round(np.nanmax(database["rho"])/drho)*drho,drho)
-        
         
         self.data["depth_trend"]=depth_trend
         self.data["time"]=database["time"]
@@ -186,22 +191,22 @@ class ctd_periods:
             trend_fit[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
             
             # Create matrix with isolines positions
-            var_trend=np.arange(round(np.nanmin(database[var])/dvar[kvar])*dvar[kvar],round(np.nanmax(database[var])/dvar[kvar])*dvar[kvar],dvar[kvar])
-            self.data[var.lower()+"_trend"]=var_trend
-            z_iso=np.full((len(var_trend),len(database["time"])),np.nan)
-            data_smooth=movmean(database[var],10,axis=1) # Temporal smoothening
-            for kp in range(len(database["time"])):
-                # Get location of isolines: could be problematic when non monotic changes in the data (several locations for the same isoline)
-                # Do not consider the upper 100 m for temperature because decreasing T with depth
-                data_prof=data_smooth[:,kp]
-                if var=="Temp":
-                    data_prof[database["depth_interp"]<100]=np.nan
-                indsort=np.argsort(data_prof) # Sort values
-                z_iso[:,kp]=np.interp(var_trend,data_prof[indsort],database["depth_interp"][indsort],left=np.nan,right=np.nan) 
+            # var_trend=np.arange(round(np.nanmin(database[var])/dvar[kvar])*dvar[kvar],round(np.nanmax(database[var])/dvar[kvar])*dvar[kvar],dvar[kvar])
+            # self.data[var.lower()+"_trend"]=var_trend
+            # z_iso=np.full((len(var_trend),len(database["time"])),np.nan)
+            # data_smooth=movmean(database[var],10,axis=1) # Temporal smoothening
+            # for kp in range(len(database["time"])):
+            #     # Get location of isolines: could be problematic when non monotic changes in the data (several locations for the same isoline)
+            #     # Do not consider the upper 100 m for temperature because decreasing T with depth
+            #     data_prof=data_smooth[:,kp]
+            #     if var=="Temp":
+            #         data_prof[database["depth_interp"]<100]=np.nan
+            #     indsort=np.argsort(data_prof) # Sort values
+            #     z_iso[:,kp]=np.interp(var_trend,data_prof[indsort],database["depth_interp"][indsort],left=np.nan,right=np.nan) 
             
-            z_iso_all[var]=z_iso
-            trend_iso_avg[var]=np.full((len(var_trend),len(t0_periods)),np.nan)
-            trend_iso_fit[var]=np.full((len(var_trend),len(t0_periods)),np.nan)
+            # z_iso_all[var]=z_iso
+            # trend_iso_avg[var]=np.full((len(var_trend),len(t0_periods)),np.nan)
+            # trend_iso_fit[var]=np.full((len(var_trend),len(t0_periods)),np.nan)
             
             log('Calculation trend for '+var,indent=1)
             for kp in range(len(t0_periods)):       
@@ -211,28 +216,47 @@ class ctd_periods:
                     trend_avg[var][:,kp]=(prof_avg[:,indprof[-1]]-prof_avg[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365
                     trend_prof=np.full((len(depth_trend),),np.nan) # Profile of trends
                     for kz in range(len(depth_trend)): 
-                        if sum(np.isnan(prof_avg[kz,indprof]))<len(indprof)-2: # At least 3 samples
-                            pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),prof_avg[kz,indprof])
-                            trend_prof[kz]=pfit[0]
+                        if sum(~np.isnan(prof_avg[kz,indprof]))>nmin: # At least nmin samples
+                            indval0=np.where(~np.isnan(prof_avg[kz,indprof]))[0][0]# First profile used
+                            indvalf=np.where(~np.isnan(prof_avg[kz,indprof]))[0][-1]# Last profile used
+                            if (database['time'][indprof[indvalf]]-database['time'][indprof[indval0]])>=mindur*365*24*3600: # At least duration of mindur years
+                                pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),prof_avg[kz,indprof])
+                                trend_prof[kz]=pfit[0]
                     trend_fit[var][:,kp]=trend_prof
                     
-                    
                     # Calculate trends of isolines movements
-                    trend_iso_avg[var][:,kp]=(z_iso[:,indprof[-1]]-z_iso[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365 # m/yr
-                    trend_prof=np.full((len(var_trend),),np.nan) # Profile of trends
-                    for kz in range(len(var_trend)):
-                        if np.any(~np.isnan(z_iso[kz,indprof])): # Non NaN values are present
-                            indval0=np.where(~np.isnan(z_iso[kz,indprof]))[0][0]# First profile used
-                            indvalf=np.where(~np.isnan(z_iso[kz,indprof]))[0][-1]# Last profile used
-                            if sum(~np.isnan(z_iso[kz,indprof]))>nmin and (database['time'][indprof[indvalf]]-database['time'][indprof[indval0]])>=mindur*365*24*3600: # At least nmin samples over mindur years
-                                pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),z_iso[kz,indprof])
-                                trend_prof[kz]=pfit[0] # m/yr
-                    trend_iso_fit[var][:,kp]=trend_prof
-             
-            self.data["z_iso_"+var]=z_iso
+                    if var=="Temp":
+                        zmin=100
+                    else:
+                        zmin=0
+                    trend_iso_avg_var,trend_iso_fit_var,z_iso,var_trend=compute_iso_displacements(database['time'][indprof],database["depth_interp"],database[var],dvar[kvar],delta_smooth=10,zmin=zmin,dz=1,nmin=10,mindur=1)
+                    if kp==0: # Define variables
+                        trend_iso_avg[var]=np.full((len(trend_iso_avg_var),len(t0_periods)),np.nan)
+                        trend_iso_fit[var]=np.full((len(trend_iso_fit_var),len(t0_periods)),np.nan)
+                        z_iso_all[var]=np.full((len(var_trend),len(database["time"])),np.nan)
+                        self.data[var.lower()+"_trend"]=var_trend
+                    
+                    z_iso_all[var][:,indprof]=z_iso
+                    trend_iso_avg[var][:,kp]=trend_iso_avg_var
+                    trend_iso_fit[var][:,kp]=trend_iso_fit_var
+                    
+                    # trend_iso_avg[var][:,kp]=(z_iso[:,indprof[-1]]-z_iso[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365 # m/yr
+                    # trend_prof=np.full((len(var_trend),),np.nan) # Profile of trends
+                    # for kz in range(len(var_trend)):
+                    #     if sum(~np.isnan(z_iso[kz,indprof]))>nmin: # At least nmin samples
+                    #         indval0=np.where(~np.isnan(z_iso[kz,indprof]))[0][0]# First profile used
+                    #         indvalf=np.where(~np.isnan(z_iso[kz,indprof]))[0][-1]# Last profile used
+                    #         if (database['time'][indprof[indvalf]]-database['time'][indprof[indval0]])>=mindur*365*24*3600: # At least duration of mindur years
+                    #             pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),z_iso[kz,indprof])
+                    #             trend_prof[kz]=pfit[0] # m/yr
+                    # trend_iso_fit[var][:,kp]=trend_prof
+            
+            
+            
+            self.data["z_iso_"+var]=z_iso_all[var]
             self.data["trendavg_"+var]=trend_avg[var]
             self.data["trendfit_"+var]=trend_fit[var]
-            self.data["trendavg_iso_"+var]=trend_iso_avg[var]
+            self.data["trendavg_iso_"+var]= trend_iso_avg[var]
             self.data["trendfit_iso_"+var]=trend_iso_fit[var]
             
         return trend_avg,trend_fit,z_iso_all

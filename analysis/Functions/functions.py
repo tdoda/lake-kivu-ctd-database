@@ -193,46 +193,6 @@ def first_centered_differences(x, y, fill=False):
         dy[iif[-1] + 1:] = dy[iif[-1]]
     return dy
 
-
-def default_salinity_temperature(temperature):
-    return 1.8626 - 0.052908 * temperature + 0.00093057 * temperature ** 2 - 6.78e-6 * temperature ** 3
-
-def salinity(Temp, Cond, y_cond, temperature_func= default_salinity_temperature):
-    # Cond in [mS/cm], y_cond in [g/kg/(uS/cm)]
-    ft = temperature_func(Temp)
-    cond20 = ft * Cond * 1000 # uS/cm
-    salin = y_cond * cond20
-    return salin
-
-def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
-    # C_CH4 and C_CO2 must be provided in g/L
-    rho = 1e3 * (
-                0.9998395 + 6.7914e-5 * temperature - 9.0894e-6 * temperature ** 2 + 1.0171e-7 * temperature ** 3 -
-                1.2846e-9 * temperature ** 4 + 1.1592e-11 * temperature ** 5 - 5.0125e-14 * temperature ** 6 + (
-                    8.181e-4 - 3.85e-6 * temperature + 4.96e-8 * temperature ** 2) * salinity)
-    # Approach: use the previous estimate of rho to calculate the next one (another option would be to use the same reference density for all estimates)
-    if isinstance(C_CH4,np.ndarray) or (not C_CH4==0):
-        rho=rho*(1+beta_CH4*C_CH4)
-        
-    if isinstance(C_CO2,np.ndarray) or (not C_CO2==0):
-        rho=rho*(1+beta_CO2*C_CO2) 
-        
-    if isinstance(press,np.ndarray) or (not press==0) and (len(press)==len(temperature)):
-        K=19652.17+148.113*temperature-2.293*temperature**2 + 1.256*1e-2*temperature**3\
- -4.18*1e-5*temperature**4+(3.2726-2.147*1e-4*temperature+1.128*1e-4*temperature**2)*press/10+(53.238-0.313*temperature+5.728*1e-3*press/10)*salinity
-        rho=rho/(1-0.1*press/K)
-        
-        
-    return rho
-
-
-
-def Gamma_adiabatic(T, S, p, lat=46.):
-    alpha = sw.alpha(S, T, p)
-    cp = sw.cp(S, T, p)
-    Gamma = sw.g(lat) * alpha * (T - 273.15) / cp
-    return Gamma
-
 def mask_single_data(data, mask):
     try:
         idx = mask > 0
@@ -242,126 +202,6 @@ def mask_single_data(data, mask):
     except:
         print("Masking failed")
         return data
-
-
-def potential_temperature(T, S, p, z, lat=46.2):
-    iif = np.where(np.isfinite(T) & np.isfinite(S) & np.isfinite(p) & np.isfinite(z))
-    PT = np.full(T.size, np.nan)
-    T = T[iif]
-    p = p[iif]
-    z = z[iif]
-    S = S[iif]
-    pt0 = np.copy(T)
-    n = pt0.size
-    pt1 = np.full(n, np.nan)
-    iterate = True
-    j = 0
-    while iterate:
-        intGamma = np.zeros(n)
-        for i in range(1, n):
-            Gamma0 = Gamma_adiabatic(pt0, S[i], p, lat)
-            intGamma[i] = np.trapz(Gamma0[0:i + 1], x=z[0:i + 1])
-        pt1 = T + intGamma
-        j += 1
-        if j > 100 or np.nanmax(np.abs(pt1 - pt0)) < 1e-3:
-            iterate = False
-        else:
-            pt0 = np.copy(pt1)
-
-    PT[iif] = pt1
-    return PT
-
-
-def potential_temperature_gsw(T, S, p):
-    return gsw.pt_from_t(S, T, p, 0)
-
-
-def potential_temperature_sw(T, S, p, p_ref):
-    """
-    Calculates potential temperature as per UNESCO 1983 report.
-    Parameters
-    ----------
-    s(p) : array_like
-        salinity [psu (PSS-78)]
-    t(p) : array_like
-        temperature [℃ (ITS-90)]
-    p : array_like
-        pressure [db].
-    pr : array_like
-        reference pressure [db], default = 0
-    Returns
-    -------
-    pt : array_like
-        potential temperature relative to PR [℃ (ITS-90)]
-    """
-    return sw.ptmp(s=S,t=T,p=p,pr=p_ref)
-
-
-def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
-    # calculates oxygen saturation in mg/l according to Garcia-Benson
-    # to be coherent with Hannah
-    if units != "mgl" and units != "mll":
-        units = "mgl"
-    mgL_mlL = 1.42905
-    mmHg_mb = 0.750061683
-    mmHg_inHg = 25.3970886
-    standard_pressure_sea_level = 29.92126
-    standard_temperature_sea_level = 15 + 273.15
-    gravitational_acceleration = gr = sw.g(lat)
-    air_molar_mass = 0.0289644
-    universal_gas_constant = 8.31447
-    baro = (1. / mmHg_mb) * mmHg_inHg * standard_pressure_sea_level * np.exp(
-        (-gravitational_acceleration * air_molar_mass * altitude) / (
-                    universal_gas_constant * standard_temperature_sea_level))
-    u = 10 ** (8.10765 - 1750.286 / (235 + T))
-    press_corr = (baro * mmHg_mb - u) / (760 - u)
-
-    Ts = np.log((298.15 - T) / (273.15 + T))
-    lnC = 2.00907 + 3.22014 * Ts + 4.0501 * Ts ** 2 + 4.94457 * Ts ** 3 + -0.256847 * Ts ** 4 + 3.88767 * Ts ** 5 - S * (
-                0.00624523 + 0.00737614 * Ts + 0.010341 * Ts ** 2 + 0.00817083 * Ts ** 3) - 4.88682e-07 * S ** 2
-    O2sat = np.exp(lnC)
-    if units == "mll":
-        O2sat = O2sat * press_corr
-    elif units == "mgl":
-        O2sat = O2sat * mgL_mlL * press_corr
-
-    return O2sat
-
-
-def parse_file(input_file_path, string):
-    # Define the parameters used to read the files based on the data after the selected string
-    valid = True
-    start_date=''
-    with open(input_file_path, encoding="utf8", errors='ignore') as f:
-        lines = f.readlines()
-    for i in range(len(lines)):
-        if 'start_time' in lines[i]:
-            start_date_str=lines[i][lines[i].find("start_time")+13:lines[i].find("[Instrument")-1]
-            start_date=datetime.strptime(start_date_str,'%b %d %Y %H:%M:%S')
-        if string in lines[i]:
-            break
-            print("yes")
-    if input_file_path[-4:]=='.TOB':
-        date_format = "%m/%d/%Y %H:%M:%S"
-        columns = lines[i + 2].replace(";", "").split() 
-        columns.pop(0)
-        columns = rename_duplicates(columns)
-        units = lines[i + 3].replace(";", "").replace("[", "").replace("]", "").split()
-        skip_rows = i + 5
-        n = 0
-        while len(lines[i + 5].split()) - 1 > len(columns):
-            columns.append(n)
-            n = n + 1
-        if len(lines) <= skip_rows + 1 or len(columns) < 5:
-            valid=False
-    elif input_file_path[-4:]=='.cnv':
-        skip_rows=i+1
-        # Should match the variable names and units of CTD class to save the variables
-        columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
-        units=['min','m','degC','_','mg/m^3','uS/cm','_']
-        valid=True
-        date_format='%b %d %Y %H:%M:%S'
-    return skip_rows, columns, units, valid, date_format, start_date, 
 
         
 def rename_duplicates(arr):
@@ -393,379 +233,6 @@ def check_variable(variable, unit, columns, units):
     else:
         return False
 
-    
-def parse_time(df, variable, name, columns, units, ref_date, infolder,day_month=True): 
-    """
-    Function description
-    Structure:  
-        - First level of if-else-statements checks if  AM or PM exists. 
-        - Second level of if-else-statements checks what the column names for the date and time are.
-        - The third level of if-else-statements is only triggered, if AM or PM exists and localizes in which column AM/PM 
-        is located. The statement then adjusts the column headers of the dataframe by giving the column with AM/ PM the header "0
-    Inputs:
-        - day_month: if True, day is before month (only applied for format xx/xx/xxxx without AM/PM)         
-    Output:
-        New dataframe column with parsed time in it.
-        Dataframe with adjusted column headers.
-    """  
-    AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
-    res = [ele for ele in AM_PM if(ele in df.values)] # Check if AM or PM or similar is present in the file
-    if "IntD" in columns and "IntT" in columns:     
-        df=df.rename(columns = {'IntD':'Date', 'IntT':'Time'})
-        columns[columns.index('IntD')]='Date'
-        columns[columns.index('IntT')]='Time'
-    elif "IntDT" in columns and "IntDT1" in columns:
-        df=df.rename(columns = {'IntDT':'Date', 'IntDT1':'Time'})
-        columns[columns.index('IntDT')]='Date'
-        columns[columns.index('IntDT1')]='Time'
-    elif "IntT" in columns and "IntT1" in columns:
-        df=df.rename(columns = {'IntT':'Date', 'IntT1':'Time'})
-        columns[columns.index('IntT')]='Date'
-        columns[columns.index('IntT1')]='Time'
-    elif "IntD" in columns and "IntD1" in columns:
-        df=df.rename(columns = {'IntD':'Date', 'IntD1':'Time'})
-        columns[columns.index('IntD')]='Date'
-        columns[columns.index('IntD1')]='Time'
-    else:
-        raise ValueError("Cannot process unrecognised file.")
-
-    if bool(res)==True:
-        dateformat="%m/%d/%Y %H:%M:%S"
-            
-        if bool([ele for ele in AM_PM if(ele in list(df["Time"]))])==True:
-            df=df.rename(columns = {'Date':'Time', 'Time':'Date'}) # reverse time and date
-            ind_date=columns.index('Date')
-            ind_time=columns.index('Time')
-            columns[ind_date]='Time'
-            columns[ind_time]='Date'
-        
-        if bool([ele for ele in AM_PM if(ele in list(df["Date"]))])==True:  
-            del columns[-1]
-            columns.insert(columns.index("Date"), 0) 
-            df.columns = columns
-            if "?" in str([ele for ele in AM_PM if(ele in list(df["Date"]))]):
-                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-            try:
-                datetime_arr = pd.to_datetime(df["Date"] + " " + df["Time"], format=dateformat, dayfirst=True)
-                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except Exception:
-                log("Datetime file parse failed")
-                raise
-        
-        if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
-            if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-            try:
-                datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except Exception:
-                datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
-                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-
-        else:
-            del columns[-1]
-            columns.insert(columns.index("Time")+1, 0)
-            df.columns = columns
-            units.insert(columns.index(0), 0)
-            if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-                df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-
-            try:
-                try:
-                    datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-                except Exception:
-                    try:
-                        datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
-                    except Exception:
-                        datetime_arr = pd.to_datetime(df["Date"]+" "+df["Time"]+" "+df[0],format="%Y-%m-%d %I:%M:%S %p")
-                arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-                    arr = list(
-                        datetime_arr.values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except Exception:
-                breakpoint()
-                log("Datetime file parse failed")
-                raise
-    else:          
-            try:
-                
-                arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=day_month).values.astype(float) / 10 ** 9)
-                
-                if ref_date and abs(arr[0] - ref_date) > 30*24*60*60: # More than a month of difference between reference date --> invert day and month
-                    breakpoint()    
-                    arr = list(pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=not day_month).values.astype(float) / 10 ** 9)
-                df["time"] = arr
-                return df
-            except Exception:
-                breakpoint() # Possibility of error: date and time are reversed:
-                # arr = pd.to_datetime(df["Date"] + " " + df["Time"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-                log("Datetime file parse failed")
-                raise    
-        
-         
-    #--------------------------------------------------
-    # Previous code:      
-                
-        
-    #     if "IntD" in columns and "IntT" in columns:            
-    #         if bool([ele for ele in AM_PM if(ele in list(df["IntD"]))])==True:
-    #             input("Press Enter to continue...")
-    #             breakpoint()
-    #             del columns[-1]
-    #             columns.insert(columns.index("IntD"), 0) 
-    #             df.columns = columns
-    #             try:
-    #                 #datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                 datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-    #                 try:
-    #                     datetime_arr[df[df["IntD"] == "PM"].index] = datetime_arr[df[df["IntD"] == "PM"].index] + timedelta(hours=12)
-    #                 except: pass
-    #                 idx = np.argmin(np.diff(datetime_arr))
-    #                 if np.diff(datetime_arr)[idx].astype("float")<0:
-    #                     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 log("Datetime file parse failed")
-    #                 raise
-    #         if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
-    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-    #                 # for k_row in df.index: # Remove ? and .
-    #                 #     timestr=df.loc[k_row,0]
-    #                 #     timestr=timestr.replace('?','')
-    #                 #     timestr=timestr.replace('.','')
-    #                 #     df.loc[k_row,0]=timestr
-    #             try:
-    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12)
-    #                 # except: pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
-    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
-    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format="%d-%b-%y %H:%M:%S")
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(
-    #                 #         hours=12)
-    #                 # except:
-    #                 #     pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float") < 0:
-    #                 #     datetime_arr[idx + 1:] = np.copy(datetime_arr[idx + 1:] + timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30 * 24 * 60 * 60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-
-    #         else:
-    #             del columns[-1]
-    #             columns.insert(columns.index("IntT")+1, 0)
-    #             df.columns = columns
-    #             units.insert(columns.index(0), 0)
-    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-    #                 # for k_row in df.index: # Remove ? and .
-    #                 #     timestr=df.loc[k_row,0]
-    #                 #     timestr=timestr.replace('?','')
-    #                 #     timestr=timestr.replace('.','')
-    #                 #     df.loc[k_row,0]=timestr
-    #             try:
-    #                 datetime_arr = pd.to_datetime(df["IntD"]+" "+df["IntT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                 # datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntT"], format=dateformat, dayfirst=True)
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-    #                 # except: pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
-    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 log("Datetime file parse failed")
-    #                 raise
-        
-    #     if "IntDT" in columns and "IntDT1" in columns:
-    #         if bool([ele for ele in AM_PM if(ele in list(df["IntDT1"]))])==True:
-    #             del columns[-1]
-    #             columns.insert(columns.index("IntDT1"), 0) 
-    #             df.columns=columns
-    #             if "?" in str([ele for ele in AM_PM if(ele in list(df["IntDT1"]))]):
-    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-    #                 # for k_row in df.index: # Remove ? and .
-    #                 #     timestr=df.loc[k_row,0]
-    #                 #     timestr=timestr.replace('?','')
-    #                 #     timestr=timestr.replace('.','')
-    #                 #     df.loc[k_row,0]=timestr
-    #             try:
-    #                 datetime_arr = pd.to_datetime(df["IntDT1"]+" "+df["IntDT"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                 # datetime_arr = pd.to_datetime(df["IntDT1"] + " " + df["IntDT"], format=dateformat, dayfirst=True)
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-    #                 # except: pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
-    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 log("Datetime file parse failed")
-    #                 raise
-    #         if bool([ele for ele in AM_PM if(ele in list(df[0]))])==True:
-    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-    #                 # for k_row in df.index: # Remove ? and .
-    #                 #     timestr=df.loc[k_row,0]
-    #                 #     timestr=timestr.replace('?','')
-    #                 #     timestr=timestr.replace('.','')
-    #                 #     df.loc[k_row,0]=timestr
-    #             try:
-    #                 datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                 # datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-    #                 # except: pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float")<0: #Negative time due to change of day?
-    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 log("Datetime file parse failed")
-    #                 raise
-    #         else:
-    #             del columns[-1]
-    #             columns.insert(columns.index("IntDT1")+1, 0)
-    #             df.columns = columns
-    #             units.insert(columns.index(0), 0) #adjusting units
-    #             if "?" in str([ele for ele in AM_PM if(ele in list(df[0]))]):
-    #                 df=df.replace({0:{'\?':'','\.':''}},regex=True) # Remove ? and .
-    #                 # for k_row in df.index: # Remove ? and .
-    #                 #     timestr=df.loc[k_row,0]
-    #                 #     timestr=timestr.replace('?','')
-    #                 #     timestr=timestr.replace('.','')
-    #                 #     df.loc[k_row,0]=timestr
-    #             try:
-    #                 try:
-    #                     datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%m/%d/%Y %I:%M:%S %p")
-    #                     #datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format=dateformat, dayfirst=True)
-    #                 except:
-    #                     datetime_arr = pd.to_datetime(df["IntDT"]+" "+df["IntDT1"]+" "+df[0],format="%d-%b-%y %I:%M:%S %p")
-    #                     # datetime_arr = pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], format="%d-%b-%y %H:%M:%S",
-    #                                                   # dayfirst=True)
-    #                 # try:
-    #                 #     datetime_arr[df[df[0] == "PM"].index] = datetime_arr[df[df[0] == "PM"].index] + timedelta(hours=12) 
-    #                 # except: pass
-    #                 # idx = np.argmin(np.diff(datetime_arr))
-    #                 # if np.diff(datetime_arr)[idx].astype("float")<0:
-    #                 #     datetime_arr[idx+1:] = np.copy(datetime_arr[idx+1:]+timedelta(hours=12))
-    #                 arr = list(datetime_arr.values.astype(float) / 10 ** 9)
-    #                 if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                     arr = list(
-    #                         datetime_arr.values.astype(float) / 10 ** 9)
-    #                 df["time"] = arr
-    #                 return df
-    #             except:
-    #                 log("Datetime file parse failed")
-    #                 raise              
-        
-    # else: 
-    #     if "IntDT" in columns and "IntDT1" in columns:
-    #         try:
-    #             arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=True).values.astype(float) / 10 ** 9)
-    #             if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                 arr = list(pd.to_datetime(df["IntDT"] + " " + df["IntDT1"], dayfirst=False).values.astype(float) / 10 ** 9)
-    #             df["time"] = arr
-    #             return df
-    #         except:
-    #             log("Datetime file parse failed")
-    #             raise    
-    #     elif "IntD" in columns and "IntT" in columns:
-    #         try:
-    #             arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=True).values.astype(float) / 10 ** 9)
-    #             if ref_date and abs(arr[0] - ref_date) > 30*24*60*60:
-    #                 arr = list(pd.to_datetime(df["IntD"] + " " + df["IntT"], dayfirst=False).values.astype(float) / 10 ** 9)
-    #             df["time"] = arr
-    #             return df
-    #         except:
-    #             log("Datetime file parse failed")
-    #             raise
-    #     elif "IntD" in columns and "IntD1" in columns:
-    #         try:
-    #             datetime_arr = pd.to_datetime(df["IntD"] + " " + df["IntD1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-    #             df["time"] = datetime_arr
-    #             return df
-    #         except:
-    #             log("Datetime file parse failed")
-    #             raise
-    #     elif "IntT" in columns and "IntT1" in columns:
-    #         try:
-    #             datetime_arr = pd.to_datetime(df["IntT"] + " " + df["IntT1"], format="%H:%M:%S %m/%d/%Y").values.astype(float) / 10 ** 9
-    #             df["time"] = datetime_arr
-    #             return df
-    #         except:
-    #             log("Datetime file parse failed")
-    #             raise
-    #     else:
-    #         raise ValueError("Cannot process unrecognised file.")
-    
-
-    
-
-def parse_chl(df, variable, name, columns, units, ref_date, date_format):
-    if units == "g/l":
-        try:
-            log("Changed Chl unit")
-            return list(df[name] * 1000000)
-        except:
-            return [-999.] * len(df)
-        
-    else:
-        return [-999.] * len(df)
 
 def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_flags=False):
    """
@@ -1054,11 +521,16 @@ def extract_data_netcdf(nc):
     return data
 
 def select_data(data,var,dim_selected,ind_selected):
-    # Select data according to boolean array along a specific dimension
-    # data: dictionary with data of each variable
-    # var: dictionary with attributes of each variable
-    # dim_selected (string): name of dimension along which data must be selected
-    # ind_selected: numpy array with indices of values to select along the selected dimension
+    """
+    Select data according to boolean array along a specific dimension
+    
+    Inputs:
+        data: dictionary with data of each variable
+        var: dictionary with attributes of each variable
+        dim_selected (string): name of dimension along which data must be selected
+        ind_selected: numpy array with indices of values to select along the selected dimension
+    
+    """
     
     data_selected=data.copy()
     
@@ -1071,6 +543,62 @@ def select_data(data,var,dim_selected,ind_selected):
                     breakpoint()
     return data_selected
 
+def compute_iso_displacements(timeval,depthval,data_var,dvar,delta_smooth=10,zmin=0,dz=1,nmin=10,mindur=1):
+    """
+    Compute displacements of the isolines of a given field.
+    
+    Inputs:
+        timeval (1d numpy array): timevalues in seconds from 01-01-1970
+        depthval (1d numpy array): depth values [m]
+        dvar (1d numpy array): step between isolines
+        delta_smooth (int): number of data points to average for temporal smoothing
+        zmin (float): minimum depth below which isolines are computed [m]
+        dz (float): depth step to compute depth of isolines [m]  
+        nmin (int): minimum number of values needed to ompute trend
+        mindur (float): minimum duration spanned by the data to calculate trend [yr]
+    """
+    depth_trend=np.arange(depthval[0],depthval[-1],dz)
+    var_trend=np.arange(round(np.nanmin(data_var)/dvar)*dvar,round(np.nanmax(data_var)/dvar)*dvar,dvar)
+    
+    z_iso=np.full((len(var_trend),len(timeval)),np.nan)
+    data_smooth=movmean(data_var,delta_smooth,axis=1) # Temporal smoothing
+    for kp in range(len(timeval)):
+        # Get location of isolines: could be problematic when non monotic changes in the data (several locations for the same isoline)
+        # Do not consider the upper 100 m for temperature because decreasing T with depth
+        data_prof=data_smooth[:,kp]
+        data_prof[depthval<zmin]=np.nan
+        indsort=np.argsort(data_prof) # Sort values
+        z_iso[:,kp]=np.interp(var_trend,data_prof[indsort],depthval[indsort],left=np.nan,right=np.nan) 
+       
+    # Calculate trends of isolines movements
+    trend_iso_avg=(z_iso[:,-1]-z_iso[:,0])/(timeval[-1]-timeval[0])*3600*24*365 # m/yr
+    
+    trend_prof=np.full((len(var_trend),),np.nan) # Profile of trends
+                
+    for kz in range(len(var_trend)):
+        if sum(~np.isnan(z_iso[kz,:]))>nmin: # At least nmin samples
+            indval0=np.where(~np.isnan(z_iso[kz,:]))[0][0]# First profile used
+            indvalf=np.where(~np.isnan(z_iso[kz,:]))[0][-1]# Last profile used
+            if (timeval[indvalf]-timeval[indval0])>=mindur*365*24*3600: # At least duration of mindur years
+                pfit,_,_=regression_oneline(timeval/(3600*24*365),z_iso[kz,:])
+                trend_prof[kz]=pfit[0] # m/yr
+    trend_iso_fit=trend_prof
+    
+    return trend_iso_avg,trend_iso_fit,z_iso,var_trend
+
+def compute_N2(zval,rhoval,windowsize=10,g=9.81):
+    # zval increases downward
+    zval=zval.reshape(-1,1) # column vector
+    rho_smooth=movmean(rhoval,windowsize,axis=0)
+     
+    rho0=np.nanmean(rho_smooth,axis=0)
+    N2=np.full(rho_smooth.shape,np.nan)
+    N2[1:,:]=1/rho0*np.diff(rho_smooth,axis=0)/np.diff(zval,axis=0)*g
+    return N2 
+
+
+
+
 def export_to_netcdf(general_attributes,dimensions,variables,data,filename, mode='a', time_label="time",):
     log("Saving to NetCDF", indent=1)
 
@@ -1078,18 +606,19 @@ def export_to_netcdf(general_attributes,dimensions,variables,data,filename, mode
     log("Writing data to NetCDF file {}".format(filename), indent=1)
  
     nc = netCDF4.Dataset(filename, mode='w', format='NETCDF4')
+    
+    try:
 
-    for key in general_attributes:
-        setattr(nc, key, general_attributes[key])
-
-    for key, values in dimensions.items():
-        nc.createDimension(values['dim_name'], values['dim_size'])
-
-    for key, values in variables.items():
-        var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
-        var.units = values["unit"]
-        var.long_name = values["longname"]
-        try: 
+        for key in general_attributes:
+            setattr(nc, key, general_attributes[key])
+    
+        for key, values in dimensions.items():
+            nc.createDimension(values['dim_name'], values['dim_size'])
+    
+        for key, values in variables.items():
+            var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
+            var.units = values["unit"]
+            var.long_name = values["longname"] 
             if (key not in data.keys()) or (isinstance(data[key], str) and data[key]=='N/a'): # No data
                 if len(values["dim"])==1:
                     data[key]=np.full(len(data[values["dim"][0]]),np.nan)
@@ -1098,8 +627,8 @@ def export_to_netcdf(general_attributes,dimensions,variables,data,filename, mode
             
                 data[key]=np.nan 
             var[:] = data[key]
-        except:
-            breakpoint()
-            nc.close()
+    except:
+        breakpoint()
+        nc.close()
     nc.close()
     log("netCDF file created!", indent=1)
