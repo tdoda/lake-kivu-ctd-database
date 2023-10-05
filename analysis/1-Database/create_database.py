@@ -13,7 +13,7 @@ import pandas as pd
 from datetime import datetime, timezone
 import math
 import cmocean
-from ctd_database import ctd_database, ctd_periods
+from ctd_database import ctd_database
 import seawater as sw 
 # adding Functions to the system path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Functions'))
@@ -24,7 +24,7 @@ plt.close ('all')
 data_folder = "../../data/Level3_TD/"
 #hypsometry_file='../../../../Bathymetry/Bathymetry_Baerenbold2022.dat'
 hypsometry_file='../0-Bathymetry/hypsometry_1m.csv'
-data_files = ["data_gov2.nc", "data_Kivuwatt2.nc"]
+data_files = ["data_gov3.nc", "data_Kivuwatt3.nc"]
 
 dmin=260 # Minimum depth of the profiles
 
@@ -35,7 +35,7 @@ year_periods=np.arange(2008,2023,1)
 t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
 tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
 
-output_files=["database_gov2_"+str(dmin)+"m.nc","database_Kivuwatt2_"+str(dmin)+"m.nc"]
+output_files=["database_gov_"+str(dmin)+"m.nc","database_Kivuwatt_"+str(dmin)+"m.nc"]
 databases_all=[]
 #%% Load hypsometry
 df_hypso=pd.read_csv(hypsometry_file,sep=',',names=['z','area'],skiprows=1) 
@@ -47,7 +47,7 @@ for kdata in [0,1]:
     #%% Load the data
     
     database=ctd_database() 
-    database_periods=ctd_periods()    
+    # database_periods=ctd_periods()    
     nc = netCDF4.Dataset(os.path.join(data_folder, data_files[kdata]), mode='r', format='NETCDF4_CLASSIC')
     profkeep=nc.variables["max_depth"][:]>=dmin
     #%% Create all variables
@@ -76,13 +76,13 @@ for kdata in [0,1]:
     database.compute_chemfit()
     database.compute_centermass()
     N2=database.compute_N2_database(g=sw.g(lat=-2))
-    Sc1,Sc2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=2,zmax=300,g=sw.g(lat=-2))
+    Sc1,Sc2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=2,zmax=280,g=sw.g(lat=-2))
     #database.compute_centermass(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values)
     # prof_avg, prof_trend1,prof_trend2=database_periods.compute_avgprof_3p(database)
     
     # Periods to average
-    prof_avg, prof_std=database_periods.compute_avgprof(database,t0_periods=t0,tf_periods=tf)
-    trend_avg,trend_fit=database_periods.compute_avgtrend(database,t0_periods=t0,tf_periods=tf,dz=1)
+    # prof_avg, prof_std=database_periods.compute_avgprof(database,t0_periods=t0,tf_periods=tf)
+    # trend_avg,trend_fit=database_periods.compute_avgtrend(database,t0_periods=t0,tf_periods=tf,dz=1)
     #database.compute_stratification_pylake(lat=-2,deptha=-df_hypso["z"].values,area=df_hypso["area"].values)
     nc.close() 
     
@@ -125,12 +125,12 @@ for kdata in [0,1]:
     ax.set_xlabel('$\\rho$ [kg.m$^{-3}$]')
     #%% Save netCDF 
     database.to_netcdf(output_files[kdata])
-    database_periods.to_netcdf(output_files[kdata][:output_files[kdata].find('.nc')-1]+"_"+str(len(t0))+'periods.nc')
+    # database_periods.to_netcdf(output_files[kdata][:output_files[kdata].find('.nc')-1]+"_"+str(len(t0))+'periods.nc')
     databases_all.append(database)
 #%% Combine databases
 print('***************************************')
 database_comb=ctd_database()
-database_periods_comb=ctd_periods()
+# database_periods_comb=ctd_periods()
 
 time_comb=np.concatenate((databases_all[0].data["time"],databases_all[1].data["time"]),axis=0)
 indsort=time_comb.argsort()
@@ -153,11 +153,11 @@ for var in databases_all[0].variables:
         database_comb.data[var]=var_comb[:,indsort]
 
 # Period database
-database_periods_comb.compute_avgprof(database_comb,t0_periods=t0,tf_periods=tf)
-trend_avg,trend_fit=database_periods_comb.compute_avgtrend(database_comb,t0_periods=t0,tf_periods=tf,dz=1)
+# database_periods_comb.compute_avgprof(database_comb,t0_periods=t0,tf_periods=tf)
+# trend_avg,trend_fit=database_periods_comb.compute_avgtrend(database_comb,t0_periods=t0,tf_periods=tf,dz=1)
   
 # Save netCDF   
-database_comb.to_netcdf("database_combined2_"+str(dmin)+"m.nc")
-database_periods_comb.to_netcdf("database_combined2_"+str(dmin)+"m_"+str(len(t0))+"periods.nc")
+database_comb.to_netcdf("database_combined_"+str(dmin)+"m.nc")
+# database_periods_comb.to_netcdf("database_combined_"+str(dmin)+"m_"+str(len(t0))+"periods.nc")
 
 
