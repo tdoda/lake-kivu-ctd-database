@@ -402,12 +402,43 @@ def compute_balance(database,indprof,zval,Aval,Cp=4.18,Sbot=5.5):
     
     return H, S, M
 
-def compute_N2(zval,rhoval,g=9.81):
+def compute_N2(zval,rhoval,windowsize=10,g=9.81):
     # zval increases downward
-    rho0=np.nanmean(rhoval,axis=0)
-    N2=1/rho0*np.diff(rhoval,axis=0)/np.diff(zval)*g
+    
+    zval=zval.reshape(-1,1)
+    rho_smooth=movmean(rhoval,windowsize,axis=0)
+     
+    rho0=np.nanmean(rho_smooth,axis=0)
+    N2=np.full(rho_smooth.shape,np.nan)
+    N2[1:,:]=1/rho0*np.diff(rho_smooth,axis=0)/np.diff(zval,axis=0)*g
     
     return N2
+
+def compute_Sc(zval,rhoval,min_depth_profiles,max_depth_profiles,hypso_z,hypso_A,zmin=1,zmax=300,g=9.81,layer_specific=False):
+    # zval increases downward
+    zval=zval.reshape(-1,1)
+    
+    if layer_specific: # Compute Sc by only using the data from the layer defined by zmin & zmax
+        ind_keep=np.where(np.logical_and(zval>zmin,zval<zmax))[0]
+        zval=zval[ind_keep]-zmin #z=0 at zmin
+        hypso_z=hypso_z-zmin
+        rhoval=rhoval[ind_keep,:]
+    
+    rhomean=np.nanmean(rhoval,axis=0)
+    Aval=np.interp(zval,hypso_z,hypso_A)
+    zv=np.trapz(zval*Aval,zval,axis=0)/np.trapz(Aval,zval,axis=0)
+    Sc_Read=np.array([np.nan]*rhoval.shape[1]) # J
+    Sc_Imb=np.array([np.nan]*rhoval.shape[1]) # J
+    for kt in range(len(Sc_Read)):
+        if max_depth_profiles[kt]>=zmax and min_depth_profiles[kt]<=zmin: # Profile is long enough
+            if layer_specific:
+                valkeep=~np.isnan(rhoval[:,kt])
+            else:
+                valkeep=np.logical_and(~np.isnan(rhoval[:,kt]),np.logical_and(zval[:,0]>=zmin,zval[:,0]<=zmax))
+            Sc_Read[kt]=g*np.trapz((zval[valkeep][:,0]-zv)*rhoval[valkeep,kt]*Aval[valkeep][:,0],zval[valkeep][:,0],axis=0)
+            Sc_Imb[kt]=g*np.trapz((zval[valkeep][:,0]-zv)*(rhoval[valkeep,kt]-rhomean[kt])*Aval[valkeep][:,0],zval[valkeep][:,0],axis=0)
+    
+    return Sc_Read, Sc_Imb 
 
 def sort_paths(x,y,maxdist=0.01):
     # x, y: 1D numpy arrays
@@ -586,18 +617,22 @@ def compute_iso_displacements(timeval,depthval,data_var,dvar,delta_smooth=10,zmi
     
     return trend_iso_avg,trend_iso_fit,z_iso,var_trend
 
-def compute_N2(zval,rhoval,windowsize=10,g=9.81):
-    # zval increases downward
-    zval=zval.reshape(-1,1) # column vector
-    rho_smooth=movmean(rhoval,windowsize,axis=0)
+# def compute_N2(zval,rhoval,windowsize=10,g=9.81):
+#     # zval increases downward
+#     zval=zval.reshape(-1,1) # column vector
+#     rho_smooth=movmean(rhoval,windowsize,axis=0)
      
-    rho0=np.nanmean(rho_smooth,axis=0)
-    N2=np.full(rho_smooth.shape,np.nan)
-    N2[1:,:]=1/rho0*np.diff(rho_smooth,axis=0)/np.diff(zval,axis=0)*g
-    return N2 
+#     rho0=np.nanmean(rho_smooth,axis=0)
+#     N2=np.full(rho_smooth.shape,np.nan)
+#     N2[1:,:]=1/rho0*np.diff(rho_smooth,axis=0)/np.diff(zval,axis=0)*g
+#     return N2 
 
-
-
+def create_mixed_layer(zval,profval,zML_bot,zML_top):
+    profmixed=profval.copy()
+    avgval=np.nanmean(profval[np.logical_and(zval>zML_top,zval<zML_bot)])
+    profmixed[np.logical_and(zval>zML_top,zval<zML_bot)]=avgval
+    
+    return avgval,profmixed
 
 def export_to_netcdf(general_attributes,dimensions,variables,data,filename, mode='a', time_label="time",):
     log("Saving to NetCDF", indent=1)

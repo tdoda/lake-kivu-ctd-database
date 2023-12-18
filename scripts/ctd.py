@@ -30,7 +30,8 @@ class ctd:
         self.submerged_index = False
         self.depth_value = 0
         #self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
-        self.fixed_depths_ref = np.arange(0,320,0.1) # CEll size of 10 cm
+        # self.fixed_depths_ref = np.arange(0,320,0.1) # CEll size of 10 cm
+        self.fixed_depths_ref = np.arange(0,400,0.2) # CEll size of 20 cm
         self.general_attributes = {
             "institution": "Eawag",
             "references": "james.runnalls@eawag.ch",

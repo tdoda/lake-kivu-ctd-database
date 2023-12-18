@@ -25,6 +25,7 @@ data_folder = "../../data/Level3_TD/"
 #hypsometry_file='../../../../Bathymetry/Bathymetry_Baerenbold2022.dat'
 hypsometry_file='../0-Bathymetry/hypsometry_1m.csv'
 data_files = ["data_gov3.nc", "data_Kivuwatt3.nc"]
+# data_files = ["data_gov2.nc", "data_Kivuwatt2.nc"]
 
 dmin=260 # Minimum depth of the profiles
 
@@ -76,7 +77,10 @@ for kdata in [0,1]:
     database.compute_chemfit()
     database.compute_centermass()
     N2=database.compute_N2_database(g=sw.g(lat=-2))
-    Sc1,Sc2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=2,zmax=280,g=sw.g(lat=-2))
+    Sc1,Sc2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=2,zmax=300,g=sw.g(lat=-2))
+    Sc_chemocline1,Sc_chemocline2=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=230,zmax=280,g=sw.g(lat=-2),layer_specific=True,name_layer="_230_280")
+    _,_=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=100,zmax=280,g=sw.g(lat=-2),layer_specific=True,name_layer="_100_280")
+    _,_=database.compute_Sc_database(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values,zmin=78,zmax=280,g=sw.g(lat=-2),layer_specific=True,name_layer="_78_280")
     #database.compute_centermass(hypso_z=-df_hypso['z'].values,hypso_A=df_hypso['area'].values)
     # prof_avg, prof_trend1,prof_trend2=database_periods.compute_avgprof_3p(database)
     

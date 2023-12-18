@@ -69,6 +69,12 @@ class ctd_database:
             "N2": {'var_name': 'N2', 'dim': ('depth_interp','time'), 'unit': 's-2', 'longname': 'Squared buoyancy frequency'},
             "Sc_Read": {'var_name': 'Sc_Read', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume (layer 2-300 m)'},
             "Sc_Imb": {'var_name': 'Sc_Imb', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume and mixed profile (layer 2-300 m)'},
+            "Sc_Read_230_280": {'var_name': 'Sc_Read_230_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume (layer 230-280 m)'},
+            "Sc_Imb_230_280": {'var_name': 'Sc_Imb_230_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume and mixed profile (layer 230-280 m)'},
+            "Sc_Read_100_280": {'var_name': 'Sc_Read_100_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume (layer 100-280 m)'},
+            "Sc_Imb_100_280": {'var_name': 'Sc_Imb_100_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume and mixed profile (layer 100-280 m)'},
+            "Sc_Read_78_280": {'var_name': 'Sc_Read_78_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume (layer 78-280 m)'},
+            "Sc_Imb_78_280": {'var_name': 'Sc_Imb_78_280', 'dim': ('time',), 'unit': 'J', 'longname': 'Schmidt stability with respect to center of volume and mixed profile (layer 78-280 m)'},          
             "Sc": {'var_name': 'Sc', 'dim': ('time',), 'unit': 'J.m-2', 'longname': 'Schmidt stability from pylake'},
         }
         
@@ -201,32 +207,19 @@ class ctd_database:
         
     def compute_N2_database(self,windowsize=10,g=9.81):
         # zval increases downward
-        # zval=self.data["depth_interp"].reshape(-1,1)
-        # rho_smooth=movmean(self.data["rho"],windowsize,axis=0)
-         
-        # rho0=np.nanmean(rho_smooth,axis=0)
-        # N2=np.full(rho_smooth.shape,np.nan)
-        # N2[1:,:]=1/rho0*np.diff(rho_smooth,axis=0)/np.diff(zval,axis=0)*g
+        
         N2=compute_N2(self.data["depth_interp"],self.data["rho"],windowsize,g)
         self.data["N2"]=N2
         return N2 
     
-    def compute_Sc_database(self,hypso_z,hypso_A,zmin=1,zmax=300,g=9.81):
+    def compute_Sc_database(self,hypso_z,hypso_A,zmin=1,zmax=300,g=9.81,layer_specific=False,name_layer=""):
         # zval increases downward
-        zval=self.data["depth_interp"].reshape(-1,1)
-        rhoval=self.data["rho"]
-        rhomean=np.nanmean(rhoval,axis=0)
-        Aval=np.interp(zval,hypso_z,hypso_A)
-        zv=np.trapz(zval*Aval,zval,axis=0)/np.trapz(Aval,zval,axis=0)
-        Sc_Read=np.array([np.nan]*rhoval.shape[1]) # J
-        Sc_Imb=np.array([np.nan]*rhoval.shape[1]) # J
-        for kt in range(len(Sc_Read)):
-            if self.data["max_depth"][kt]>=zmax and self.data["min_depth"][kt]<=zmin: # Profile is long enough
-                valkeep=np.logical_and(~np.isnan(rhoval[:,kt]),np.logical_and(zval[:,0]>=zmin,zval[:,0]<=zmax))
-                Sc_Read[kt]=g*np.trapz((zval[valkeep][:,0]-zv)*rhoval[valkeep,kt]*Aval[valkeep][:,0],zval[valkeep][:,0],axis=0)
-                Sc_Imb[kt]=g*np.trapz((zval[valkeep][:,0]-zv)*(rhoval[valkeep,kt]-rhomean[kt])*Aval[valkeep][:,0],zval[valkeep][:,0],axis=0)
-        self.data["Sc_Read"]=Sc_Read
-        self.data["Sc_Imb"]=Sc_Imb
+       
+        Sc_Read, Sc_Imb = compute_Sc(self.data["depth_interp"],self.data["rho"],self.data["min_depth"],self.data["max_depth"],hypso_z,hypso_A,zmin,zmax,g,layer_specific)
+        
+        self.data["Sc_Read"+name_layer]=Sc_Read
+        self.data["Sc_Imb"+name_layer]=Sc_Imb
+        
         return Sc_Read, Sc_Imb 
         
     

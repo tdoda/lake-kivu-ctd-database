@@ -23,13 +23,13 @@ if not os.path.exists(directories["Level3_dir"]):
     os.makedirs(directories["Level3_dir"])
     
 # Periods to remove (government):
-dateperiod_rem=[[datetime(2019,10,28),datetime(2019,10,29)],[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2021,6,3,11,0,0)]] # Time limits of the period (wrong conductivity/temperature)
+dateperiod_rem=[[datetime(2016,1,14,11,0,0),datetime(2016,1,14,12,0,0)],[datetime(2016,2,10,11,0,0),datetime(2016,2,10,14,0,0)],[datetime(2019,9,3,0,0,0),datetime(2019,9,4,0,0)],[datetime(2019,10,28),datetime(2019,10,29)],[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2021,6,3,11,0,0)]] # Time limits of the period (density peak, wrong pressue calibration (?), wrong conductivity/temperature)
 tperiod_rem=[None]*len(dateperiod_rem)
 for kperiod in np.arange(len(dateperiod_rem)):
     tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
     
  # Periods to remove (Kivuwatt):   
-dateperiod_rem_KW=[[datetime(2021,6,3),datetime(2021,6,11)]] # Time limits of the period (different depth calculation)
+dateperiod_rem_KW=[[datetime(2019,11,7,9,0,0),datetime(2019,11,7,10,0,0)],[datetime(2021,6,3),datetime(2021,6,11)]] # Time limits of the period (depth shift, different depth calculation)
 tperiod_rem_KW=[None]*len(dateperiod_rem)
 for kperiod in np.arange(len(dateperiod_rem_KW)):
     tperiod_rem_KW[kperiod]=[dateperiod_rem_KW[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
@@ -61,7 +61,7 @@ for kdata in [0,1]:
         else:
             for kperiod in np.arange(len(dateperiod_rem_KW)):
                 indrem=np.concatenate((indrem,np.where(np.logical_and(nc.variables["time"][:]>tperiod_rem_KW[kperiod][0],nc.variables["time"][:]<tperiod_rem_KW[kperiod][1]))[0]))
-        if np.any(indrem):
+        if len(list(indrem))>0: # not empty
             indkeep=np.delete(indkeep,indrem.astype(int))
         varnames=list(nc.variables.keys())
         varnames.remove("depth_interp")
