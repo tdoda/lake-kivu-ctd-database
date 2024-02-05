@@ -584,11 +584,11 @@ def compute_iso_displacements(timeval,depthval,data_var,dvar,delta_smooth=10,zmi
         dvar (1d numpy array): step between isolines
         delta_smooth (int): number of data points to average for temporal smoothing
         zmin (float): minimum depth below which isolines are computed [m]
-        dz (float): depth step to compute depth of isolines [m]  
+        dz (float): depth step to compute depth of isolines [m] --> not needed apparently
         nmin (int): minimum number of values needed to ompute trend
         mindur (float): minimum duration spanned by the data to calculate trend [yr]
     """
-    depth_trend=np.arange(depthval[0],depthval[-1],dz)
+    # depth_trend=np.arange(depthval[0],depthval[-1],dz)
     var_trend=np.arange(round(np.nanmin(data_var)/dvar)*dvar,round(np.nanmax(data_var)/dvar)*dvar,dvar)
     
     z_iso=np.full((len(var_trend),len(timeval)),np.nan)

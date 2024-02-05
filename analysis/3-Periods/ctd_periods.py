@@ -54,6 +54,9 @@ class ctd_periods:
             "meanprof_Temp_std":{'var_name': "meanprof_Temp_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'degC', 'longname': "Profile of temperature std"},        
             "trendavg_Temp":{'var_name': "trendavg_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': 'degC/yr', 'longname': "Average temperature trend"},
             "trendfit_Temp":{'var_name': "trendfit_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': 'degC/yr', 'longname': "Temperature trend from linear fit"},
+            "R2fit_Temp":{'var_name': "R2fit_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': '-', 'longname': "Regression coefficient R2 of the temperature trend fit"},
+            "interceptfit_Temp":{'var_name': "interceptfit_Temp", 'dim': ('depth_trend','time0_periods'), 'unit': 'degC', 'longname': "Intercept of the temperature fit"},
+            "trenddata_Temp":{'var_name': "tenddata_Temp", 'dim': ('depth_trend','time'), 'unit': 'degC', 'longname': "Temperature data used to compute trends"},
             "temp_trend":{'var_name': "temp_trend", 'dim': ('temp_trend',), 'unit': '°C', 'longname': "Temperature values for isotherms displacements"},
             "z_iso_Temp":{'var_name': "z_iso_Temp", 'dim': ('temp_trend','time'), 'unit': 'm', 'longname': "Depth of isotherms"},
             "trendavg_iso_Temp":{'var_name': "trendavg_iso_Temp", 'dim': ('temp_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average isotherms displacements"},
@@ -63,6 +66,9 @@ class ctd_periods:
             "meanprof_Cond_std":{'var_name': "meanprof_Cond_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'mS/cm', 'longname': "Profile of conductivity std"}, 
             "trendavg_Cond":{'var_name': "trendavg_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': 'mS.cm-1.yr-1', 'longname': "Average conductivity trend"},
             "trendfit_Cond":{'var_name': "trendfit_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': 'mS.cm-1.yr-1', 'longname': "Conductivity trend from linear fit"},
+            "R2fit_Cond":{'var_name': "R2fit_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': '-', 'longname': "Regression coefficient R2 of the conductivity trend fit"},
+            "interceptfit_Cond":{'var_name': "interceptfit_Cond", 'dim': ('depth_trend','time0_periods'), 'unit': 'mS.cm-1', 'longname': "Intercept of the conductivity fit"},
+            "trenddata_Cond":{'var_name': "trenddata_Cond", 'dim': ('depth_trend','time'), 'unit': 'mS.cm-1', 'longname': "Conductivity data used to compute trends"},
             "cond_trend":{'var_name': "cond_trend", 'dim': ('cond_trend',), 'unit': 'mS.cm-1', 'longname': "Conductivity values for isolines displacements"},
             "z_iso_Cond":{'var_name': "z_iso_Cond", 'dim': ('cond_trend','time'), 'unit': 'm', 'longname': "Depth of conductivity isolines"},
             "trendavg_iso_Cond":{'var_name': "trendavg_iso_Cond", 'dim': ('cond_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average conductivity isolines displacements"},
@@ -72,6 +78,9 @@ class ctd_periods:
             "meanprof_SALIN_std":{'var_name': "meanprof_SALIN_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'g/kg', 'longname': "Profile of salinity std"}, 
             "trendavg_SALIN":{'var_name': "trendavg_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': 'g.kg-1.yr-1', 'longname': "Average salinity trend"},
             "trendfit_SALIN":{'var_name': "trendfit_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': 'g.kg-1.yr-1', 'longname': "Salinity trend from linear fit"},
+            "R2fit_SALIN":{'var_name': "R2fit_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': '-', 'longname': "Regression coefficient R2 of the salinity trend fit"},
+            "interceptfit_SALIN":{'var_name': "interceptfit_SALIN", 'dim': ('depth_trend','time0_periods'), 'unit': 'g/kg', 'longname': "Intercept of the salinity fit"},
+            "trenddata_SALIN":{'var_name': "trenddata_SALIN", 'dim': ('depth_trend','time'), 'unit': 'g/kg', 'longname': "Salinity data used to compute trends"},
             "salin_trend":{'var_name': "salin_trend", 'dim': ('salin_trend',), 'unit': 'g/kg', 'longname': "Salinity values for isohalines displacements"},
             "z_iso_SALIN":{'var_name': "z_iso_SALIN", 'dim': ('salin_trend','time'), 'unit': 'm', 'longname': "Depth of isohalines"},
             "trendavg_iso_SALIN":{'var_name': "trendavg_iso_SALIN", 'dim': ('salin_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average isohalines displacements"},
@@ -80,7 +89,10 @@ class ctd_periods:
             "meanprof_rho_avg":{'var_name': "meanprof_rho_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3', 'longname': "Mean density profile"},
             "meanprof_rho_std":{'var_name': "meanprof_rho_std", 'dim': ('depth_interp','time0_periods'), 'unit': 'kg/m3', 'longname': "Profile of density std"},  
             "trendavg_rho":{'var_name': "trendavg_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3.yr-1', 'longname': "Average density trend"},
-            "trendfit_rho":{'var_name': "trendfit_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3.yr-1', 'longname': "Density trend from linear fit"},           
+            "trendfit_rho":{'var_name': "trendfit_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3.yr-1', 'longname': "Density trend from linear fit"},
+            "R2fit_rho":{'var_name': "R2fit_rho", 'dim': ('depth_trend','time0_periods'), 'unit': '-', 'longname': "Regression coefficient R2 of the density trend fit"},
+            "interceptfit_rho":{'var_name': "interceptfit_rho", 'dim': ('depth_trend','time0_periods'), 'unit': 'kg.m-3', 'longname': "Intercept of the density fit"},
+            "trenddata_rho":{'var_name': "trenddata_rho", 'dim': ('depth_trend','time'), 'unit': 'kg.m-3', 'longname': "Density data used to compute trends"},
             "rho_trend":{'var_name': "rho_trend", 'dim': ('rho_trend',), 'unit': 'kg.m-3', 'longname': "Density values for isopycnals displacements"},
             "z_iso_rho":{'var_name': "z_iso_rho", 'dim': ('rho_trend','time'), 'unit': 'm', 'longname': "Depth of isopycnals"},
             "trendavg_iso_rho":{'var_name': "trendavg_iso_rho", 'dim': ('rho_trend','time0_periods'), 'unit': 'm.yr-1', 'longname': "Average ispoyncals displacements"},
@@ -89,8 +101,10 @@ class ctd_periods:
             "meanprof_N2_avg":{'var_name': "meanprof_N2_avg", 'dim': ('depth_interp','time0_periods'), 'unit': 's-2', 'longname': "Mean squared buoyancy frequency"},
             "meanprof_N2_std":{'var_name': "meanprof_N2_std", 'dim': ('depth_interp','time0_periods'), 'unit': 's-2', 'longname': "Profile of squared buoyancy frequency std"}, 
             "trendavg_N2":{'var_name': "trendavg_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2.yr-1', 'longname': "Average N2 trend"},
-            "trendfit_N2":{'var_name': "trendfit_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2.yr-1', 'longname': "N2 trend from linear fit"},           
-            
+            "trendfit_N2":{'var_name': "trendfit_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2.yr-1', 'longname': "N2 trend from linear fit"}, 
+            "R2fit_N2":{'var_name': "R2fit_N2", 'dim': ('depth_trend','time0_periods'), 'unit': '-', 'longname': "Regression coefficient R2 of the N2 trend fit"},
+            "interceptfit_N2":{'var_name': "interceptfit_N2", 'dim': ('depth_trend','time0_periods'), 'unit': 's-2', 'longname': "Intercept of the N2 fit"},
+            "trenddata_N2":{'var_name': "trenddata_N2", 'dim': ('depth_trend','time'), 'unit': 's-2', 'longname': "N2 data used to compute trends"},
             
             "z_chem":{'var_name': "z_chem", 'dim': ('time0_periods',), 'unit': 'm', 'longname': "Chemocline depth from maximum density gradient"},
             }
@@ -176,8 +190,11 @@ class ctd_periods:
         
         trend_avg=dict()
         trend_fit=dict()
+        R2_fit=dict()
         trend_iso_avg=dict()
         trend_iso_fit=dict()
+        intercept_fit=dict()
+        
         
         
         kvar=-1
@@ -186,9 +203,11 @@ class ctd_periods:
             kvar+=1
             nlayers=round((self.data["depth_interp"][-1]-self.data["depth_interp"][0])/dz)
             nval=round(dz/(self.data["depth_interp"][1]-self.data["depth_interp"][0]))
-            prof_avg=np.mean(database[var].reshape((nval,-1),order='F'),axis=0).reshape((nlayers,-1),order='F') # Profile with new z resolution(depth_trend), averages in each layer
+            prof_avg=np.mean(database[var].reshape((nval,-1),order='F'),axis=0).reshape((nlayers,-1),order='F') # Profile with new z resolution(depth_trend), averages in each layer 
             trend_avg[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
             trend_fit[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
+            R2_fit[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
+            intercept_fit[var]=np.full((len(depth_trend),len(t0_periods)),np.nan)
             
             # Create matrix with isolines positions
             # var_trend=np.arange(round(np.nanmin(database[var])/dvar[kvar])*dvar[kvar],round(np.nanmax(database[var])/dvar[kvar])*dvar[kvar],dvar[kvar])
@@ -215,14 +234,20 @@ class ctd_periods:
                     #trendval=np.diff(prof_avg[:,indprof],axis=1)/(np.diff(database['time'][indprof])/(3600*24*365)) # x/yr
                     trend_avg[var][:,kp]=(prof_avg[:,indprof[-1]]-prof_avg[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365
                     trend_prof=np.full((len(depth_trend),),np.nan) # Profile of trends
+                    R2_prof=np.full((len(depth_trend),),np.nan) # Profile of R2
+                    intercept_prof=np.full((len(depth_trend),),np.nan) # Profile of intercept values
                     for kz in range(len(depth_trend)): 
                         if sum(~np.isnan(prof_avg[kz,indprof]))>nmin: # At least nmin samples
                             indval0=np.where(~np.isnan(prof_avg[kz,indprof]))[0][0]# First profile used
                             indvalf=np.where(~np.isnan(prof_avg[kz,indprof]))[0][-1]# Last profile used
                             if (database['time'][indprof[indvalf]]-database['time'][indprof[indval0]])>=mindur*365*24*3600: # At least duration of mindur years
-                                pfit,_,_=regression_oneline(database['time'][indprof]/(3600*24*365),prof_avg[kz,indprof])
+                                pfit,_,R2=regression_oneline(database['time'][indprof]/(3600*24*365),prof_avg[kz,indprof])
                                 trend_prof[kz]=pfit[0]
+                                R2_prof[kz]=R2
+                                intercept_prof[kz]=pfit[1]
                     trend_fit[var][:,kp]=trend_prof
+                    R2_fit[var][:,kp]=R2_prof
+                    intercept_fit[var][:,kp]=intercept_prof
                     
                     # Calculate trends of isolines movements
                     if var=="Temp":
@@ -254,8 +279,11 @@ class ctd_periods:
             
             
             self.data["z_iso_"+var]=z_iso_all[var]
+            self.data["trenddata_"+var]=prof_avg
             self.data["trendavg_"+var]=trend_avg[var]
             self.data["trendfit_"+var]=trend_fit[var]
+            self.data["R2fit_"+var]=R2_fit[var]
+            self.data["interceptfit_"+var]=intercept_fit[var]
             self.data["trendavg_iso_"+var]= trend_iso_avg[var]
             self.data["trendfit_iso_"+var]=trend_iso_fit[var]
             

@@ -3,6 +3,8 @@
 ## Project Information
 
 The CTD data is collected within the Lake Kivu Monitoring Program. A special feature in the processing of the CTD data for lake Kivu is the implementation of lake level measurements, which are used to adjust the depth values for each CTD to a standard level of 1462 meters above sea level. 
+Link to datalakes: https://www.datalakes-eawag.ch/datadetail/964.
+Link to remote repository: https://gitlab.renkulab.io/eawag-surf/lake-kivu-ctd-profiles.git 
 
 
 ## Sensors

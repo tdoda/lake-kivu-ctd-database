@@ -16,6 +16,7 @@ import cmocean
 from ctd_periods import ctd_periods
 import seawater as sw 
 # adding Functions to the system path
+os.chdir(os.path.dirname(__file__)) # To make sure that the script is executed in its parent folder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..','Functions'))
 from functions import *
 
