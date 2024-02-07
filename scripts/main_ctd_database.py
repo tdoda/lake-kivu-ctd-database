@@ -20,7 +20,8 @@ for directory in directories.values():
         os.makedirs(directory)
 
 
-files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+# files=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+files=["081016_5.TOB","081016_7.TOB"]
 
 # files_SBE=[]
 # for k in np.arange(len(files)):
@@ -88,6 +89,7 @@ for file in files:
                         CTD_copy.grid["dist_GEF"]=CTD_copy.general_attributes["distance_to_GEF"]
                         CTD_copy.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"]) # Don't interpolate latitude and longitude
                         CTD_copy.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                        CTD_copy.to_netcdf_combine(directories["Level3_dir"], "L3_government")
                 else:
                     failed.append(file)   
         else:
@@ -108,6 +110,7 @@ for file in files:
                     CTD.grid["dist_GEF"]=CTD.general_attributes["distance_to_GEF"]
                     CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
                     CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                    CTD.to_netcdf_combine(directories["Level3_dir"], "L3_government")
             else:
                 failed.append(file)
     else:

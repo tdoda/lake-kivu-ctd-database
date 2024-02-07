@@ -99,8 +99,34 @@ class ctd:
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
         }
         
+      
+        self.comb_variables = {
+            'time': {'var_name': 'time', 'dim': ('time',), 'unit': 'seconds since 1970-01-01 00:00:00', 'longname': 'time'},
+            'datetime': {'var_name': 'datetime', 'dim': ('time',), 'unit': '-', 'longname': 'Date and time as integer yyyymmddHHMMSS'},
+            'min_depth': {'var_name': 'min_depth', 'dim': ('time',), 'unit': 'm', 'longname': 'Minimum depth'},
+            'max_depth': {'var_name': 'max_depth', 'dim': ('time',), 'unit': 'm', 'longname': 'Maximum depth'},
+            'Press': {'var_name':'Press', 'dim':('depth_interp','time'), 'unit': 'dbar', 'longname': 'pressure'},
+            "depth_interp": {'var_name': "depth_interp", 'dim': ('depth_interp',), 'unit': 'm', 'longname': "Interpolated depth"},
+            'Temp': {'var_name': 'Temp', 'dim': ('depth_interp', 'time'), 'unit': 'degC', 'longname': 'temperature'},
+            'Cond': {'var_name': 'Cond', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity'},
+            'Chl_A': {'var_name': 'Chl_A', 'dim': ('depth_interp', 'time'), 'unit': 'g/l', 'longname': 'chlorophyll A'},
+            'Turb': {'var_name': 'Turb', 'dim': ('depth_interp', 'time'), 'unit': 'FTU', 'longname': 'Turbidity'},
+            'pH': {'var_name': 'pH', 'dim': ('depth_interp', 'time'), 'unit': '_', 'longname': 'pH'},
+            'sat': {'var_name': 'sat', 'dim': ('depth_interp', 'time'), 'unit': '%', 'longname': 'oxygen saturation'},
+            'DO_mg': {'var_name': 'DO_mg', 'dim': ('depth_interp', 'time'), 'unit': 'mg/l', 'longname': 'oxygen concentration'},
+            "rho": {'var_name': "rho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Density", },
+            "pt": {'var_name': "pt", 'dim': ('depth_interp', 'time'), 'unit': 'degC', 'longname': "Potential Temperature", },
+            "prho": {'var_name': "prho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
+            "thorpe": {'var_name': "thorpe", 'dim': ('depth_interp', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
+            "SALIN": {'var_name': 'SALIN', 'dim': ('depth_interp', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
+            "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
+            "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
+            "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
+        }
+        
         self.data = {}
         self.grid = {}
+        self.comb_data = {}
 
     def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
         log("Reading data from {}".format(infile), indent=1)
@@ -139,7 +165,6 @@ class ctd:
 
             df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
             df = df.drop_duplicates() # Remove duplicate rows
-
             if infile[-4:]=='.TOB':
                 df = parse_time(df, self.variables["time"], "time", columns, units, ref_date)
             else:
@@ -468,10 +493,10 @@ class ctd:
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
         
         log("Saving to NetCDF", indent=1)
-        if not os.path.exists(folder):
+        if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
 
-        if grid:
+        if grid: # Depth-interpolated data (Level 2B)
             variables = self.grid_variables
             dimensions = self.grid_dimensions
             data = self.grid
@@ -479,10 +504,9 @@ class ctd:
             variables = self.variables
             dimensions = self.dimensions
             data = self.data
-
-        time_arr = data[time_label]
-        dt_min = datetime.utcfromtimestamp(np.nanmin(time_arr))
-        dt_max = datetime.utcfromtimestamp(np.nanmax(time_arr))
+        time_arr = data[time_label] # Time values of the profile for L2A, only one value for L2B
+        dt_min = datetime.utcfromtimestamp(np.nanmin(time_arr)) # First time value of the profile
+        dt_max = datetime.utcfromtimestamp(np.nanmax(time_arr)) # Last time value of the profile
     
         if output_period == "weekly":
             start = (dt_min - timedelta(days=dt_min.weekday())).replace(hour=0, minute=0, second=0)
@@ -500,7 +524,7 @@ class ctd:
             log("Output periods {} not defined.".format(output_period))
             return
 
-        while start < dt_max:
+        while start <= dt_max: # It could be equal to dt_max if dt_max=dt_min (only one time value, case for L2B)
             end = start + td
             s = datetime.timestamp(start)
             e = datetime.timestamp(end)
@@ -512,13 +536,13 @@ class ctd:
                 nc = netCDF4.Dataset(out_file, mode=mode, format='NETCDF4')
                 nc_time = nc.variables[time_label]
 
-                if time_arr[0] in nc_time:
+                if time_arr[0] in nc_time: # Profile is already present in the netCDF file
                     log("Duplicated run, no data added", 2)
                     nc.close()
-                    start = start + td
+                    start = start + td # Move to next time step (which will exit the function since new start > dt_max)
                     continue
                 else:
-                    idx = position_in_array(nc_time, time_arr[0])
+                    idx = position_in_array(nc_time, time_arr[0]) # Where to insert the new profile
                     nc_time[:] = np.insert(nc_time[:], idx, time_arr[0])
                     for key, values in variables.items():
                         #if key not in dimensions and key != "depth": 
@@ -589,6 +613,105 @@ class ctd:
                 nc.close()
 
             start = start + td
+            
+    def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
+        
+        log("Saving to combined NetCDF", indent=1)
+        if not os.path.exists(folder): # Create folder if it doesn't exist
+            os.makedirs(folder)
+        
+        variables = self.comb_variables
+        dimensions = self.grid_dimensions
+        data = self.grid
+        data["datetime"]=np.array([int(datetime.utcfromtimestamp(data["time"][0]).strftime('%Y%m%d%H%M%S'))])
+        
+        # Add min depth and max depth:
+        data["min_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][0]]])
+        data["max_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][-1]]])
+
+        time_arr = data[time_label]
+
+        filename = "{}.nc".format(title)
+        out_file = os.path.join(folder, filename)
+        log("Writing {} data to NetCDF file {}".format(title, filename), 1)
+        if os.path.isfile(out_file): # File has already been created
+            nc = netCDF4.Dataset(out_file, mode=mode, format='NETCDF4')
+            nc_time = nc.variables[time_label]
+
+            if time_arr[0] in nc_time: # Profile is already present in the netCDF file
+                log("Duplicated run, no data added", 2)
+                nc.close()
+            else:
+                idx = position_in_array(nc_time, time_arr[0]) # Where to insert the new profile
+                nc_time[:] = np.insert(nc_time[:], idx, time_arr[0])
+                for key, values in variables.items():
+                    #if key not in dimensions and key != "depth": 
+                    if key not in dimensions: 
+                        var = nc.variables[key]
+                        # if title=="L2B":
+                        #     print(key)
+                        #     breakpoint()
+                        try:
+                            #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                            if isinstance(data[key], str) and data[key]=='N/a':      
+                                data[key]=np.nan
+                        except:
+                            breakpoint()
+                            nc.close()
+                        try:
+                            if len(var.shape)==1:
+                                end=len(var[:]) - 1
+                            else:
+                                end = len(var[:][0]) - 1
+                        except:
+                            print(var)
+                        if idx != end: # New profile was taken before the previous last profile --> needs to be inserted
+                            if len(var.shape)==1:
+                                var[end] = data[key]
+                                var[:] = var[np.insert(np.arange(end), idx, end)]
+                            else:
+                                var[:, end] = data[key]
+                                var[:] = var[:, np.insert(np.arange(end), idx, end)]
+                        else:
+                            if len(var.shape)==1:
+                                var[idx] = data[key]
+                            else:
+                                var[:, idx] = data[key]
+                nc.close()
+
+        else:
+            
+            nc = netCDF4.Dataset(out_file, mode='w', format='NETCDF4')
+
+            for key in self.general_attributes:
+                setattr(nc, key, self.general_attributes[key])
+
+            for key, values in dimensions.items():
+                # nc.createDimension(values['dim_name'], values['dim_size'])
+                if key !="time":
+                    nc.createDimension(values['dim_name'], len(data[key]))
+                else: # Need to set time size to None in order to increase it at each iteration
+                    nc.createDimension(values['dim_name'], values['dim_size'])
+
+
+            for key, values in variables.items(): 
+                var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
+                var.units = values["unit"]
+                var.long_name = values["longname"]
+                try:
+                    #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                    if isinstance(data[key], str) and data[key]=='N/a':     
+                        data[key]=np.nan
+                    if len(values["dim"]) == 1:
+                        var[:] = data[key]
+                    elif len(values["dim"]) == 2:
+                        var[:, 0] = data[key]
+                    
+                except:
+                    breakpoint()
+                    nc.close()
+            nc.close()
+
 
     def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time"):
         log("Resampling profile to fixed grid...", indent=2)

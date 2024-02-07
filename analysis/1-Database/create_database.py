@@ -29,13 +29,20 @@ data_files = ["data_gov3.nc", "data_Kivuwatt3.nc"]
 
 dmin=260 # Minimum depth of the profiles
 
-# Periods to average
-year_periods=np.arange(2008,2023,1)
-# t0=[datetime(yearval,1,1) for yearval in year_periods] # Yearly periods
-# tf=[datetime(yearval+1,1,1) for yearval in year_periods]
-t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
-tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
-
+# Periods to remove (government):
+dateperiod_rem=[[datetime(2016,1,14,11,0,0),datetime(2016,1,14,12,0,0)],[datetime(2016,2,10,11,0,0),datetime(2016,2,10,14,0,0)],[datetime(2019,9,3,0,0,0),datetime(2019,9,4,0,0)],[datetime(2019,10,28),datetime(2019,10,29)],[datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2021,6,3,11,0,0)]] # Time limits of the period (density peak, wrong pressue calibration (?), wrong conductivity/temperature)
+tperiod_rem=[None]*len(dateperiod_rem)
+for kperiod in np.arange(len(dateperiod_rem)):
+    tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
+    
+ # Periods to remove (Kivuwatt):   
+dateperiod_rem_KW=[[datetime(2019,11,7,9,0,0),datetime(2019,11,7,10,0,0)],[datetime(2021,6,3),datetime(2021,6,11)]] # Time limits of the period (depth shift, different depth calculation)
+tperiod_rem_KW=[None]*len(dateperiod_rem)
+for kperiod in np.arange(len(dateperiod_rem_KW)):
+    tperiod_rem_KW[kperiod]=[dateperiod_rem_KW[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
+    
+    
+tperiod_rem_all=[tperiod_rem,tperiod_rem_KW]
 output_files=["database_gov_"+str(dmin)+"m.nc","database_Kivuwatt_"+str(dmin)+"m.nc"]
 databases_all=[]
 #%% Load hypsometry
@@ -50,7 +57,14 @@ for kdata in [0,1]:
     database=ctd_database() 
     # database_periods=ctd_periods()    
     nc = netCDF4.Dataset(os.path.join(data_folder, data_files[kdata]), mode='r', format='NETCDF4_CLASSIC')
+    breakpoint()
     profkeep=nc.variables["max_depth"][:]>=dmin
+    tval=nc.variables["time"][:]
+    profremove=np.full(profkeep.shape,False)
+    for kp in range(len(tperiod_rem_all[kdata])):
+        profremove+=np.logical_and(tval>tperiod_rem[kp][0],tval<tperiod_rem[kp][1]) # True if profile was taken during period to remove
+    profkeep=np.logical_and(profkeep,~profremove)
+    
     #%% Create all variables
     log("Creating variables...")
     for var in database.variables:
