@@ -57,7 +57,6 @@ for kdata in [0,1]:
     database=ctd_database() 
     # database_periods=ctd_periods()    
     nc = netCDF4.Dataset(os.path.join(data_folder, data_files[kdata]), mode='r', format='NETCDF4_CLASSIC')
-    breakpoint()
     profkeep=nc.variables["max_depth"][:]>=dmin
     tval=nc.variables["time"][:]
     profremove=np.full(profkeep.shape,False)

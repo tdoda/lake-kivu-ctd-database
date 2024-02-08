@@ -94,6 +94,7 @@ class ctd:
             "prho": {'var_name': "prho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_interp', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_interp', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
+            "Cond20": {'var_name': 'Cond20', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity at 20°C'},
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
@@ -119,6 +120,7 @@ class ctd:
             "prho": {'var_name': "prho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_interp', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_interp', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
+            "Cond20": {'var_name': 'Cond20', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity at 20°C'},
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
@@ -507,6 +509,10 @@ class ctd:
         time_arr = data[time_label] # Time values of the profile for L2A, only one value for L2B
         dt_min = datetime.utcfromtimestamp(np.nanmin(time_arr)) # First time value of the profile
         dt_max = datetime.utcfromtimestamp(np.nanmax(time_arr)) # Last time value of the profile
+        
+        if dt_max==dt_min: # Only one time value
+            dt_max+=timedelta(seconds=1)
+        
     
         if output_period == "weekly":
             start = (dt_min - timedelta(days=dt_min.weekday())).replace(hour=0, minute=0, second=0)
@@ -523,8 +529,8 @@ class ctd:
         else:
             log("Output periods {} not defined.".format(output_period))
             return
-
-        while start <= dt_max: # It could be equal to dt_max if dt_max=dt_min (only one time value, case for L2B)
+            
+        while start < dt_max: 
             end = start + td
             s = datetime.timestamp(start)
             e = datetime.timestamp(end)
@@ -763,7 +769,7 @@ class ctd:
         try:
             log("Calculating salinity...", indent=2)
             # self.data["SALIN"] = salinity(data["Temp"], data["Cond"], y_cond, temperature_func=default_salinity_temperature)
-            self.data["SALIN"] = salinity_Kivu(data["Temp"], data["Cond"], temperature_func=fcond20_temperature_Kivu)
+            self.data["SALIN"], self.data["Cond20"] = salinity_Kivu(data["Temp"], data["Cond"], temperature_func=fcond20_temperature_Kivu)
         except Exception:
             log("Failed to calculate salinity", indent=2)
             return False

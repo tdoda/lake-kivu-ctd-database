@@ -88,7 +88,8 @@ for file in files:
                         CTD_copy.grid["longitude"]=CTD_copy.general_attributes["longitude"]
                         CTD_copy.grid["dist_GEF"]=CTD_copy.general_attributes["distance_to_GEF"]
                         CTD_copy.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"]) # Don't interpolate latitude and longitude
-                        CTD_copy.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                        # CTD_copy.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                        CTD_copy.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
                         CTD_copy.to_netcdf_combine(directories["Level3_dir"], "L3_government")
                 else:
                     failed.append(file)   
@@ -109,7 +110,8 @@ for file in files:
                     CTD.grid["longitude"]=CTD.general_attributes["longitude"]
                     CTD.grid["dist_GEF"]=CTD.general_attributes["distance_to_GEF"]
                     CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
-                    CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                    # CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="monthly", grid=True)
+                    CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
                     CTD.to_netcdf_combine(directories["Level3_dir"], "L3_government")
             else:
                 failed.append(file)

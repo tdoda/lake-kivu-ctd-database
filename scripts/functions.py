@@ -210,7 +210,7 @@ def salinity_Kivu(Temp, Cond,temperature_func=fcond20_temperature_Kivu):
     ft = temperature_func(Temp)
     cond20 = ft * Cond * 1000 # uS/cm
     salin=3E-08*cond20**2 + 0.001*cond20 - 0.0351 # g/kg
-    return salin
+    return salin, cond20/1000
 
 def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
     # C_CH4 and C_CO2 must be provided in g/L

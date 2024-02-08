@@ -57,6 +57,7 @@ class ctd_grid:
             "prho": {'var_name': "prho", 'dim': ('depth_interp', 'time'), 'unit': 'kg/m3', 'longname': "Potential Density"},
             "thorpe": {'var_name': "thorpe", 'dim': ('depth_interp', 'time'), 'unit': 'm', 'longname': "Thorpe Displacements"},
             "SALIN": {'var_name': 'SALIN', 'dim': ('depth_interp', 'time'), 'unit': 'PSU', 'longname': 'salinity'},
+            "Cond20": {'var_name': 'Cond20', 'dim': ('depth_interp', 'time'), 'unit': 'mS/cm', 'longname': 'conductivity at 20°C'},
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
