@@ -25,7 +25,8 @@ plt.close ('all')
 #%% Database files
 
 database_folder='../1-Database/'
-database_files=["database_combined_260m.nc","database_combined_0m.nc"]
+# database_files=["database_combined_260m.nc","database_combined_0m.nc"]
+database_files=["database_combined_0m.nc"]
 # database_files=["database_combined_260m.nc"]
 
 # Coordinates of GEP    
@@ -47,7 +48,7 @@ for kdata in range(len(database_files)):
     #%% Remove points outside lake boundaries
     latval=data_nc["latitude"]
     longval=data_nc["longitude"]
-        
+    
     coord_CTD=[(longval[kp],latval[kp]) for kp in range(len(latval))]    
     bool_inside=path_contour.contains_points(coord_CTD)
     data_selected=select_data(data_nc,var_nc,'time',np.where(bool_inside==True)[0])
