@@ -128,16 +128,17 @@ def json_converter(qa):
         return qa
     
     
-def log(str, indent=0, start=False):
-    if start:
-        out = "\n" + str + "\n"
-        with open("log.txt", "w") as file:
-            file.write(out + "\n")
-    else:
-        out = datetime.now().strftime("%H:%M:%S.%f") + (" " * 3 * (indent + 1)) + str
-        with open("log.txt", "a") as file:
-            file.write(out + "\n")
-    print(out)
+def log(str, indent=0, start=False,printlog=True):
+    if printlog:
+        if start:
+            out = "\n" + str + "\n"
+            with open("log.txt", "w") as file:
+                file.write(out + "\n")
+        else:
+            out = datetime.now().strftime("%H:%M:%S.%f") + (" " * 3 * (indent + 1)) + str
+            with open("log.txt", "a") as file:
+                file.write(out + "\n")
+        print(out)
 
 
 def error(str):

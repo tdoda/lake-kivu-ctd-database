@@ -20,7 +20,8 @@ import time
 
 
 class ctd:
-    def __init__(self):
+    def __init__(self,printlog=False):
+        self.printlog=printlog
         self.water_entry_index = False
         self.bottom_of_profile_index = False
         self.air_press = False
@@ -129,17 +130,19 @@ class ctd:
         self.data = {}
         self.grid = {}
         self.comb_data = {}
-
+    def show_output(printlog):
+        self.printlog=printlog
+    
     def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
-        log("Reading data from {}".format(infile), indent=1)
+        log("Reading data from {}".format(infile), indent=1,printlog=self.printlog)
         try:
             with open(infile, encoding="utf8", errors='ignore') as f:
                 lines = f.readlines()
             try:
                 ref_date = datetime.timestamp(dateparser.parse(lines[2]))
-                log("Detected reference date {} on line 2".format(dateparser.parse(lines[2])), indent=2)
+                log("Detected reference date {} on line 2".format(dateparser.parse(lines[2])), indent=2,printlog=self.printlog)
             except:
-                log("Unable to convert date fom line 2", indent=2)
+                log("Unable to convert date fom line 2", indent=2,printlog=self.printlog)
                 ref_date = False
             if ref_date == False:
                 try:
@@ -147,22 +150,22 @@ class ctd:
                         if '.SPJ' in lines[k]:
                             ref_date = datetime.timestamp(dateparser.parse(lines[k+1]))
                             break
-                    log("Detected reference date {}".format(dateparser.parse(lines[k+1])), indent=2)
+                    log("Detected reference date {}".format(dateparser.parse(lines[k+1])), indent=2,printlog=self.printlog)
                 except:
-                    log("Unable to get reference date", indent=2)
+                    log("Unable to get reference date", indent=2,printlog=self.printlog)
                     ref_date = False
             if infile[-4:]=='.TOB':
                 keyword_skip="Lines"
             elif infile[-4:]=='.cnv':
                 keyword_skip="*END*"
             else:
-                log("Wrong file format", indent=1)
+                log("Wrong file format", indent=1,printlog=self.printlog)
                 return False
         
             # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
             skip_rows, columns, units, valid, date_format, start_date = parse_file(infile,keyword_skip)
             if valid == False:
-                log("Parse file failed.", indent=1)
+                log("Parse file failed.", indent=1,printlog=self.printlog)
                 return False
 
             df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
@@ -185,9 +188,9 @@ class ctd:
                     self.data[variable] = np.array([np.nan] * len(df))
 
             if self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp():
-                log("Time outside of project time range.", indent=1)
+                log("Time outside of project time range.", indent=1,printlog=self.printlog)
                 if datetime.utcfromtimestamp(self.data["time"][0]).year==2004:
-                    log("Change year 2004 into 2008.", indent=1)
+                    log("Change year 2004 into 2008.", indent=1,printlog=self.printlog)
                     tdate=[datetime.utcfromtimestamp(self.data["time"][i]) for i in np.arange(0,len(self.data["time"]),1)]
                     self.data["time"]=np.array([datetime(2008,tdate[i].month,tdate[i].day,tdate[i].hour,tdate[i].minute,tdate[i].second).replace(tzinfo=timezone.utc).timestamp() for i in np.arange(0,len(self.data["time"]),1)])
                 else:
@@ -195,14 +198,14 @@ class ctd:
 
 
             if not check_valid_profile(self.data["Press"], 3):
-                log("Invalid profile", indent=1)
+                log("Invalid profile", indent=1,printlog=self.printlog)
                 return False
 
             return True
         except:
             if not os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # There is not a second version of the file (with corrected data)
                 breakpoint()
-            log("Failed to parse raw data from file {}".format(infile), indent=1)
+            log("Failed to parse raw data from file {}".format(infile), indent=1,printlog=self.printlog)
             return False
         
     def extract_meta_data_Kivuwatt(self, infile,):
@@ -213,7 +216,7 @@ class ctd:
         Output: 
             None
         """
-        log("Reading metadata...",indent=1)
+        log("Reading metadata...",indent=1,printlog=self.printlog)
         df_meta=pd.read_csv(infile,sep=',',encoding='ISO-8859-1',header=0,names=['Profile_count','Date','Lat','Lon','Probe','Distance_GEF'],
                               skiprows=[1],dtype={'Date':str})
         self.general_attributes["profile_count"] = df_meta["Profile_count"].values
@@ -222,7 +225,7 @@ class ctd:
         self.general_attributes["latitude"] = df_meta["Lat"].values
         self.general_attributes["longitude"] = df_meta["Lon"].values
 
-    def split_profiles_Kivuwatt(self, df,CTD_meta,kprof,multip_cond=1,remove_botdist=1,remove_topdist=1,press_to_depth_factor=np.nan):
+    def split_profiles_Kivuwatt(self, df,CTD_meta,kprof,multip_cond=1,remove_botdist=1,remove_topdist=1,press_to_depth_factor=np.nan,):
         ind_meta=np.where(CTD_meta.general_attributes["profile_count"]==kprof)[0][0]
         bool_df=df["Profile"]==kprof
         date_str=CTD_meta.general_attributes["date"][ind_meta]
@@ -257,7 +260,7 @@ class ctd:
                 self.data[variable]=data_val
 
             if not check_valid_profile(self.data["Press"], 3): # Check that pressure overcomes 3 dbar (i.e., profile deeper than 3 m)
-                log("Invalid profile", indent=1)
+                log("Invalid profile", indent=1,printlog=self.printlog)
                 return False
             
             # Define top and bottom of the profile
@@ -266,7 +269,7 @@ class ctd:
             if np.argmax(self.data["Press"])>0:
                 self.bottom_of_profile_index = np.where(self.data["Press"][0:np.argmax(self.data["Press"])]<=np.max(self.data["Press"])-remove_botdist)[0][-1]
             else: 
-                log('Sinking part of the profile is missing', indent=1)
+                log('Sinking part of the profile is missing', indent=1,printlog=self.printlog)
                 return False
             
             # Compute air pressure
@@ -277,7 +280,7 @@ class ctd:
 
             return True
         except Exception:
-            log("Failed to parse raw data from profile {}".format(kprof), indent=1)
+            log("Failed to parse raw data from profile {}".format(kprof), indent=1,printlog=self.printlog)
             return False
 
     def extract_water_level(self, path, reference_depth, time_label="time"):
@@ -365,15 +368,15 @@ class ctd:
                     self.general_attributes["latitude"] = -latitude
                     self.general_attributes["longitude"] = longitude
                 else:
-                    log("Latitude and longitude fall outside lake bounds.")
+                    log("Latitude and longitude fall outside lake bounds.",printlog=self.printlog)
             else: # SBE files
                 self.general_attributes["distance_to_GEF"] = np.nan
                 self.general_attributes["latitude"] = np.nan
                 self.general_attributes["longitude"] = np.nan
                 
                 
-    def extract_profile(self, remove_botdist=1,remove_topdist=1,press_surface=100):
-        log("Extracting profile...", indent=1)
+    def extract_profile(self, remove_botdist=1,remove_topdist=1,press_surface=100,):
+        log("Extracting profile...", indent=1,printlog=self.printlog)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])
         self.water_entry_index = 0
         self.submerged_index = 0
@@ -415,7 +418,7 @@ class ctd:
                 self.cond_peak_last=True
             elif perc_cond[0][0]==0 or perc_cond[0][-1]==len(self.data["Press"])-1: # No data point in the air
                 #breakpoint()
-                log('No data point above conductivity peak',indent=1)
+                log('No data point above conductivity peak',indent=1,printlog=self.printlog)
                 if perc_cond[0][0]==0:
                     self.air_press = np.nanmean(self.data["Press"][:2]) # Mean of the two first values
                     self.cond_peak_first=True
@@ -425,11 +428,11 @@ class ctd:
                 else:
                     return False
             else: #There is no conductivity peak
-                log("No conductivity peak detected (first peak: "+str(press_first_peak)+" dbar, last peak: "+str(press_last_peak)+" dbar)", indent=1)    
+                log("No conductivity peak detected (first peak: "+str(press_first_peak)+" dbar, last peak: "+str(press_last_peak)+" dbar)", indent=1,printlog=self.printlog)    
                 self.air_press =np.nanmin(self.data["Press"])
             
             if self.air_press-np.nanmin(self.data["Press"])>0.5:
-                log("Issue in air pressure calculation", indent=1)
+                log("Issue in air pressure calculation", indent=1,printlog=self.printlog)
                 return False
             
             water_entry_index=np.where(self.data["Press"]>self.air_press+remove_topdist)[0][0] # Always take water entry index at certain distance below air pressure to remove the upper layer
@@ -457,8 +460,8 @@ class ctd:
         #self.air_press = np.percentile(self.data["Press"][0:max_start],0.05)
         return True
 
-    def quality_assurance(self, file_path, simple=True):
-        log("Applying quality assurance", indent=1)
+    def quality_assurance(self, file_path, simple=True,):
+        log("Applying quality assurance", indent=1,printlog=self.printlog)
         quality_assurance_dict = json_converter(json.load(open(file_path)))
         try:
             for key, values in self.variables.copy().items():
@@ -492,9 +495,49 @@ class ctd:
 
         return qa
 
+    def to_csv(self, folder, title,time_label="time",dimrows="depth_interp",grid=False,):
+        """
+        Export profiles to csv file (only works for single profiles). 
+
+        """
+        
+        log("Saving to csv file", indent=1,printlog=self.printlog)
+        
+        if grid: # Depth-interpolated data (Level 2B)
+            variables = self.grid_variables
+            dimensions = self.grid_dimensions
+            data = self.grid
+        else:
+            variables = self.variables
+            dimensions = self.dimensions
+            data = self.data
+        
+        df=pd.DataFrame()
+        
+        
+        datetime_val=[datetime.utcfromtimestamp(tnum) for tnum in data[time_label]]
+        if not grid:
+            df["Datetime [yyyymmddHHMMSS]"]=[int(dt.strftime('%Y%m%d%H%M%S')) for dt in datetime_val]
+        for varname in variables:
+            if dimrows in variables[varname]["dim"]:
+                if len(variables[varname]["dim"])==1:
+                        df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]
+                elif len(variables[varname]["dim"])==2:
+                    dimnames=np.array(variables[varname]["dim"])
+                    if len(data[dimnames[dimnames!=dimrows][0]])==1: # Other dimension has a length of 1
+                        df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]          
+        # Put the depth data first
+        if grid and "depth_interp [m]" in df.columns:
+            df=df[["depth_interp [m]"]+list(np.array(df.columns)[np.array(df.columns)!="depth_interp [m]"])]
+        filename = "{}_{}.csv".format(title, datetime_val[0].strftime('%Y%m%d_%H%M%S'))
+        out_file = os.path.join(folder, filename)
+        
+        df.to_csv(out_file, sep=",",header=True,index=False)
+        
+        
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
         
-        log("Saving to NetCDF", indent=1)
+        log("Saving to NetCDF", indent=1,printlog=self.printlog)
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
 
@@ -527,7 +570,7 @@ class ctd:
             start = dt_min
             td = dt_max-dt_min
         else:
-            log("Output periods {} not defined.".format(output_period))
+            log("Output periods {} not defined.".format(output_period),printlog=self.printlog)
             return
             
         while start < dt_max: 
@@ -537,13 +580,13 @@ class ctd:
 
             filename = "{}_{}.nc".format(title, start.strftime('%Y%m%d_%H%M%S'))
             out_file = os.path.join(folder, filename)
-            log("Writing {} data from {} until {} to NetCDF file {}".format(title, start, end, filename), 1)
+            log("Writing {} data from {} until {} to NetCDF file {}".format(title, start, end, filename), indent=1,printlog=self.printlog)
             if os.path.isfile(out_file): # File has already been created
                 nc = netCDF4.Dataset(out_file, mode=mode, format='NETCDF4')
                 nc_time = nc.variables[time_label]
 
                 if time_arr[0] in nc_time: # Profile is already present in the netCDF file
-                    log("Duplicated run, no data added", 2)
+                    log("Duplicated run, no data added", indent=2,printlog=self.printlog)
                     nc.close()
                     start = start + td # Move to next time step (which will exit the function since new start > dt_max)
                     continue
@@ -622,7 +665,7 @@ class ctd:
             
     def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
         
-        log("Saving to combined NetCDF", indent=1)
+        log("Saving to combined NetCDF", indent=1,printlog=self.printlog)
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
         
@@ -639,13 +682,13 @@ class ctd:
 
         filename = "{}.nc".format(title)
         out_file = os.path.join(folder, filename)
-        log("Writing {} data to NetCDF file {}".format(title, filename), 1)
+        log("Writing {} data to NetCDF file {}".format(title, filename), indent=1,printlog=self.printlog)
         if os.path.isfile(out_file): # File has already been created
             nc = netCDF4.Dataset(out_file, mode=mode, format='NETCDF4')
             nc_time = nc.variables[time_label]
 
             if time_arr[0] in nc_time: # Profile is already present in the netCDF file
-                log("Duplicated run, no data added", 2)
+                log("Duplicated run, no data added", indent=2,printlog=self.printlog)
                 nc.close()
             else:
                 idx = position_in_array(nc_time, time_arr[0]) # Where to insert the new profile
@@ -719,8 +762,8 @@ class ctd:
             nc.close()
 
 
-    def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time"):
-        log("Resampling profile to fixed grid...", indent=2)
+    def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time",):
+        log("Resampling profile to fixed grid...", indent=2,printlog=self.printlog)
         self.grid["depth_interp"] = self.fixed_depths_ref
         self.grid["time"] = [np.nanmin(self.data[time_label])]
         if ~np.any(depthgrid): # Use the level-corrected depth to interpolate
@@ -737,16 +780,16 @@ class ctd:
                 else:
                     self.grid[key] = np.interp(self.fixed_depths_ref, depths_ref, data, left=np.nan, right=np.nan)
 
-    def derive_variables(self, lat, alt, df_gas,y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False):
+    def derive_variables(self, lat, alt, df_gas,y_cond=0.874e-3, beta=0.807e-3,estimated_depth=False,):
         # Estimated_depth: must be a list
         if estimated_depth and np.isnan(self.air_press):
             calculate_depth=False
         else:
             calculate_depth=True
             
-        log("Calculating derived variables...", indent=1)
+        log("Calculating derived variables...", indent=1,printlog=self.printlog)
         data = deepcopy(self.data)
-        log("Masking variables for calculations", indent=1)
+        log("Masking variables for calculations", indent=1,printlog=self.printlog)
         for var in self.variables:
             if ("_qual" not in var) and (var+"_qual" in data.keys()): # Create mask on variables of "data"
                 idx = data[var+"_qual"] > 0
@@ -760,22 +803,22 @@ class ctd:
         threshold = data["Temp"].shape[0] * 0.9
         if sum(np.isnan(data["Temp"])) > threshold or sum(np.isnan(data["Cond"])) > threshold or \
                 sum(np.isnan(data["adj_press"])) > threshold:
-            log("Not enough valid parameters for derived variables.", indent=2)
+            log("Not enough valid parameters for derived variables.", indent=2,printlog=self.printlog)
             breakpoint()
             return False
         else:
             self.variables.update(self.derived_variables)
 
         try:
-            log("Calculating salinity...", indent=2)
+            log("Calculating salinity...", indent=2,printlog=self.printlog)
             # self.data["SALIN"] = salinity(data["Temp"], data["Cond"], y_cond, temperature_func=default_salinity_temperature)
             self.data["SALIN"], self.data["Cond20"] = salinity_Kivu(data["Temp"], data["Cond"], temperature_func=fcond20_temperature_Kivu)
         except Exception:
-            log("Failed to calculate salinity", indent=2)
+            log("Failed to calculate salinity", indent=2,printlog=self.printlog)
             return False
         
         try:
-            log("Calculating density...", indent=2)
+            log("Calculating density...", indent=2,printlog=self.printlog)
             self.data["rho"] = np.asarray([1000] * len(data["Press"]))
             # rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             rho_TS = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
@@ -788,10 +831,10 @@ class ctd:
             # self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
             self.data["rho"] = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
         except Exception :
-            log("Failed to calculate density", indent=2)
+            log("Failed to calculate density", indent=2,printlog=self.printlog)
             return False
 
-        log("Calculating depth...", indent=2)
+        log("Calculating depth...", indent=2,printlog=self.printlog)
         # rho_p=density(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
         rho_p=density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=data["adj_press"],C_CH4=C_CH4,C_CO2=C_CO2)
         rho_avg=np.full(rho_p.shape,np.nan)
@@ -813,35 +856,35 @@ class ctd:
             self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
         else:
             self.data["depth"]=data["adj_press"]
-        log("Calculating depth_ref...", indent=2)
+        log("Calculating depth_ref...", indent=2,printlog=self.printlog)
         self.data["depth_ref"] = self.data["depth"] + self.depth_value
         b=(self.data["depth_ref"])
         try:
-            log("Calculating potential temperature...", indent=2)
+            log("Calculating potential temperature...", indent=2,printlog=self.printlog)
             self.data["pt"]  = potential_temperature_sw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
-            log("Failed to calculate potential temperature")
+            log("Failed to calculate potential temperature",printlog=self.printlog)
 
         try:
-            log("Calculating potential density...", indent=2)
+            log("Calculating potential density...", indent=2,printlog=self.printlog)
             # self.data["prho"] = density(self.data["pt"], self.data["SALIN"])
             self.data["prho"] = density_Kivu(self.data["pt"], self.data["SALIN"])
         except Exception:
-            log("Failed to calculate potential density", indent=2)
+            log("Failed to calculate potential density", indent=2,printlog=self.printlog)
 
         try:
-            log("Calculating oxygen saturation...", indent=2)
+            log("Calculating oxygen saturation...", indent=2,printlog=self.printlog)
             self.data["sat"] = oxygen_saturation(self.data["pt"], self.data["SALIN"], alt, lat)
         except Exception :
-            log("Failed to replace oxygen saturation", indent=2)
+            log("Failed to replace oxygen saturation", indent=2,printlog=self.printlog)
 
         try:
-            log("Calculating Thorpe Dispacements...", indent=2)
+            log("Calculating Thorpe Dispacements...", indent=2,printlog=self.printlog)
             sorted_pt = np.argsort(self.data["pt"])[::-1]
             self.data["thorpe"] = -(self.data["depth"] - self.data["depth"][sorted_pt]) 
         except Exception :
-            log("Failed to calculate Thorpe Displacements", indent=2)
+            log("Failed to calculate Thorpe Displacements", indent=2,printlog=self.printlog)
 
         return True
         

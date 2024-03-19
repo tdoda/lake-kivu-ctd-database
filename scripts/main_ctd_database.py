@@ -20,6 +20,12 @@ import copy
 import time
 import pandas as pd
 
+#%% Choices for the database creation
+
+show_output=False # To print the different steps in the console with the log function
+save_csv=False # To save the data of L2A and L2B as csv files in addition to netCDF files
+
+
 #%% Parameters
 lake_info = {"lat": -2, "alt": 1462} # Latitude [°] and altitude [m]
 lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
@@ -66,7 +72,7 @@ indprof_mSmm=np.arange(23,30,1)
 indprof_noconv_depth=np.arange(562,572,1)
 
 # Metadata for Kivuwatt profiles:
-CTD_metaKW = ctd()
+CTD_metaKW = ctd(printlog=show_output)
 CTD_metaKW.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"], 'Metadata.csv'))
 
 # Load gas data
@@ -99,7 +105,7 @@ for file in files:
             CTD_subprof=[None]*n_subprof # List of CTD objects
             for kprof in range(n_subprof):
                 indprof=np.unique(df_KW["Profile"].values)[kprof]
-                CTD_prof=ctd()
+                CTD_prof=ctd(printlog=show_output)
                 CTD_prof.general_attributes["source"]="KivuWatt profiles"
                 if indprof in indprof_mSmm:
                     fcond=10
@@ -123,7 +129,7 @@ for file in files:
         CTD_subprof=list(np.array(CTD_subprof)[np.array(CTD_subprof)!=None]) # Keep only the profiles that are not empty
     else: # REMA profiles
         # Create CTD object:
-        CTD_initial = ctd()
+        CTD_initial = ctd(printlog=show_output)
         CTD_initial.general_attributes["source"]="Lake Kivu Monitoring Program"
 
         # Read data:
@@ -171,9 +177,13 @@ for file in files:
             if data_type[index_file]==0: # REMA
                 CTD.quality_assurance(directories["quality_assurance"]) # Re-apply quality assurance on newly created variables
                 CTD.to_netcdf(directories["Level2A_dir"], "L2A")
+                if save_csv:
+                    CTD.to_csv(directories["Level2A_dir"], "L2A",dimrows='time')
             else: # Kivuwatt
                 CTD.quality_assurance(directories["quality_assurance_KW"])
                 CTD.to_netcdf(directories["Level2A_KW_dir"], "L2A")
+                if save_csv:
+                    CTD.to_csv(directories["Level2A_KW_dir"], "L2A",dimrows='time')
             CTD.mask_data() # Apply the mask from quality check
             # Add latitude and longitude as variables
             CTD.grid["latitude"]=CTD.general_attributes["latitude"]
@@ -182,9 +192,13 @@ for file in files:
             CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
             if data_type[index_file]==0: # REMA
                 CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
+                if save_csv:
+                    CTD.to_csv(directories["Level2B_dir"], "L2B",dimrows='depth_interp',grid=True)
                 CTD.to_netcdf_combine(directories["Level3_dir"], "L3_REMA")
             else: # Kivuwatt
                 CTD.to_netcdf(directories["Level2B_KW_dir"], "L2B", output_period="profile", grid=True)
+                if save_csv:
+                    CTD.to_csv(directories["Level2B_KW_dir"], "L2B",dimrows='depth_interp',grid=True)
                 CTD.to_netcdf_combine(directories["Level3_dir"], "L3_KW")
         else:
             failed.append(file)
