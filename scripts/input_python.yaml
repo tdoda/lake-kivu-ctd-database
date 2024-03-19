@@ -8,12 +8,12 @@ Level0_KW_dir: "../data/Level0/Kivuwatt/"
 
 # Level 2A output directory
 #Level2A_dir: "../data/Level2A/"
-Level2A_dir: "../data/Level2A_TD/Government/"
+Level2A_dir: "../data/Level2A_TD/Government_test/"
 Level2A_KW_dir: "../data/Level2A_TD/Kivuwatt/"
 
 # Level 2B output directory
 #Level2B_dir: "../data/Level2B/"
-Level2B_dir: "../data/Level2B_TD/Government/"
+Level2B_dir: "../data/Level2B_TD/Government_test/"
 Level2B_KW_dir: "../data/Level2B_TD/Kivuwatt/"
 
 Level3_dir: "../data/Level3_TD/"
