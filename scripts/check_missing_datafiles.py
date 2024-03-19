@@ -56,6 +56,7 @@ files_L2A=[f for f in os.listdir(directories["Level2A_dir"])]
 filenames_L2A=[]
 
 for k in range(len(files_L2A)):
+    print(k/len(files_L2A)*100)
     data_L2A=xr.open_dataset(directories["Level2A_dir"]+files_L2A[k])
     filenames_L2A.append(data_L2A.attrs["file_name"])
     data_L2A.close()
