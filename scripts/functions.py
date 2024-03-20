@@ -910,3 +910,19 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         mask_std=noise_data>factor*np.std(noise_data)
         flags=np.logical_or(flags,mask_std)
    return flags
+
+def get_nc_data(nc):
+    """
+    Get the data from a netCDF file.
+    Inputs:
+        nc: netCDF object
+    Outputs:
+        data_nc (dictionary): data for each variable of the netCDF file.
+    """
+    
+    varnames=list(nc.variables)
+    data_nc=dict()
+    
+    for key in varnames:
+        data_nc[key]=nc.variables[key][:].data
+    return data_nc

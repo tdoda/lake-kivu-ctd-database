@@ -32,7 +32,7 @@ class ctd:
         self.depth_value = 0
         #self.fixed_depths_ref = np.concatenate((np.linspace(0, 50, 501), np.linspace(50.5, 320, 540)))
         # self.fixed_depths_ref = np.arange(0,320,0.1) # CEll size of 10 cm
-        self.fixed_depths_ref = np.arange(0,400,0.2) # CEll size of 20 cm
+        self.fixed_depths_ref = np.arange(0,480,0.2) # CEll size of 20 cm
         self.general_attributes = {
             "institution": "Eawag",
             "references": "james.runnalls@eawag.ch",
@@ -579,6 +579,8 @@ class ctd:
             e = datetime.timestamp(end)
 
             filename = "{}_{}.nc".format(title, start.strftime('%Y%m%d_%H%M%S'))
+            if grid:
+                self.L2B_filename=filename
             out_file = os.path.join(folder, filename)
             log("Writing {} data from {} until {} to NetCDF file {}".format(title, start, end, filename), indent=1,printlog=self.printlog)
             if os.path.isfile(out_file): # File has already been created
@@ -761,6 +763,162 @@ class ctd:
                     nc.close()
             nc.close()
 
+    def write_to_L3(self,nc,time_label="time",newfile=True):
+        variables = self.comb_variables
+        dimensions = self.grid_dimensions
+        data = self.grid
+
+        time_arr = data[time_label]
+        
+        if not newfile: # File has already been created
+            nc_time = nc.variables[time_label]
+
+            if time_arr[0] in nc_time: # Profile is already present in the netCDF file
+                log("Duplicated run, no data added", indent=2,printlog=self.printlog)
+            else:
+                idx = position_in_array(nc_time, time_arr[0]) # Where to insert the new profile
+                nc_time[:] = np.insert(nc_time[:], idx, time_arr[0])
+                for key, values in variables.items():
+                    #if key not in dimensions and key != "depth": 
+                    if key not in dimensions: 
+                        var = nc.variables[key]
+                        # if title=="L2B":
+                        #     print(key)
+                        #     breakpoint()
+                        try:
+                            #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                            if isinstance(data[key], str) and data[key]=='N/a':      
+                                data[key]=np.nan
+                        except:
+                            breakpoint()
+                        try:
+                            if len(var.shape)==1:
+                                end=len(var[:]) - 1
+                            else:
+                                end = len(var[:][0]) - 1
+                        except:
+                            print(var)
+                        if idx != end: # New profile was taken before the previous last profile --> needs to be inserted
+                            if len(var.shape)==1:
+                                var[end] = data[key]
+                                var[:] = var[np.insert(np.arange(end), idx, end)]
+                            else:
+                                var[:, end] = data[key]
+                                var[:] = var[:, np.insert(np.arange(end), idx, end)]
+                        else:
+                            if len(var.shape)==1:
+                                var[idx] = data[key]
+                            else:
+                                var[:, idx] = data[key]
+
+        else: # New file
+
+            for key in self.general_attributes:
+                setattr(nc, key, self.general_attributes[key])
+
+            for key, values in dimensions.items():
+                # nc.createDimension(values['dim_name'], values['dim_size'])
+                if key !="time":
+                    nc.createDimension(values['dim_name'], len(data[key]))
+                else: # Need to set time size to None in order to increase it at each iteration
+                    nc.createDimension(values['dim_name'], values['dim_size'])
+
+
+            for key, values in variables.items(): 
+                var = nc.createVariable(values["var_name"], np.float64, values["dim"], fill_value=np.nan)
+                var.units = values["unit"]
+                var.long_name = values["longname"]
+                try:
+                    #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                    if isinstance(data[key], str) and data[key]=='N/a':     
+                        data[key]=np.nan
+                    var[:]=data[key]
+                    # if len(values["dim"]) == 1:
+                    #     var[:] = data[key]
+                    # elif len(values["dim"]) == 2:
+                    #     var[:, 0] = data[key]
+                    
+                except:
+                    breakpoint()
+                    
+    def add_to_dict(self,dict_name,time_label="time",newfile=True):
+        variables = self.comb_variables
+        dimensions = self.grid_dimensions
+        data = self.grid
+        # data["datetime"]=np.array([int(datetime.utcfromtimestamp(data["time"][0]).strftime('%Y%m%d%H%M%S'))])
+        
+        # # Add min depth and max depth:
+        # data["min_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][0]]])
+        # data["max_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][-1]]])
+
+        time_arr = data[time_label]
+        
+        if not newfile: # File has already been created
+            dict_time = dict_name[time_label]
+
+            if time_arr[0] in dict_time: # Profile is already present in the netCDF file
+                print("Data already present in the L3 netCDF file")
+            else:
+                idx = position_in_array(dict_time, time_arr[0]) # Where to insert the new profile
+                dict_time = np.insert(dict_time, idx, time_arr[0])
+                for key, values in variables.items():
+                    if key not in dict_name.keys():
+                        print('Variable {} does not exist in the netCDF file'.format(key))
+                    else:
+                        #if key not in dimensions and key != "depth": 
+                        if key not in dimensions: 
+                            var = dict_name[key]
+                            # if title=="L2B":
+                            #     print(key)
+                            #     breakpoint()
+                            try:
+                                #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                                if isinstance(data[key], str) and data[key]=='N/a':      
+                                    data[key]=np.nan
+                            except:
+                                breakpoint()
+                            # try:
+                            #     if len(var.shape)==1:
+                            #         end=len(var[:]) - 1 # last index
+                            #     else:
+                            #         end = len(var[:][0]) - 1 # last index of the second dimension
+                            # except:
+                            #     print(var)
+                            # if idx != end: # New profile was taken before the previous last profile --> needs to be inserted
+                            #     if len(var.shape)==1:
+                            #         var[end] = data[key]
+                            #         var[:] = var[np.insert(np.arange(end), idx, end)]
+                            #     else:
+                            #         var[:, end] = data[key]
+                            #         var[:] = var[:, np.insert(np.arange(end), idx, end)]
+                            # else:
+                            #     if len(var.shape)==1:
+                            #         var[idx] = data[key]
+                            #     else:
+                            #         var[:, idx] = data[key]
+                            
+                            if len(var.shape)==1:
+                                var=np.insert(var,idx,data[key])
+                            else:
+                                var=np.insert(var,[idx],data[key],axis=1) # Insert a column
+ 
+                            dict_name[key]=var
+                dict_name[time_label]=dict_time
+
+        else: # New file
+            for key, values in variables.items(): 
+                try:
+                    #if not isinstance(data[key], collections.Sized) and data[key]=='N/a': # Replace missing values by nan if the value is not an array of length>1
+                    if isinstance(data[key], str) and data[key]=='N/a':     
+                        data[key]=np.nan
+                    if len(values["dim"]) == 1:
+                        dict_name[key] = data[key]
+                    elif len(values["dim"]) == 2:
+                        dict_name[key] = data[key]
+                    
+                except:
+                    breakpoint()
+    
 
     def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time",):
         log("Resampling profile to fixed grid...", indent=2,printlog=self.printlog)

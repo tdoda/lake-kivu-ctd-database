@@ -12,6 +12,7 @@ Date: 19.03.24
 
 # -*- coding: utf-8 -*-
 import os
+import netCDF4
 import yaml
 from ctd import ctd
 from datetime import datetime, timezone
@@ -19,10 +20,11 @@ import numpy as np
 import copy
 import time
 import pandas as pd
+from functions import *
 
 #%% Choices for the database creation
 
-show_output=False # To print the different steps in the console with the log function
+show_output=True # To print the different steps in the console with the log function
 save_csv=False # To save the data of L2A and L2B as csv files in addition to netCDF files
 
 
@@ -40,16 +42,20 @@ for directory in directories.values():
         os.makedirs(directory)
 
 # List of datafiles to read:
-# files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
-files_REMA=['SA241437_6.TOB','SA241437_8.TOB','SBE19plus_01907894_2020_11_02_0002.cnv','081016_5.TOB']
+files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
 files_REMA.sort()
-# files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) ]
-files_KW=['Data1.csv']
+files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
 files_KW.sort()
 files=files_REMA+files_KW
 data_type=[0]*len(files_REMA)+[1]*len(files_KW) # Data type = 0 for REMA and = 1 for KW
 data_type_name=["REMA","Kivuwatt"]
 failed = []
+files_L2B_REMA=[]
+files_L2B_KW=[]
+
+files=[files[i] for i in np.arange(1,10,1)]
+data_type=[data_type[i] for i in np.arange(876,960,1)]
+
 
 # Files with several profiles (to divide manually):
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
@@ -78,8 +84,8 @@ CTD_metaKW.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"],
 # Load gas data
 df_gas=pd.read_excel('..\data\gas_profile\Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
 
-
-#%% Data extraction
+# breakpoint()
+#%% Data extraction and export to Levels 2A and 2B
 
 start_time=time.time() # current time
 index_file=-1
@@ -113,7 +119,9 @@ for file in files:
                     fcond=1
                     
                 if indprof in indprof_noconv_depth:
-                    fdepth=np.nan
+                    # fdepth=np.nan
+                    # Skip file:
+                    continue
                 else:
                     fdepth=0.978
                 
@@ -126,6 +134,7 @@ for file in files:
                 CTD_subprof[kprof]=CTD_prof
         except Exception:
             failed.append(file)
+            print('Kivuwatt profile data could not be read')
         CTD_subprof=list(np.array(CTD_subprof)[np.array(CTD_subprof)!=None]) # Keep only the profiles that are not empty
     else: # REMA profiles
         # Create CTD object:
@@ -165,8 +174,11 @@ for file in files:
                     break
         else:
             failed.append(file)
-    if file in failed:
-        continue # Go to the next file
+            
+            
+        if file in failed:
+            print('REMA profile data could not be read')
+            continue # Go to the next file
     
     # Loop on each profile from REMA or Kivuwatt:
     count_subprof=0
@@ -192,16 +204,161 @@ for file in files:
             CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
             if data_type[index_file]==0: # REMA
                 CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
+                files_L2B_REMA.append(CTD.L2B_filename)
                 if save_csv:
                     CTD.to_csv(directories["Level2B_dir"], "L2B",dimrows='depth_interp',grid=True)
-                CTD.to_netcdf_combine(directories["Level3_dir"], "L3_REMA")
+                # CTD.to_netcdf_combine(directories["Level3_dir"], "L3_REMA")
             else: # Kivuwatt
                 CTD.to_netcdf(directories["Level2B_KW_dir"], "L2B", output_period="profile", grid=True)
+                files_L2B_KW.append(CTD.L2B_filename)
                 if save_csv:
                     CTD.to_csv(directories["Level2B_KW_dir"], "L2B",dimrows='depth_interp',grid=True)
-                CTD.to_netcdf_combine(directories["Level3_dir"], "L3_KW")
+                # CTD.to_netcdf_combine(directories["Level3_dir"], "L3_KW")
         else:
             failed.append(file)
 
 print(failed)
+
+
+#%% Combine all the L2B profiles from the selected files above and export them to Level 3
+breakpoint()
+# files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
+# files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
+files_L2B=files_L2B_REMA+files_L2B_KW
+data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
+
+start_time=time.time() # current time
+index_file=-1
+
+# Create the L3 files
+L3_REMA = os.path.join(directories["Level3_dir"], "L3_REMA.nc")
+L3_KW = os.path.join(directories["Level3_dir"], "L3_KW.nc")
+if os.path.isfile(L3_REMA): # File has already been created
+    nc_REMA = netCDF4.Dataset(L3_REMA, mode='a', format='NETCDF4')
+    try: 
+        nc_REMA__time = nc_REMA.variables["time"]
+        data_nc_REMA=get_nc_data(nc_REMA) 
+        createL3_REMA=False
+    except:
+        createL3_REMA=True
+        data_nc_REMA=dict()
+    nc_REMA.close()
+else:
+    data_nc_REMA=dict()
+    createL3_REMA=True
+    
+if os.path.isfile(L3_KW): # File has already been created
+    nc_KW = netCDF4.Dataset(L3_KW, mode='a', format='NETCDF4')
+    try:
+        nc_KW__time = nc_KW.variables["time"]
+        data_nc_KW=get_nc_data(nc_KW) 
+        createL3_KW=False
+    except:
+        createL3_KW=True
+        data_nc_KW=dict()
+    nc_KW.close()
+else:
+    data_nc_KW=dict()
+    createL3_KW=True
+
+
+
+print('********************************')
+print('Combine all the profiles')
+print('')
+
+
+for file in files_L2B:
+    index_file=index_file+1
+    if index_file==20:
+        end_time=time.time()
+        time_prof=(end_time-start_time)/20 # time needed to process one profile [s]
+    if index_file>=20:
+        time_rem=(len(files_L2B)-index_file-1)*time_prof/60 # Remaining time [min]
+        print('File {}/{} ({}%): {}. Time remaining: {:.1f} min'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),data_type_name[data_type_L2B[index_file]],time_rem))
+    else:
+        print('File {}/{} ({}%): {}'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),data_type_name[data_type_L2B[index_file]]))
+    
+    
+    # Open L2B file
+    if data_type_L2B[index_file]==0: # REMA
+        nc_L2B=netCDF4.Dataset(os.path.join(directories["Level2B_dir"],file), mode='a', format='NETCDF4')
+    else: # Kivuwatt
+        nc_L2B=netCDF4.Dataset(os.path.join(directories["Level2B_KW_dir"],file), mode='a', format='NETCDF4')
+    
+   
+    # Copy the data in CTD object
+    CTD_L2B=ctd(printlog=show_output)
+    remvar=[]
+    for key, values in CTD_L2B.comb_variables.items():
+        if key in list(nc_L2B.variables):
+            CTD_L2B.grid[key]=nc_L2B.variables[key][:].data
+        else: # Delete the variable from the CTD object (won't be exported to netCDF)
+            remvar.append(key)
+            
+    # Delete variables from the CTD object
+    for key in remvar:
+        del CTD_L2B.comb_variables[key]
+    
+    # Add the data to the dictionary
+    if data_type_L2B[index_file]==0: # REMA
+        # CTD_L2B.write_to_L3(nc_REMA,newfile=createL3_REMA)
+        CTD_L2B.add_to_dict(data_nc_REMA,newfile=createL3_REMA)
+        if createL3_REMA:
+            createL3_REMA=False
+    else: # Kivuwatt
+        # CTD_L2B.write_to_L3(nc_KW,newfile=createL3_KW)
+        CTD_L2B.add_to_dict(data_nc_KW,newfile=createL3_KW)
+        if createL3_KW:
+            createL3_KW=False
+    nc_L2B.close()
+    
+# Add datetime:
+data_nc_REMA["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_REMA["time"][0]).strftime('%Y%m%d%H%M%S'))])   
+data_nc_KW["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_KW["time"][0]).strftime('%Y%m%d%H%M%S'))]) 
+# Add min depth and max depth:
+data_nc_REMA["min_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][0]] for i in range(len(data_nc_REMA["time"]))])
+data_nc_REMA["max_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][-1]] for i in range(len(data_nc_REMA["time"]))])
+data_nc_KW["min_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][0]] for i in range(len(data_nc_KW["time"]))])
+data_nc_KW["max_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][-1]] for i in range(len(data_nc_KW["time"]))])
+
+    
+# Export the combined profiles to netCDF file (overwrite)
+nc_REMA = netCDF4.Dataset(L3_REMA, mode='w', format='NETCDF4')
+nc_KW = netCDF4.Dataset(L3_KW, mode='w', format='NETCDF4')
+
+# Copy the data in CTD objects
+CTD_REMA=ctd(printlog=show_output)
+CTD_REMA.general_attributes["source"]="Lake Kivu Monitoring Program"
+if data_nc_REMA: # Not empty
+    remvar=[]
+    for key, values in CTD_REMA.comb_variables.items():
+        if key in data_nc_REMA.keys():
+            CTD_REMA.grid[key]=data_nc_REMA[key]
+    else: # Delete the variable from the CTD object (won't be exported to netCDF)
+        remvar.append(key)
+for key in remvar:
+    del CTD_REMA.comb_variables[key]
+CTD_REMA.write_to_L3(nc_REMA,newfile=True)
+
+
+
+CTD_KW=ctd(printlog=show_output)
+CTD_KW.general_attributes["source"]="Kivuwatt profiles"
+if data_nc_KW: # Not empty
+    # remvar=[]
+    for key, values in CTD_KW.comb_variables.items():
+        if key in data_nc_KW.keys():
+            CTD_KW.grid[key]=data_nc_KW[key]
+        # else: # Delete the variable from the CTD object (won't be exported to netCDF)
+        #     remvar.append(key)
+    # for key in remvar:
+    #     del CTD_KW.comb_variables[key]
+    CTD_KW.write_to_L3(nc_KW,newfile=True)
+
+nc_REMA.close()
+nc_KW.close()
+
+print('Database created!')
+
 
