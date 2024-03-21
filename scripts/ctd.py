@@ -125,6 +125,7 @@ class ctd:
             "latitude": {'var_name': 'latitude', 'dim': ('time',), 'unit': '°', 'longname': 'latitude'},
             "longitude": {'var_name': 'longitude', 'dim': ('time',), 'unit': '°', 'longname': 'longitude'},
             "dist_GEF": {'var_name': 'dist_GEF', 'dim': ('time',), 'unit': 'm', 'longname': 'Distance to closest methane extraction plant'},
+            "data_type": {'var_name': 'data_type', 'dim': ('time',), 'unit': '0=REMA, 1=Kivuwatt', 'longname': 'Data type, either REMA or Kivuwatt profiles'},
         }
         
         self.data = {}

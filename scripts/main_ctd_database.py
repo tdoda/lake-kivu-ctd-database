@@ -24,7 +24,7 @@ from functions import *
 
 #%% Choices for the database creation
 
-show_output=True # To print the different steps in the console with the log function
+show_output=False # To print the different steps in the console with the log function
 save_csv=False # To save the data of L2A and L2B as csv files in addition to netCDF files
 
 
@@ -53,9 +53,6 @@ failed = []
 files_L2B_REMA=[]
 files_L2B_KW=[]
 
-files=[files[i] for i in np.arange(1,10,1)]
-data_type=[data_type[i] for i in np.arange(876,960,1)]
-
 
 # Files with several profiles (to divide manually):
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
@@ -67,9 +64,23 @@ indend=[[3718,9165,14210],[5090,10250,15603]]
 files_datarem=['SBE19plus_01907894_2020_11_02_0002.cnv']
 indrem=[[15194]]
 
-# # Period to remove:
-# dateperiod_rem=[] # Time limits of the period
-# tperiod_rem=[dateperiod_rem[k].replace(tzinfo=timezone.utc).timestamp() for k in np.arange(len(dateperiod_rem))]
+# Periods to remove for the combined database only
+# Periods to remove (government):
+dateperiod_rem=[[datetime(2016,1,14,11,0,0),datetime(2016,1,14,12,0,0)],[datetime(2016,2,10,11,0,0),datetime(2016,2,10,14,0,0)],\
+                [datetime(2019,9,3,0,0,0),datetime(2019,9,4,0,0)],[datetime(2019,10,28),datetime(2019,10,29)],\
+                    [datetime(2020,3,17),datetime(2020,3,18)],[datetime(2021,6,3,10,40,0),datetime(2021,6,3,11,0,0)]] # Time limits of the period (density peak, wrong pressue calibration (?), wrong conductivity/temperature)
+tperiod_rem=[None]*len(dateperiod_rem)
+for kperiod in np.arange(len(dateperiod_rem)):
+    tperiod_rem[kperiod]=[dateperiod_rem[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
+    
+ # Periods to remove (Kivuwatt):   
+dateperiod_rem_KW=[[datetime(2019,11,7,9,0,0),datetime(2019,11,7,10,0,0)],[datetime(2021,6,3),datetime(2021,6,11)]] # Time limits of the period (depth shift, different depth calculation)
+tperiod_rem_KW=[None]*len(dateperiod_rem_KW)
+for kperiod in np.arange(len(dateperiod_rem_KW)):
+    tperiod_rem_KW[kperiod]=[dateperiod_rem_KW[kperiod][k].replace(tzinfo=timezone.utc).timestamp() for k in [0,1]]
+    
+    
+tperiod_rem_all=[tperiod_rem,tperiod_rem_KW]
 
 # Kivuwatt profiles with conductivity in mS/mm (profile indices corresponds to the first column of the datafile):
 indprof_mSmm=np.arange(23,30,1)
@@ -124,6 +135,7 @@ for file in files:
                     continue
                 else:
                     fdepth=0.978
+                    
                 
                 # Read data
                 if not CTD_prof.split_profiles_Kivuwatt(df_KW,CTD_metaKW,indprof,multip_cond=fcond,press_to_depth_factor=fdepth):
@@ -217,11 +229,12 @@ for file in files:
         else:
             failed.append(file)
 
+print('Files not processed:')
 print(failed)
 
 
 #%% Combine all the L2B profiles from the selected files above and export them to Level 3
-breakpoint()
+# breakpoint()
 # files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
 # files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
 files_L2B=files_L2B_REMA+files_L2B_KW
@@ -230,9 +243,11 @@ data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
 start_time=time.time() # current time
 index_file=-1
 
-# Create the L3 files
+# Get data from existing L3 files
 L3_REMA = os.path.join(directories["Level3_dir"], "L3_REMA.nc")
 L3_KW = os.path.join(directories["Level3_dir"], "L3_KW.nc")
+L3_comb = os.path.join(directories["Level3_dir"], "L3_comb.nc")
+
 if os.path.isfile(L3_REMA): # File has already been created
     nc_REMA = netCDF4.Dataset(L3_REMA, mode='a', format='NETCDF4')
     try: 
@@ -267,6 +282,7 @@ print('********************************')
 print('Combine all the profiles')
 print('')
 
+files_remove=[]
 
 for file in files_L2B:
     index_file=index_file+1
@@ -283,8 +299,16 @@ for file in files_L2B:
     # Open L2B file
     if data_type_L2B[index_file]==0: # REMA
         nc_L2B=netCDF4.Dataset(os.path.join(directories["Level2B_dir"],file), mode='a', format='NETCDF4')
+        tprof=nc_L2B.variables["time"][:].data[0]
+        if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[0])[:,0],tprof<np.array(tperiod_rem_all[0])[:,1]))>0: # Profile was taken during the period to remove
+            files_remove.append(file)    
+            continue
     else: # Kivuwatt
         nc_L2B=netCDF4.Dataset(os.path.join(directories["Level2B_KW_dir"],file), mode='a', format='NETCDF4')
+        tprof=nc_L2B.variables["time"][:].data[0]
+        if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[1])[:,0],tprof<np.array(tperiod_rem_all[1])[:,1]))>0: # Profile was taken during the period to remove
+            files_remove.append(file) 
+            continue
     
    
     # Copy the data in CTD object
@@ -312,10 +336,13 @@ for file in files_L2B:
         if createL3_KW:
             createL3_KW=False
     nc_L2B.close()
+
+print('Files removed:')
+print(files_remove)
     
 # Add datetime:
-data_nc_REMA["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_REMA["time"][0]).strftime('%Y%m%d%H%M%S'))])   
-data_nc_KW["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_KW["time"][0]).strftime('%Y%m%d%H%M%S'))]) 
+data_nc_REMA["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_REMA["time"][i]).strftime('%Y%m%d%H%M%S')) for i in range(len(data_nc_REMA["time"]))])   
+data_nc_KW["datetime"]=np.array([int(datetime.utcfromtimestamp(data_nc_KW["time"][i]).strftime('%Y%m%d%H%M%S'))for i in range(len(data_nc_KW["time"]))]) 
 # Add min depth and max depth:
 data_nc_REMA["min_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][0]] for i in range(len(data_nc_REMA["time"]))])
 data_nc_REMA["max_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][-1]] for i in range(len(data_nc_REMA["time"]))])
@@ -326,6 +353,7 @@ data_nc_KW["max_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(
 # Export the combined profiles to netCDF file (overwrite)
 nc_REMA = netCDF4.Dataset(L3_REMA, mode='w', format='NETCDF4')
 nc_KW = netCDF4.Dataset(L3_KW, mode='w', format='NETCDF4')
+nc_comb = netCDF4.Dataset(L3_comb, mode='w', format='NETCDF4')
 
 # Copy the data in CTD objects
 CTD_REMA=ctd(printlog=show_output)
@@ -337,27 +365,59 @@ if data_nc_REMA: # Not empty
             CTD_REMA.grid[key]=data_nc_REMA[key]
     else: # Delete the variable from the CTD object (won't be exported to netCDF)
         remvar.append(key)
-for key in remvar:
-    del CTD_REMA.comb_variables[key]
-CTD_REMA.write_to_L3(nc_REMA,newfile=True)
+    for key in remvar:
+        del CTD_REMA.comb_variables[key]
+    CTD_REMA.write_to_L3(nc_REMA,newfile=True)
 
 
 
 CTD_KW=ctd(printlog=show_output)
 CTD_KW.general_attributes["source"]="Kivuwatt profiles"
 if data_nc_KW: # Not empty
-    # remvar=[]
+    remvar=[]
     for key, values in CTD_KW.comb_variables.items():
         if key in data_nc_KW.keys():
             CTD_KW.grid[key]=data_nc_KW[key]
-        # else: # Delete the variable from the CTD object (won't be exported to netCDF)
-        #     remvar.append(key)
-    # for key in remvar:
-    #     del CTD_KW.comb_variables[key]
+        else: # Delete the variable from the CTD object (won't be exported to netCDF)
+            remvar.append(key)
+    for key in remvar:
+        del CTD_KW.comb_variables[key]
     CTD_KW.write_to_L3(nc_KW,newfile=True)
+    
+    
+CTD_comb=ctd(printlog=show_output)
+CTD_comb.general_attributes["source"]="Combined Kivuwatt-REMA profiles"
+time_comb=np.concatenate((data_nc_REMA["time"],data_nc_KW["time"]))
+indsort=np.argsort(time_comb)
+
+remvar=[]
+for key, values in CTD_comb.comb_variables.items():
+    if key in data_nc_KW.keys():
+        if len(data_nc_REMA[key].shape)==1:
+            if len(data_nc_REMA[key])==len(data_nc_REMA["time"]): # Time series format
+                data_comb=np.concatenate((data_nc_REMA[key],data_nc_KW[key]))
+                CTD_comb.grid[key]=data_comb[indsort]
+            else: # Depth format
+                CTD_comb.grid[key]=data_nc_REMA[key]
+        else:
+            data_comb=np.concatenate((data_nc_REMA[key],data_nc_KW[key]),axis=1)
+            CTD_comb.grid[key]=data_comb[:,indsort]
+    else:
+        if key!="data_type":  
+            remvar.append(key)
+for key in remvar:
+    del CTD_comb.comb_variables[key]
+CTD_comb.grid["data_type"]=np.array([0]*len(data_nc_REMA["time"])+[1]*len(data_nc_KW["time"]))[indsort]
+       
+    
+CTD_comb.write_to_L3(nc_comb,newfile=True)
+    
+    
+
 
 nc_REMA.close()
 nc_KW.close()
+nc_comb.close()
 
 print('Database created!')
 
