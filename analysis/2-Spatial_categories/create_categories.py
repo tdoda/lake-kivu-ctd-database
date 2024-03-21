@@ -24,7 +24,7 @@ from functions import *
 plt.close ('all')
 #%% Database files
 
-database_folder='../1-Database/'
+database_folder='../1-Extended_database/'
 # database_files=["database_combined_260m.nc","database_combined_0m.nc"]
 database_files=["database_combined_0m.nc"]
 # database_files=["database_combined_260m.nc"]

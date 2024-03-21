@@ -21,7 +21,7 @@ import pylake
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Functions'))
 from functions import *
     
-class ctd_database:
+class ctd_extdatabase:
     def __init__(self):
         self.general_attributes = {
             "institution": "Eawag",
