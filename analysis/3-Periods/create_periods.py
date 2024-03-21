@@ -31,15 +31,15 @@ database_files=["database_combined_260m_lake.nc"]
 
 # Periods to average
 # 1) Yearly averaged:
-year_periods=np.arange(2008,2023,1)
-t0=[datetime(yearval,1,1) for yearval in year_periods] # Yearly periods
-tf=[datetime(yearval+1,1,1) for yearval in year_periods]
-min_period_trend=0.5 # yr, minimum duration of the dataset to compute trend
+# year_periods=np.arange(2008,2023,1)
+# t0=[datetime(yearval,1,1) for yearval in year_periods] # Yearly periods
+# tf=[datetime(yearval+1,1,1) for yearval in year_periods]
+# min_period_trend=0.5 # yr, minimum duration of the dataset to compute trend
 
 # 2) Two periods
-# t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
-# tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
-# min_period_trend=2 # yr
+t0=[datetime(2009,1,1),datetime(2016,1,1)] # 7 years
+tf=[datetime(2016,1,1),datetime(2023,1,1)] # 7 years
+min_period_trend=2 # yr
 
 
 #%% Create database

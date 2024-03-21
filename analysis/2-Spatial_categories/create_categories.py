@@ -25,9 +25,7 @@ plt.close ('all')
 #%% Database files
 
 database_folder='../1-Extended_database/'
-# database_files=["database_combined_260m.nc","database_combined_0m.nc"]
-database_files=["database_combined_0m.nc"]
-# database_files=["database_combined_260m.nc"]
+database_files=["database_combined_260m.nc","database_combined_0m.nc"]
 
 # Coordinates of GEP    
 coord_KW=[29.202352,-2.087932]
