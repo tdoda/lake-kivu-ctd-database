@@ -24,8 +24,8 @@ plt.close ('all')
 #%% Database files
 
 database_folder='../2-Spatial_categories/'
-database_files=["database_combined_260m_lake.nc"]
-# database_files=["database_combined_260m_KW.nc","database_combined_260m_north.nc"]
+database_files=["database_combined_260m_1lake.nc"]
+database_files=["database_combined_260m_lake.nc","database_combined_260m_KW.nc","database_combined_260m_north.nc"]
 
 
 
