@@ -127,14 +127,20 @@ for kprof in np.arange(len(data_periods["time0_periods"])):
         # Trends
         if kprof==0:
             exec('trendavg=data_periods.trendfit_'+varnames[kvar])
+            exec('trenderr=data_periods.trenderr_'+varnames[kvar])
         else:
             exec('trendavg=data_KW.trendfit_'+varnames[kvar])
+            exec('trenderr=data_KW.trenderr_'+varnames[kvar])
         if varnames[kvar]=="N2":
             trendavg=trendavg*1e3
         hp_trend,=ax[1,kvar].plot(trendavg[:,kprof],data_periods.depth_trend,
                 color=colval_trend[kprof])
         if kvar==0:
             hp_trend_all.append(hp_trend)
+        ax[1,kvar].fill_betweenx(data_periods.depth_trend, 
+                               trendavg[:,kprof]-trenderr[:,kprof], 
+                               trendavg[:,kprof]+trenderr[:,kprof],
+                               color=colval[kprof],alpha=0.2)
 
 # Add northern profiles
 for kvar in range (len(varnames)):
@@ -206,7 +212,6 @@ ax[1,3].set_xlabel('d$N^2$/d$t$\n[$10^{-3}$ s$^{-2}$.yr$^{-1}$]')
 
 
 #%% Save figure
-breakpoint()
 if savefig_bool:
     fig.savefig("../2-Figures_raw/Fig02_raw.png",dpi=400)
     fig.savefig("../2-Figures_raw/Fig02_raw.svg")
