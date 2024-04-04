@@ -56,6 +56,7 @@ for kdata in range(len(database_files)):
 
     #%% Categorize profile depending on location (for map)
     dist_treshold=2 # km
+    dist_north=25 # km
     lat_north=-1.97 # °
     dist_1ddeg=np.mean(np.array([distance.distance(tuple(coord_KW), (coord_KW[0]+0.1,coord_KW[1])).km,
                         distance.distance(tuple(coord_KW), (coord_KW[0],coord_KW[1]+0.1)).km])) # km/0.1 deg
@@ -67,7 +68,8 @@ for kdata in range(len(database_files)):
             dist_prof_to_KP[kprof]=distance.distance((longval[kprof],latval[kprof]), tuple(coord_KP1)).km
     bool_closeKW=dist_prof_to_KW<dist_treshold
     bool_closeKP=dist_prof_to_KP<dist_treshold
-    bool_north=latval>lat_north
+    # bool_north=latval>lat_north
+    bool_north=np.logical_and(dist_prof_to_KW>dist_north,latval>lat_north)
     
     # Export to netCDF
     export_to_netcdf(gen_att_nc,dim_nc,var_nc,

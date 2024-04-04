@@ -229,7 +229,7 @@ class ctd_periods:
             
             log('Calculation trend for '+var,indent=1)
             for kp in range(len(t0_periods)):       
-                indprof=np.where(np.logical_and(database["time"]>t0_periods[kp],database["time"]<tf_periods[kp]))[0]   
+                indprof=np.where(np.logical_and(database["time"]>t0_periods[kp],database["time"]<tf_periods[kp]))[0] 
                 if len(indprof)>1:
                     #trendval=np.diff(prof_avg[:,indprof],axis=1)/(np.diff(database['time'][indprof])/(3600*24*365)) # x/yr
                     trend_avg[var][:,kp]=(prof_avg[:,indprof[-1]]-prof_avg[:,indprof[0]])/(database['time'][indprof[-1]]-database['time'][indprof[0]])*3600*24*365

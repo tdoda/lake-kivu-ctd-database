@@ -24,8 +24,8 @@ plt.close ('all')
 #%% Database files
 
 database_folder='../2-Spatial_categories/'
-database_files=["database_combined_260m_lake.nc"]
-
+# database_files=["database_combined_260m_lake.nc"]
+database_files=["database_combined_260m_KW.nc","database_combined_260m_north.nc"]
 
 
 
@@ -56,34 +56,35 @@ for kdata in range(len(database_files)):
     prof_avg, prof_std=database_periods.compute_avgprof(data_nc,t0_periods=t0,tf_periods=tf,varnames=["Temp","Cond","SALIN","rho","N2"])
     trend_avg,trend_fit,z_iso=database_periods.compute_avgtrend(data_nc,t0_periods=t0,tf_periods=tf,dz=1,mindur=min_period_trend,dvar=[0.001,0.001,0.001,0.001,1e-5],varnames=["Temp","Cond","SALIN","rho","N2"])
     database_periods.zchem(data_nc)
-    
+
     #%% Save netCDF 
     database_periods.to_netcdf(database_files[kdata][:database_files[kdata].find('.nc')]+"_"+str(len(t0))+'periods.nc')
 
-#%% Plot grid of position z_iso (to check)
-xval=database_periods.data["time"]/(3600*24*365)
-
-varname="rho"
-plt.figure()
-plt.pcolormesh(xval,database_periods.data[varname.lower()+"_trend"],z_iso[varname])
-
-ind_select=np.where(xval>46.3)[0][0]
-# ind_select=np.where(xval<46.2)[0][-1]
-fig,ax=plt.subplots(1,2)
-ax[0].plot(data_nc[varname][:,ind_select],data_nc["depth_interp"])
-ax[0].invert_yaxis()
-
-ax[1].plot(z_iso[varname][:,ind_select],database_periods.data[varname.lower()+"_trend"])
-#%% Plot time series isopycnals (to check)
-# varname="Temp"
-# indper=0
-# plt.figure()
-# # First value with trend:
-# indval=np.where(~np.isnan(database_periods.data["trendfit_iso_"+varname][:,indper]))[0][0]
-# isoval=database_periods.data[varname.lower()+"_trend"][indval]
-# # isoval=23.2
-# indprof=np.where(np.logical_and(database_periods.data["time"]>t0[indper].replace(tzinfo=timezone.utc).timestamp(),database_periods.data["time"]<tf[indper].replace(tzinfo=timezone.utc).timestamp()))[0]
-# yval=z_iso[varname][np.where(database_periods.data[varname.lower()+"_trend"]>=isoval)[0][0],:]
-# pfit,zfit,R2=regression_oneline(xval[indprof],yval[indprof])
-# plt.plot(xval[indprof],yval[indprof],'.-')
-# plt.plot(xval[indprof],zfit,'r-')
+    #%% Plot grid of position z_iso (to check)
+    xval=database_periods.data["time"]/(3600*24*365)
+    datetimeval=np.array([datetime.utcfromtimestamp(tnum) for tnum in database_periods.data["time"]])
+    
+    varname="rho"
+    plt.figure()
+    plt.pcolormesh(datetimeval,database_periods.data[varname.lower()+"_trend"],z_iso[varname])
+    
+    ind_select=np.where(np.logical_and(xval>46.3,np.nansum(z_iso[varname],axis=0)>0))[0][0]
+    # ind_select=np.where(xval<46.2)[0][-1]
+    fig,ax=plt.subplots(1,2)
+    ax[0].plot(data_nc[varname][:,ind_select],data_nc["depth_interp"])
+    ax[0].invert_yaxis()
+    
+    ax[1].plot(z_iso[varname][:,ind_select],database_periods.data[varname.lower()+"_trend"])
+    #%% Plot time series isopycnals (to check)
+    # varname="Temp"
+    # indper=0
+    # plt.figure()
+    # # First value with trend:
+    # indval=np.where(~np.isnan(database_periods.data["trendfit_iso_"+varname][:,indper]))[0][0]
+    # isoval=database_periods.data[varname.lower()+"_trend"][indval]
+    # # isoval=23.2
+    # indprof=np.where(np.logical_and(database_periods.data["time"]>t0[indper].replace(tzinfo=timezone.utc).timestamp(),database_periods.data["time"]<tf[indper].replace(tzinfo=timezone.utc).timestamp()))[0]
+    # yval=z_iso[varname][np.where(database_periods.data[varname.lower()+"_trend"]>=isoval)[0][0],:]
+    # pfit,zfit,R2=regression_oneline(xval[indprof],yval[indprof])
+    # plt.plot(xval[indprof],yval[indprof],'.-')
+    # plt.plot(xval[indprof],zfit,'r-')
