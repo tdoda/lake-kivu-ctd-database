@@ -267,16 +267,19 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         flags=np.logical_or(flags,mask_std)
    return flags
 
-def regression_oneline(tval,zval):
+def regression_oneline(x,y):
     # For 1D array
-    zchem_periods=zval
-    tchem_periods=tval
-    model=LinearRegression().fit(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
-    R2=model.score(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
+    model=LinearRegression().fit(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
+    R2=model.score(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
     pfit=[model.coef_[0],model.intercept_]
-    zfit=np.polyval(pfit,tchem_periods)
-        
-    return pfit, zfit, R2
+    yfit=np.polyval(pfit,x)
+
+    # Standard error of the slope and intercept
+    se_slope = np.sqrt(np.sum((y[~np.isnan(y)]-yfit[~np.isnan(y)])**2)/((len(x[~np.isnan(y)])-2)*np.sum((x[~np.isnan(y)]-np.mean(x[~np.isnan(y)]))**2)))
+    se_intercept=se_slope*np.sqrt(1/len(x[~np.isnan(y)])*np.sum(x[~np.isnan(y)]**2))
+    SE=[se_slope,se_intercept]
+
+    return pfit, yfit, R2, SE
 
 def regression_period(tval,zval,t_extract,interceptval=np.full(2,np.nan)):
     zchem_periods=[zval[tval<t_extract],zval[tval>=t_extract]]
@@ -611,7 +614,7 @@ def compute_iso_displacements(timeval,depthval,data_var,dvar,delta_smooth=10,zmi
             indval0=np.where(~np.isnan(z_iso[kz,:]))[0][0]# First profile used
             indvalf=np.where(~np.isnan(z_iso[kz,:]))[0][-1]# Last profile used
             if (timeval[indvalf]-timeval[indval0])>=mindur*365*24*3600: # At least duration of mindur years
-                pfit,_,_=regression_oneline(timeval/(3600*24*365),z_iso[kz,:])
+                pfit,_,_,_=regression_oneline(timeval/(3600*24*365),z_iso[kz,:])
                 trend_prof[kz]=pfit[0] # m/yr
     trend_iso_fit=trend_prof
     
