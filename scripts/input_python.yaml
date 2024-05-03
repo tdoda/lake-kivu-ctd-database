@@ -3,7 +3,7 @@
 #### DO NOT CHANGE THE VARIABLE NAMES ####
 
 # Level 0 output directory
-Level0_dir: "../data/Level0/Government/"
+Level0_dir: "../data/Level0/REMA/"
 Level0_KW_dir: "../data/Level0/Kivuwatt/"
 
 # Level 2A output directory
