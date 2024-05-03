@@ -267,13 +267,19 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         flags=np.logical_or(flags,mask_std)
    return flags
 
-def regression_oneline(x,y):
+def regression_oneline(x,y,forced_point=(np.nan,np.nan)):
     # For 1D array
-    model=LinearRegression().fit(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
-    R2=model.score(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
-    pfit=[model.coef_[0],model.intercept_]
+          
+    if np.isnan(forced_point[0]) or np.isnan(forced_point[1]):        
+        model=LinearRegression().fit(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
+        R2=model.score(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
+        pfit=[model.coef_[0],model.intercept_]
+    else:
+        model=LinearRegression(fit_intercept=False).fit((x[~np.isnan(y)]-forced_point[0]).reshape(-1,1),y[~np.isnan(y)]-forced_point[1]) 
+        R2=model.score((x[~np.isnan(y)]-forced_point[0]).reshape(-1,1),y[~np.isnan(y)]-forced_point[1])
+        pfit=[model.coef_[0],forced_point[1]-model.coef_[0]*forced_point[0]]
     yfit=np.polyval(pfit,x)
-
+    
     # Standard error of the slope and intercept
     se_slope = np.sqrt(np.sum((y[~np.isnan(y)]-yfit[~np.isnan(y)])**2)/((len(x[~np.isnan(y)])-2)*np.sum((x[~np.isnan(y)]-np.mean(x[~np.isnan(y)]))**2)))
     se_intercept=se_slope*np.sqrt(1/len(x[~np.isnan(y)])*np.sum(x[~np.isnan(y)]**2))
@@ -331,7 +337,19 @@ def divide_paths(x,y,maxdist=1e-5):
     return x_corr, y_corr
 
 def movmean(X,windowsize,axis=0):
-    # Moving average centered at the given index
+    """Function movmean
+
+    Computes the moving average of an array centered at the given index.
+
+    Inputs:
+        X (numpy array (m,n) of floats): array to average
+        windowsize (int): size of the averaging window
+        axis (int): index of the axis along which the averaging is applied
+        
+    Outputs:
+        X_smooth (numpy array (m,n) of floats): smoothed array
+    """
+
     if len(X.shape)==1:
         X=np.expand_dims(X,axis=1)
     if axis==1:
