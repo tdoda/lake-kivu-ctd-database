@@ -33,7 +33,7 @@ plt.close ('all')
 
 database_file="../../../analysis/2-Spatial_categories/database_combined_260m_lake.nc"
 
-savefig_bool=True
+savefig_bool=False
 cm = 1/2.54  # [inches/cm]
 
 data_comb=xr.open_dataset(database_file,decode_times=False)

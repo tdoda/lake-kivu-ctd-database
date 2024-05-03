@@ -799,16 +799,25 @@ def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_
         flags=np.logical_or(flags,mask_std)
    return flags
 
-def regression_oneline(tval,zval):
+def regression_oneline(x,y,forced_point=(np.nan,np.nan)):
     # For 1D array
-    zchem_periods=zval
-    tchem_periods=tval
-    model=LinearRegression().fit(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
-    R2=model.score(tchem_periods[~np.isnan(zchem_periods)].reshape(-1,1),zchem_periods[~np.isnan(zchem_periods)])
-    pfit=[model.coef_[0],model.intercept_]
-    zfit=np.polyval(pfit,tchem_periods)
-        
-    return pfit, zfit, R2
+          
+    if np.isnan(forced_point[0]) or np.isnan(forced_point[1]):        
+        model=LinearRegression().fit(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
+        R2=model.score(x[~np.isnan(y)].reshape(-1,1),y[~np.isnan(y)])
+        pfit=[model.coef_[0],model.intercept_]
+    else:
+        model=LinearRegression(fit_intercept=False).fit((x[~np.isnan(y)]-forced_point[0]).reshape(-1,1),y[~np.isnan(y)]-forced_point[1]) 
+        R2=model.score((x[~np.isnan(y)]-forced_point[0]).reshape(-1,1),y[~np.isnan(y)]-forced_point[1])
+        pfit=[model.coef_[0],forced_point[1]-model.coef_[0]*forced_point[0]]
+    yfit=np.polyval(pfit,x)
+    
+    # Standard error of the slope and intercept
+    se_slope = np.sqrt(np.sum((y[~np.isnan(y)]-yfit[~np.isnan(y)])**2)/((len(x[~np.isnan(y)])-2)*np.sum((x[~np.isnan(y)]-np.mean(x[~np.isnan(y)]))**2)))
+    se_intercept=se_slope*np.sqrt(1/len(x[~np.isnan(y)])*np.sum(x[~np.isnan(y)]**2))
+    SE=[se_slope,se_intercept]
+
+    return pfit, yfit, R2, SE
 
 def regression_period(tval,zval,t_extract,interceptval=np.full(2,np.nan)):
     zchem_periods=[zval[tval<t_extract],zval[tval>=t_extract]]

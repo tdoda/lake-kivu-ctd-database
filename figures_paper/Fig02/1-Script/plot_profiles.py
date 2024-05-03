@@ -48,7 +48,8 @@ data_north=xr.open_dataset(database_file_north,decode_times=False)
 datetime_periods=[[datetime.utcfromtimestamp(tnum) for tnum in data_periods.time0_periods.values],
                   [datetime.utcfromtimestamp(tnum) for tnum in data_periods.timef_periods.values]]
 z_chem_periods=data_periods.z_chem.values
-z_chem=np.nanmean(z_chem_periods)
+# z_chem=np.nanmean(z_chem_periods)
+z_chem=z_chem_periods[0] # Before methane extraction
 
 time_periods=np.array([data_periods.time0_periods.values,data_periods.timef_periods.values-1])
 yearstr_periods=[[str(datetime.utcfromtimestamp(time_periods[0,i]).year) for i in range(len(time_periods[0,:]))],
@@ -59,6 +60,8 @@ xlim_SALT=[(0.9,5.5),(-0.12,0.12)]
 xlim_SALT_zoom=[(2.5,5.5),(-0.12,0.12)]
 
 varnames=["Temp","SALIN","rho","N2"]
+
+layer_depths=[238,278] # Depth of layers used for salt balance (Fig. 3)
 
 print('Data loaded!')
 
@@ -171,12 +174,16 @@ for kvar in range (len(varnames)):
 
  
 for k in range(len(varnames)):
+    
     ax[1,k].plot([0,0],[0,300],'-k')
     xlimval=xlimval_all[0][k]
     ax[0,k].plot(xlimval,[z_chem,z_chem],'--k')
     ax[0,k].set_xlim(xlimval)
     xlimval=xlimval_all[1][k]
     ax[1,k].plot(xlimval,[z_chem,z_chem],'--k')
+    if varnames[k]=="SALIN": # Add layer depths
+        for zl in layer_depths:
+            ax[1,k].plot(xlimval,[zl]*2,':',color=colval[1])
     ax[1,k].set_xlim(xlimval)
 
 
@@ -212,6 +219,7 @@ ax[1,3].set_xlabel('d$N^2$/d$t$\n[$10^{-3}$ s$^{-2}$.yr$^{-1}$]')
 
 
 #%% Save figure
+
 if savefig_bool:
     fig.savefig("../2-Figures_raw/Fig02_raw.png",dpi=400)
     fig.savefig("../2-Figures_raw/Fig02_raw.svg")
@@ -219,3 +227,6 @@ if savefig_bool:
 
 #%% Close datasets
 data_periods.close()
+data_annual.close()
+data_KW.close()
+data_north.close()
