@@ -345,7 +345,7 @@ vignettes/*.pdf
 
 
 # netCDF files
-*.nc
+#*.nc
 
 # Excel files (e.g., Kivuwatt)
 *.xlsx 
