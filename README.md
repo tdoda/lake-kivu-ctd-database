@@ -78,8 +78,7 @@ The data can be found in the folder `data`. The data is structured as follows:
 - **Level 2A**: Column with quality flags are added to the Level 1A data. Quality flag "1" indicates that the data point didn't pass the 
 quality checks and further investigation is needed, quality flag "0" indicates that no further investiagion is needed.
 
-- **Level 2B**: The profile is vertically gridded with a vertical spacing of 0.5m and the "Thrope Lengthscale" as well as the "Vertical diffusivity" are calculated. 
-The data is stored to a NetCDF file spanning over a time period one year.
+- **Level 2B**: The profile is vertically gridded with a vertical spacing of 0.2m. 
 
 	**Note** that the filename of level 1, level 2A and level 2B show the date of the profile.
 
