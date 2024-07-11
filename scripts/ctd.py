@@ -8,7 +8,7 @@ import pandas as pd
 import math
 from copy import deepcopy
 from envass import qualityassurance
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from dateutil.relativedelta import relativedelta
 from functions import *
 from scipy import interpolate
@@ -169,7 +169,7 @@ class ctd:
                 log("Parse file failed.", indent=1,printlog=self.printlog)
                 return False
 
-            df = pd.read_csv(infile, delim_whitespace=True, header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
+            df = pd.read_csv(infile, sep='\s+', header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
             df = df.drop_duplicates() # Remove duplicate rows
             if infile[-4:]=='.TOB':
                 df = parse_time(df, self.variables["time"], "time", columns, units, ref_date)
@@ -177,22 +177,22 @@ class ctd:
                 df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+df["Minutes"]*60
                 df["Cond"]=df["Cond"]/1000 # Conversion from uS/cm to mS/cm
                 df["Press"]=df["Depth"]/1.019716 # Estimate of pressure [dbar] from depth values according to SeaBird software
-            
             if math.isnan(df.Cond.iloc[-1]):
                 df.drop(index=df.index[-1], axis=0, inplace=True)
             for variable in self.variables:
-                if "function" in self.variables[variable]:
-                    self.data[variable] = np.array(self.variables[variable]["function"](df, self.variables[variable], variable, columns, units, ref_date, date_format))
-                elif variable in df.columns:
-                    self.data[variable] = np.array(df[variable].values)
+                if variable in df.columns:
+                    if "function" in self.variables[variable]:
+                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units, ref_date, date_format))
+                    else:
+                        self.data[variable] = np.array(df[variable].values)
                 else:
                     self.data[variable] = np.array([np.nan] * len(df))
 
             if self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp():
                 log("Time outside of project time range.", indent=1,printlog=self.printlog)
-                if datetime.utcfromtimestamp(self.data["time"][0]).year==2004:
+                if datetime.fromtimestamp(self.data["time"][0],UTC).year==2004:
                     log("Change year 2004 into 2008.", indent=1,printlog=self.printlog)
-                    tdate=[datetime.utcfromtimestamp(self.data["time"][i]) for i in np.arange(0,len(self.data["time"]),1)]
+                    tdate=[datetime.fromtimestamp(self.data["time"][i],UTC) for i in np.arange(0,len(self.data["time"]),1)]
                     self.data["time"]=np.array([datetime(2008,tdate[i].month,tdate[i].day,tdate[i].hour,tdate[i].minute,tdate[i].second).replace(tzinfo=timezone.utc).timestamp() for i in np.arange(0,len(self.data["time"]),1)])
                 else:
                     return False
@@ -319,7 +319,8 @@ class ctd:
             Date1 = [i['datetime'] for i in data1["data"]]
             Waterlevel = [i['water_surface_height_above_reference_datum'] for i in data1['data']]
             df1 = pd.DataFrame({'Date1':Date1, 'Waterlevel':Waterlevel})
-            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"], format= "%Y/%m/%d", dayfirst=True).values.astype(float) / 10 ** 9)
+            #df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"], format= "%Y/%m/%d", dayfirst=True).values.astype(float) / 10 ** 9)
+            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format= 'ISO8601', dayfirst=True).values.astype(float) / 10 ** 9) # Specify ISO8601 to deal with formats "yyyy/mm/dd HH:MM"
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
             f = interpolate.interp1d(x, y)
@@ -496,13 +497,17 @@ class ctd:
 
         return qa
 
-    def to_csv(self, folder, title,time_label="time",dimrows="depth_interp",grid=False,):
+    def to_csv(self, folder, title,time_label="time",dimrows="depth_interp",grid=False,format_export="%.4f",var_to_remove=None):
         """
         Export profiles to csv file (only works for single profiles). 
 
         """
         
         log("Saving to csv file", indent=1,printlog=self.printlog)
+        
+        if var_to_remove!=None: # Some variables must be removed: include also the _qual ones
+            for varname in var_to_remove:
+                var_to_remove=var_to_remove+[varname+"_qual"]
         
         if grid: # Depth-interpolated data (Level 2B)
             variables = self.grid_variables
@@ -516,24 +521,57 @@ class ctd:
         df=pd.DataFrame()
         
         
-        datetime_val=[datetime.utcfromtimestamp(tnum) for tnum in data[time_label]]
+        datetime_val=[datetime.fromtimestamp(tnum,UTC) for tnum in data[time_label]]
         if not grid:
             df["Datetime [yyyymmddHHMMSS]"]=[int(dt.strftime('%Y%m%d%H%M%S')) for dt in datetime_val]
         for varname in variables:
-            if dimrows in variables[varname]["dim"]:
-                if len(variables[varname]["dim"])==1:
-                        df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]
-                elif len(variables[varname]["dim"])==2:
-                    dimnames=np.array(variables[varname]["dim"])
-                    if len(data[dimnames[dimnames!=dimrows][0]])==1: # Other dimension has a length of 1
-                        df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]          
+            if (dimrows in variables[varname]["dim"]) and (var_to_remove==None or varname not in var_to_remove):
+                if np.sum(~np.isnan(data[varname]))>0: # At least one non Nan value
+                    if len(variables[varname]["dim"])==1:
+                            df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]
+                    elif len(variables[varname]["dim"])==2:
+                        dimnames=np.array(variables[varname]["dim"])
+                        if len(data[dimnames[dimnames!=dimrows][0]])==1: # Other dimension has a length of 1
+                            df[varname+" ["+variables[varname]["unit"]+"]"]=data[varname]          
         # Put the depth data first
         if grid and "depth_interp [m]" in df.columns:
             df=df[["depth_interp [m]"]+list(np.array(df.columns)[np.array(df.columns)!="depth_interp [m]"])]
         filename = "{}_{}.csv".format(title, datetime_val[0].strftime('%Y%m%d_%H%M%S'))
         out_file = os.path.join(folder, filename)
         
-        df.to_csv(out_file, sep=",",header=True,index=False)
+        df.to_csv(out_file, sep=",",header=True,index=False,float_format=format_export)
+        
+    def var_to_csv(self, folder, title,var_to_export,time_label="time",dimrows="depth_interp",format_export="%.4f"):
+        """
+        Export a gridded variable (L3) to a csv file. 
+
+        """
+        
+        log("Saving to csv file", indent=1,printlog=self.printlog)
+        
+        if not os.path.exists(folder): # Create folder if it doesn't exist
+            os.makedirs(folder)
+
+        variables = self.comb_variables
+        dimensions = self.grid_dimensions
+        data = self.grid
+
+        datetime_val=[datetime.fromtimestamp(tnum,UTC) for tnum in data[time_label]]
+        
+        for varname in var_to_export:
+            unit_var=variables[varname]["unit"].replace('/','_')
+            print("Exporting {}_{}_{}.csv...".format(title, varname,unit_var))
+            if variables[varname]["dim"]==(dimrows, time_label) and np.sum(~np.isnan(data[varname]))>0: # At least one non Nan value
+                df=pd.DataFrame(data[varname],columns=datetime_val,index=data[dimrows])
+            else:
+                raise Exception("The selected variable cannot be exported to csv")
+    
+            filename = "{}_{}_{}.csv".format(title, varname,unit_var)
+            out_file = os.path.join(folder, filename)
+            # df.to_csv(out_file, sep=",",header=True,index=True,float_format=format_export)
+            chunck_size=100
+            for i in range(0, df.shape[0], chunck_size): # Export by subparts to make it faster
+                df.iloc[i:i+chunck_size].to_csv(out_file, sep=",",mode='a', header=(i == 0), index=True,float_format=format_export)
         
         
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
@@ -551,8 +589,8 @@ class ctd:
             dimensions = self.dimensions
             data = self.data
         time_arr = data[time_label] # Time values of the profile for L2A, only one value for L2B
-        dt_min = datetime.utcfromtimestamp(np.nanmin(time_arr)) # First time value of the profile
-        dt_max = datetime.utcfromtimestamp(np.nanmax(time_arr)) # Last time value of the profile
+        dt_min = datetime.fromtimestamp(np.nanmin(time_arr),UTC) # First time value of the profile
+        dt_max = datetime.fromtimestamp(np.nanmax(time_arr),UTC) # Last time value of the profile
         
         if dt_max==dt_min: # Only one time value
             dt_max+=timedelta(seconds=1)
@@ -590,6 +628,7 @@ class ctd:
 
                 if time_arr[0] in nc_time: # Profile is already present in the netCDF file
                     log("Duplicated run, no data added", indent=2,printlog=self.printlog)
+                    print("Profile already present, nc file not modified.")
                     nc.close()
                     start = start + td # Move to next time step (which will exit the function since new start > dt_max)
                     continue
@@ -675,7 +714,7 @@ class ctd:
         variables = self.comb_variables
         dimensions = self.grid_dimensions
         data = self.grid
-        data["datetime"]=np.array([int(datetime.utcfromtimestamp(data["time"][0]).strftime('%Y%m%d%H%M%S'))])
+        data["datetime"]=np.array([int(datetime.timestamp(data["time"][0],UTC).strftime('%Y%m%d%H%M%S'))])
         
         # Add min depth and max depth:
         data["min_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][0]]])
@@ -954,7 +993,7 @@ class ctd:
                 idx = data[var+"_qual"] > 0
                 float_data = data[var].astype(float)
                 float_data[idx] = np.nan
-                data[var] = float_data.copy()
+                data[var] = float_data.copy() # Corrected data (used to compute additional variables)
         if calculate_depth:
             data["adj_press"] = data["Press"] - self.air_press
         else:

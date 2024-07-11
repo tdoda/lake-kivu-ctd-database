@@ -450,7 +450,6 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
     """  
     AM_PM=["AM", "AM?", "AM.?", "PM", "PM?", "PM.?"]
     res = [ele for ele in AM_PM if(ele in df.values[0])] # Check if AM or PM or similar is present in the first row of the dataframe
-   
     if "IntD" in columns and "IntT" in columns:     
         df=df.rename(columns = {'IntD':'Date', 'IntT':'Time'})
         columns[columns.index('IntD')]='Date'
@@ -867,16 +866,23 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
 
     
 
-def parse_chl(df, variable, name, columns, units, ref_date, date_format):
-    if units == "g/l":
-        try:
-            log("Changed Chl unit")
-            return list(df[name] * 1000000)
-        except:
-            return [-999.] * len(df)
+def parse_chl(df, name, columns, units, ref_date, date_format):
+    # if units == "g/l" or units == "g/L":
+    #     try:
+    #         log("Changed Chl unit")
+    #         return list(df[name] * 1000000)
+    #     except:
+    #         return [-999.] * len(df)
         
+    # else:
+    #     return [-999.] * len(df)
+    indchl=np.where([col=="Chl_A" for col in columns])[0]
+    if len(indchl)==1 and (units[indchl[0]]=="g/l" or units[indchl[0]]=="g/L" or units[indchl[0]]=="?g/L"):
+        return list(df[name].values)
     else:
-        return [-999.] * len(df)
+        print("Wrong units")
+    
+        breakpoint()
 
 def qa_std_moving(variable, xdata=np.array([]), window_size=15, factor=3, prior_flags=False):
    """

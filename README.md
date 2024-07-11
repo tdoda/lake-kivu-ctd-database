@@ -26,7 +26,7 @@ The CTD is an instrument used to measure the conductivity, temperature, and pres
 
 The python version can be checked by running the command `python --version`. In case python is not installed or only an older version of it, it is recommend to install python through the anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
 
-You can also install each package separately (TO UPDATE):
+You can also install each package separately:
 conda install netCDF4
 conda install pandas
 conda install dateparser
@@ -35,8 +35,9 @@ conda install scipy
 pip install seawater
 conda install matplotlib
 pip install gsw
-conda install openpyxl
-
+conda install numpy
+pip install python-dateutil
+pip install PyYAML
 
 ## Usage
 

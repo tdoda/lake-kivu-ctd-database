@@ -6,6 +6,7 @@
 Level0_dir: "../data/Level0/REMA/"
 Level0_KW_dir: "../data/Level0/Kivuwatt/"
 
+
 # Level 2A output directory
 Level2A_dir: "../data/Level2A/REMA/"
 Level2A_KW_dir: "../data/Level2A/Kivuwatt/"
@@ -14,7 +15,9 @@ Level2A_KW_dir: "../data/Level2A/Kivuwatt/"
 Level2B_dir: "../data/Level2B/REMA/"
 Level2B_KW_dir: "../data/Level2B/Kivuwatt/"
 
+
 Level3_dir: "../data/Level3/"
+
 
 quality_assurance: "../quality_assurance.json"
 quality_assurance_KW: "../quality_assurance_KW.json"
