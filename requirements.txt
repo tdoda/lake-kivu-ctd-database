@@ -1,7 +1,7 @@
 dateparser==1.1.8
 envass==1.0.0
 gsw==3.4.0
-matplotlib==3.8.4
+matplotlib==3.5.3
 netCDF4==1.6.2
 numpy==2.0.0
 pandas==2.2.2
