@@ -48,7 +48,7 @@ The final, depth-interpolated and quality checked database is available in two d
 - one file per CTD profile: folder `data\Level2B`, one netCDF and one CSV file per profile, for REMA and Kivuwatt separately (the profiling date is indicated in the file name).
 - one file combing all CTD profiles: folder `data\Level3`, one netCDF for the entire database and one CSV file per variable, from the (i) REMA database, (ii) Kivuwatt database and (iii) combined REMA-Kivuwatt database.
 
-See part ["Folder Data"](#folder-data) for more information.
+See part [`Folder Data`](#folder-data) for more information.
 
 ### Visualize the database
 
