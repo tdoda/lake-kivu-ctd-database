@@ -68,6 +68,7 @@ class ctd:
             "pt": {'var_name': "pt", 'dim': ('time',), 'unit': 'degC', 'longname': "Potential Temperature", },
             "prho": {'var_name': "prho", 'dim': ('time',), 'unit': 'kg/m3', 'longname': "Potential Density", },
             "thorpe": {'var_name': "thorpe", 'dim': ('time',), 'unit': 'm', 'longname': "Thorpe Displacements", },
+            "Cond20": {'var_name': 'Cond20', 'dim': ('time',), 'unit': 'mS/cm', 'longname': 'conductivity at 20°C'},
             "SALIN": {'var_name': 'SALIN', 'dim': ('time',), 'unit': 'PSU', 'longname': 'salinity', }
         }
 
