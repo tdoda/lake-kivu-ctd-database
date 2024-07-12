@@ -3,7 +3,7 @@ envass==1.0.0
 gsw==3.4.0
 matplotlib==3.5.3
 netCDF4==1.6.2
-numpy==2.0.0
+numpy==1.21.6
 pandas==2.2.2
 python_dateutil==2.8.2
 PyYAML==6.0.1
