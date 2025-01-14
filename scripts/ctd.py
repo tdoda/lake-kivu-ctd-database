@@ -569,6 +569,9 @@ class ctd:
     
             filename = "{}_{}_{}.csv".format(title, varname,unit_var)
             out_file = os.path.join(folder, filename)
+            if os.path.exists(out_file): # File already exist: delete it
+                os.remove(out_file)
+            
             # df.to_csv(out_file, sep=",",header=True,index=True,float_format=format_export)
             chunck_size=100
             for i in range(0, df.shape[0], chunck_size): # Export by subparts to make it faster
