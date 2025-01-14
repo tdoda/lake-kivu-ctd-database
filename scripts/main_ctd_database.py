@@ -41,10 +41,12 @@ for directory in directories.values():
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-# List of datafiles to read:
+# List of datafiles to read (could specify a specific file name here):
 files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
-files_REMA.sort()
 files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+
+# Associate the data type to each file (REMA or Kivuwatt)
+files_REMA.sort()
 files_KW.sort()
 files=files_REMA+files_KW
 data_type=[0]*len(files_REMA)+[1]*len(files_KW) # Data type = 0 for REMA and = 1 for KW
@@ -53,6 +55,7 @@ failed = []
 files_L2B_REMA=[]
 files_L2B_KW=[]
 
+#%% Manual corrections
 
 # Files with several profiles (to divide manually):
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
