@@ -23,7 +23,6 @@ import pandas as pd
 from functions import *
 
 #%% Choices for the database creation
-
 show_output=False # To print the different steps in the console with the log function
 save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
 
@@ -42,8 +41,12 @@ for directory in directories.values():
         os.makedirs(directory)
 
 # List of datafiles to read (could specify a specific file name here):
-files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
-files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+files_REMA=[];
+files_KW=[];
+# To reprocess all files:
+# files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+# files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+
 
 # Associate the data type to each file (REMA or Kivuwatt)
 files_REMA.sort()
@@ -101,7 +104,7 @@ df_gas=pd.read_excel('../data/gas_profile/Gas_profile.xlsx',names=['Depth','CH4'
 # Create txt file to save name of data files not included in database
 with open("../data/files_removed.txt", "a") as file_txt:
     file_txt.write("*****************\nFiles not included in database ({})\n*****************\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-breakpoint()
+#breakpoint()
 #%% Data extraction and export to Levels 2A and 2B
 
 start_time=time.time() # current time
@@ -254,9 +257,13 @@ print(failed)
 
 
 #%% Combine all the L2B profiles from the selected files above and export them to Level 3
-# breakpoint()
-files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
-files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
+#breakpoint()
+
+# To reprocess all the files
+# files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
+# files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
+
+
 files_L2B=files_L2B_REMA+files_L2B_KW
 data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
 
