@@ -56,9 +56,14 @@ With jupyter notebook: <font color='red'>*work in progress*</font>
 
 The data will be available for visualization on the following website (<font color='red'>*work in progress*</font>): https://www.datalakes-eawag.ch/datadetail/964.
 
-### Process new data
+### Process new REMA data
 
-<font color='red'>*Work in progress*</font>
+<font color='red'>*Work in progress, quick summary of the steps for now:*</font>
+1. Add the new files in the folder `data\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
+2. In the section `Parameters` of the script `scripts\main_ctd_database.py`, add the names of the new files in the list `files_REMA`.
+    - Example: `files_REMA=['0000.TOB','0001.TOB']`
+3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\Level2A` and `data\Level2B` and L3 files in folder `data\Level3` should be replaced by the new database containing the new files.
+
 
 ## Organization of the repository
 ### Folder `data`
@@ -67,7 +72,7 @@ The data is structured with the following subfolders:
 
 - `Level0`: Raw CTD data collected by REMA and Kivuwatt (*.TOB, *.cnv, *.hex, *.xslx, *.csv files).
 
-- `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quntities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
+- `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quantities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
 
 - `Level2B`: Similar data as Level 2A, except that the profiles have been vertically interpolated to a grid of 0.2 m spacing and that the quality flags have been applied to filter the data.
 
