@@ -42,7 +42,7 @@ for directory in directories.values():
         os.makedirs(directory)
 
 # List of datafiles to read (could specify a specific file name here):
-files_REMA=['Ishungu_170507001.cnv'];
+files_REMA=[];
 files_KW=[];
 min_date_period=datetime(2001, 1, 1)
 # To reprocess all files:
