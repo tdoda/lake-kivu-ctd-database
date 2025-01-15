@@ -165,7 +165,7 @@ class ctd:
                 return False
         
             # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
-            skip_rows, columns, units, valid, date_format, start_date = parse_file(infile,keyword_skip)
+            skip_rows, columns, units, valid, start_date, time_interval = parse_file(infile,keyword_skip)
             if valid == False:
                 log("Parse file failed.", indent=1,printlog=self.printlog)
                 return False
@@ -175,8 +175,16 @@ class ctd:
             if infile[-4:]=='.TOB':
                 df = parse_time(df, self.variables["time"], "time", columns, units, ref_date)
             else:
-                df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+df["Minutes"]*60
+                if "Minutes" in df.columns:
+                    df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+df["Minutes"]*60
+                elif ~np.isnan(time_interval):
+                    df["time"]=start_date.replace(tzinfo=timezone.utc).timestamp()+time_interval*np.arange(df.shape[0])
+                else:
+                    print('Time not available for {}'.format(infile))
+                    df["time"]=np.full((df.shape[0],),np.nan)
+        
                 df["Cond"]=df["Cond"]/1000 # Conversion from uS/cm to mS/cm
+                
                 df["Press"]=df["Depth"]/1.019716 # Estimate of pressure [dbar] from depth values according to SeaBird software
             if math.isnan(df.Cond.iloc[-1]):
                 df.drop(index=df.index[-1], axis=0, inplace=True)
@@ -191,7 +199,7 @@ class ctd:
 
             if self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp():
                 log("Time outside of project time range.", indent=1,printlog=self.printlog)
-                if datetime.fromtimestamp(self.data["time"][0],UTC).year==2004:
+                if datetime.fromtimestamp(self.data["time"][0],UTC).year==2004 and infile[infile.rfind('/')+1:infile.rfind('/')+3]=='08':
                     log("Change year 2004 into 2008.", indent=1,printlog=self.printlog)
                     tdate=[datetime.fromtimestamp(self.data["time"][i],UTC) for i in np.arange(0,len(self.data["time"]),1)]
                     self.data["time"]=np.array([datetime(2008,tdate[i].month,tdate[i].day,tdate[i].hour,tdate[i].minute,tdate[i].second).replace(tzinfo=timezone.utc).timestamp() for i in np.arange(0,len(self.data["time"]),1)])
@@ -1077,7 +1085,9 @@ class ctd:
 
         try:
             log("Calculating oxygen saturation...", indent=2,printlog=self.printlog)
-            self.data["sat"] = oxygen_saturation(self.data["pt"], self.data["SALIN"], alt, lat)
+            conc_sat = oxygen_saturation(self.data["pt"], self.data["SALIN"], alt, lat) # Saturation concentration [mg/L]
+            self.data["sat"] = self.data["DO_mg"]/conc_sat*100 # [%sat]
+            
         except Exception :
             log("Failed to replace oxygen saturation", indent=2,printlog=self.printlog)
 

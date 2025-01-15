@@ -372,17 +372,23 @@ def parse_file(input_file_path, string):
     # Define the parameters used to read the files based on the data after the selected string
     valid = True
     start_date=''
+    time_interval=np.nan # [s]
     with open(input_file_path, encoding="utf8", errors='ignore') as f:
         lines = f.readlines()
     for i in range(len(lines)):
-        if 'start_time' in lines[i]:
-            start_date_str=lines[i][lines[i].find("start_time")+13:lines[i].find("[Instrument")-1]
+        if 'start_time' in lines[i]: # For cnv files
+            if lines[i].find("[Instrument")==-1:
+                start_date_str=lines[i][lines[i].find("start_time")+13:lines[i].find("\n")]
+            else:
+                start_date_str=lines[i][lines[i].find("start_time")+13:lines[i].find("[Instrument")-1]
             start_date=datetime.strptime(start_date_str,'%b %d %Y %H:%M:%S')
-        if string in lines[i]:
+        if 'interval = seconds' in lines[i]: # For cnv files
+            time_interval=float(lines[i][lines[i].find(":")+2:lines[i].find("\n")]) # [s]
+            
+        if string in lines[i]: # keyword indicating the start of the data
             break
-            print("yes")
     if input_file_path[-4:]=='.TOB':
-        date_format = "%m/%d/%Y %H:%M:%S"
+        #date_format = "%m/%d/%Y %H:%M:%S"
         columns = lines[i + 2].replace(";", "").split() 
         columns.pop(0)
         columns = rename_duplicates(columns)
@@ -396,12 +402,37 @@ def parse_file(input_file_path, string):
             valid=False
     elif input_file_path[-4:]=='.cnv':
         skip_rows=i+1
+        # First cell: variables of interest from CTD class; second cell: names from cnv files
+        variables_equivalent=[['Minutes','Depth','Temp','Temp','pH','Fluo','Cond','DO_mg','Flag'],
+                              ['timeM','depFM','tv290C','t090C','ph','flECO-AFL','c0uS/cm','sbeox0Mg/L','flag']] 
+        
+        # Get the column names and units
+        columns=[]
+        units=[]
+        for krow in range(0,i):
+            if '# name' in lines[krow]:
+                # Get the variable name
+                ind_equal=lines[krow].find('=')
+                ind_dots=lines[krow].find(':')
+                name_col=lines[krow][ind_equal+2:ind_dots]
+                if name_col in variables_equivalent[1]: # Name of the column is part of the variables to export
+                    name_col=variables_equivalent[0][variables_equivalent[1].index(name_col)] # Replace the variable name by the names from CTD objects
+                columns.append(name_col)
+                
+                # Get the units
+                if lines[krow].find('[')==-1: # No unit specified
+                    units.append('_')
+                else:
+                    units.append(lines[krow][lines[krow].find('[')+1:lines[krow].find(']')])
+ 
         # Should match the variable names and units of CTD class to save the variables
-        columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
-        units=['min','m','degC','_','mg/m^3','uS/cm','_']
+        #columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
+        #units=['min','m','degC','_','mg/m^3','uS/cm','_']
         valid=True
-        date_format='%b %d %Y %H:%M:%S'
-    return skip_rows, columns, units, valid, date_format, start_date, 
+        #date_format='%b %d %Y %H:%M:%S'
+        
+    # Do not return date_format anymore because this variable is not used by ctd.read_raw_data
+    return skip_rows, columns, units, valid, start_date, time_interval,
 
         
 def rename_duplicates(arr):

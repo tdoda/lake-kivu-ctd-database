@@ -12,6 +12,7 @@ Date: 19.03.24
 
 # -*- coding: utf-8 -*-
 import os
+import sys
 import netCDF4
 import yaml
 from ctd import ctd
@@ -41,8 +42,9 @@ for directory in directories.values():
         os.makedirs(directory)
 
 # List of datafiles to read (could specify a specific file name here):
-files_REMA=[];
+files_REMA=['Ishungu_170507001.cnv'];
 files_KW=[];
+min_date_period=datetime(2001, 1, 1)
 # To reprocess all files:
 # files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
 # files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
@@ -169,7 +171,7 @@ for file in files:
         CTD_initial.general_attributes["filename"]=file
 
         # Read data:
-        if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18)):
+        if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18),min_date=min_date_period):
             CTD_initial.extract_water_level(lake_level, lake_info["alt"]) # Extract water level data
             CTD_initial.extract_meta_data(os.path.join(directories["Level0_dir"], file)) # Extract metadata
             
@@ -259,14 +261,6 @@ print(failed)
 #%% Combine all the L2B profiles from the selected files above and export them to Level 3
 #breakpoint()
 
-# To reprocess all the files
-# files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
-# files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
-
-
-files_L2B=files_L2B_REMA+files_L2B_KW
-data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
-
 start_time=time.time() # current time
 index_file=-1
 
@@ -297,6 +291,7 @@ if os.path.isfile(L3_REMA): # File has already been created
         data_nc_REMA=dict()
     nc_REMA.close()
 else:
+    files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]# Get all the L2B files
     data_nc_REMA=dict()
     createL3_REMA=True
     
@@ -311,8 +306,11 @@ if os.path.isfile(L3_KW): # File has already been created
         data_nc_KW=dict()
     nc_KW.close()
 else:
+    files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ] # Get all the L2B files
     data_nc_KW=dict()
     createL3_KW=True
+    
+
 
 
 
@@ -321,6 +319,16 @@ print('Combine all the profiles')
 print('')
 
 files_remove=[]
+
+# To reprocess all the files
+# files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]
+# files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ]
+files_L2B=files_L2B_REMA+files_L2B_KW
+if len(files_L2B)==0: # No file to process
+    print('No file to process!')
+    sys.exit()
+    
+data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
 
 for file in files_L2B:
     index_file=index_file+1
