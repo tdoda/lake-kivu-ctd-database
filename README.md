@@ -60,8 +60,13 @@ The data will be available for visualization on the following website (<font col
 
 <font color='red'>*Work in progress, quick summary of the steps for now:*</font>
 1. Add the new files in the folder `data\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
-2. In the section `Parameters` of the script `scripts\main_ctd_database.py`, add the names of the new files in the list `files_REMA`.
-    - Example: `files_REMA=['0000.TOB','0001.TOB']`
+2. In the section `Parameters` of the script `scripts\main_ctd_database.py`, add the names of the new files in the list `files_REMA` and make sure that the new profiles were taken after `min_date_period`. 
+If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. Example: 
+```
+files_REMA=['0000.TOB','0001.TOB']
+min_date_period=datetime(2001, 1, 1) # 1st January 2001
+```
+
 3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\Level2A` and `data\Level2B` and L3 files in folder `data\Level3` should be replaced by the new database containing the new files.
 
 
