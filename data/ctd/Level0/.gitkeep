@@ -396,10 +396,8 @@ log.txt
 scripts/log.txt
 
 # Ignore data files
-data/ctd/**
-!data/ctd/**/
-!data/ctd/**/.gitkeep
-!data/ctd/**/*.md
+data/ctd/*
+#!data/.gitkeep
 #!data/README.md
 
 

@@ -1,0 +1,768 @@
+*****************
+Files not included in database (2024-06-21 11:57:12)
+*****************
+111212_71.TOB: REMA file could not be read (function read_raw_data)
+111212_710.TOB: REMA file could not be read (function read_raw_data)
+111212_711.TOB: REMA file could not be read (function read_raw_data)
+111212_712.TOB: REMA file could not be read (function read_raw_data)
+111212_76.TOB: REMA file could not be read (function read_raw_data)
+111212_79.TOB: REMA file could not be read (function read_raw_data)
+141029_3.TOB: REMA file could not be read (function read_raw_data)
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-06-21 19:21:09)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2024-06-21 22:22:37)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2024-06-21 22:24:21)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2024-06-21 22:25:38)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+141029_3.TOB: file could not be read (function read_raw_data)
+161018_13.TOB: file could not be read (function read_raw_data)
+161018_25.TOB: file could not be read (function read_raw_data)
+170622_1.TOB: file could not be read (function read_raw_data)
+171123_18.TOB: file could not be read (function read_raw_data)
+190122_17.TOB: file could not be read (function read_raw_data)
+210607_lake stability_1.TOB: file could not be read (function read_raw_data)
+210607_lake stability_2.TOB: file could not be read (function read_raw_data)
+210611_lake stability_12.TOB: file could not be read (function read_raw_data)
+220131_28.TOB: file could not be read (function read_raw_data)
+KW NearPlant_220425_42.TOB: file could not be read (function read_raw_data)
+KW NearPlant_220425_43.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_5.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_6.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_8.TOB: file could not be read (function read_raw_data)
+Lake Stability_220419_24.TOB: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_19_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0001.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0013.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0015.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0020.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0027.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0011.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0016.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0018.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0021.cnv: file could not be read (function read_raw_data)
+T1090727_34.TOB: file could not be read (function read_raw_data)
+T2260847_42.TOB: file could not be read (function read_raw_data)
+T3130847_28.TOB: file could not be read (function read_raw_data)
+T3251016_27.TOB: file could not be read (function read_raw_data)
+T5191610_2.TOB: file could not be read (function read_raw_data)
+T7141336_7.TOB: file could not be read (function read_raw_data)
+T7211313_28.TOB: file could not be read (function read_raw_data)
+T8191321_26.TOB: file could not be read (function read_raw_data)
+T8271033_23.TOB: file could not be read (function read_raw_data)
+TB171400_22.TOB: file could not be read (function read_raw_data)
+TC081409_24.TOB: file could not be read (function read_raw_data)
+U1251452_1.TOB: file could not be read (function read_raw_data)
+U1251452_2.TOB: file could not be read (function read_raw_data)
+U1251452_3.TOB: file could not be read (function read_raw_data)
+U1251452_4.TOB: file could not be read (function read_raw_data)
+U3161308_17.TOB: file could not be read (function read_raw_data)
+U3161308_2.TOB: file could not be read (function read_raw_data)
+U3161308_9.TOB: file could not be read (function read_raw_data)
+U5241335_14.TOB: file could not be read (function read_raw_data)
+U7081625_23.TOB: file could not be read (function read_raw_data)
+U8251637_29.TOB: file could not be read (function read_raw_data)
+UA071024_1.TOB: file could not be read (function read_raw_data)
+UA071024_6.TOB: file could not be read (function read_raw_data)
+UB151126_23.TOB: file could not be read (function read_raw_data)
+UC030912_18.TOB: file could not be read (function read_raw_data)
+V3011438_4.TOB: file could not be read (function read_raw_data)
+V6090909_13.TOB: file could not be read (function read_raw_data)
+V6201519_1.TOB: file could not be read (function read_raw_data)
+V7131608_22.TOB: file could not be read (function read_raw_data)
+W1260938_1.TOB: file could not be read (function read_raw_data)
+W1260938_2.TOB: file could not be read (function read_raw_data)
+W1260938_4.TOB: file could not be read (function read_raw_data)
+W1260938_5.TOB: file could not be read (function read_raw_data)
+W2151549_1.TOB: file could not be read (function read_raw_data)
+X130327_1.TOB: file could not be read (function read_raw_data)
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+L2B_20160114_111545.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160210_124954.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20190903_145052.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_090242.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_105930.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_131120.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20210603_105150.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_065003.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_074834.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_083958.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_100903.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_111945.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_121051.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_131136.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_142713.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-07-08 16:38:56)
+*****************
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+*****************
+Files not included in database (2024-07-08 16:39:30)
+*****************
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-07-08 16:58:28)
+*****************
+*****************
+Files not included in database (2024-07-08 16:59:37)
+*****************
+*****************
+Files not included in database (2024-07-08 17:05:22)
+*****************
+*****************
+Files not included in database (2024-07-08 17:11:39)
+*****************
+*****************
+Files not included in database (2024-07-08 17:18:10)
+*****************
+*****************
+Files not included in database (2024-07-08 17:22:38)
+*****************
+*****************
+Files not included in database (2024-07-08 17:24:48)
+*****************
+*****************
+Files not included in database (2024-07-08 17:28:22)
+*****************
+*****************
+Files not included in database (2024-07-08 17:34:29)
+*****************
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-07-09 13:32:03)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+141029_3.TOB: file could not be read (function read_raw_data)
+161018_13.TOB: file could not be read (function read_raw_data)
+161018_25.TOB: file could not be read (function read_raw_data)
+170622_1.TOB: file could not be read (function read_raw_data)
+171123_18.TOB: file could not be read (function read_raw_data)
+190122_17.TOB: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2024-07-09 14:01:44)
+*****************
+111212_71.TOB: file could not be read (function read_raw_data)
+111212_710.TOB: file could not be read (function read_raw_data)
+111212_711.TOB: file could not be read (function read_raw_data)
+111212_712.TOB: file could not be read (function read_raw_data)
+111212_76.TOB: file could not be read (function read_raw_data)
+111212_79.TOB: file could not be read (function read_raw_data)
+141029_3.TOB: file could not be read (function read_raw_data)
+161018_13.TOB: file could not be read (function read_raw_data)
+161018_25.TOB: file could not be read (function read_raw_data)
+170622_1.TOB: file could not be read (function read_raw_data)
+171123_18.TOB: file could not be read (function read_raw_data)
+190122_17.TOB: file could not be read (function read_raw_data)
+210607_lake stability_1.TOB: file could not be read (function read_raw_data)
+210607_lake stability_2.TOB: file could not be read (function read_raw_data)
+210611_lake stability_12.TOB: file could not be read (function read_raw_data)
+220131_28.TOB: file could not be read (function read_raw_data)
+KW NearPlant_220425_42.TOB: file could not be read (function read_raw_data)
+KW NearPlant_220425_43.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_5.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_6.TOB: file could not be read (function read_raw_data)
+KW_NearPlant_220228_8.TOB: file could not be read (function read_raw_data)
+Lake Stability_220419_24.TOB: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_19_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0001.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0013.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0015.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0020.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_03_20_0027.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0011.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0014.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0016.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0018.cnv: file could not be read (function read_raw_data)
+SBE19plus_01907894_2020_11_02_0021.cnv: file could not be read (function read_raw_data)
+T1090727_34.TOB: file could not be read (function read_raw_data)
+T2260847_42.TOB: file could not be read (function read_raw_data)
+T3130847_28.TOB: file could not be read (function read_raw_data)
+T3251016_27.TOB: file could not be read (function read_raw_data)
+T5191610_2.TOB: file could not be read (function read_raw_data)
+T7141336_7.TOB: file could not be read (function read_raw_data)
+T7211313_28.TOB: file could not be read (function read_raw_data)
+T8191321_26.TOB: file could not be read (function read_raw_data)
+T8271033_23.TOB: file could not be read (function read_raw_data)
+TB171400_22.TOB: file could not be read (function read_raw_data)
+TC081409_24.TOB: file could not be read (function read_raw_data)
+U1251452_1.TOB: file could not be read (function read_raw_data)
+U1251452_2.TOB: file could not be read (function read_raw_data)
+U1251452_3.TOB: file could not be read (function read_raw_data)
+U1251452_4.TOB: file could not be read (function read_raw_data)
+U3161308_17.TOB: file could not be read (function read_raw_data)
+U3161308_2.TOB: file could not be read (function read_raw_data)
+U3161308_9.TOB: file could not be read (function read_raw_data)
+U5241335_14.TOB: file could not be read (function read_raw_data)
+U7081625_23.TOB: file could not be read (function read_raw_data)
+U8251637_29.TOB: file could not be read (function read_raw_data)
+UA071024_1.TOB: file could not be read (function read_raw_data)
+UA071024_6.TOB: file could not be read (function read_raw_data)
+UB151126_23.TOB: file could not be read (function read_raw_data)
+UC030912_18.TOB: file could not be read (function read_raw_data)
+V3011438_4.TOB: file could not be read (function read_raw_data)
+V6090909_13.TOB: file could not be read (function read_raw_data)
+V6201519_1.TOB: file could not be read (function read_raw_data)
+V7131608_22.TOB: file could not be read (function read_raw_data)
+W1260938_1.TOB: file could not be read (function read_raw_data)
+W1260938_2.TOB: file could not be read (function read_raw_data)
+W1260938_4.TOB: file could not be read (function read_raw_data)
+W1260938_5.TOB: file could not be read (function read_raw_data)
+W2151549_1.TOB: file could not be read (function read_raw_data)
+X130327_1.TOB: file could not be read (function read_raw_data)
+Data1.csv: profile 30/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 31/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 32/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 33/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 34/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 35/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 36/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 37/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 38/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 39/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 40/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 41/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 42/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 43/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 44/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 45/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 46/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 47/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 48/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 49/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 50/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 51/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 52/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 53/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 54/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 55/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 56/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 57/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 58/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 59/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 60/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 61/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 62/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 63/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 64/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 65/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 66/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 67/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 68/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 69/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 70/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 71/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 72/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 73/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 74/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 75/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 76/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 77/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 78/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 79/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 80/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 81/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 82/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 83/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 84/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 85/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 86/204 could not be processed (function split_profiles_Kivuwatt)
+Data1.csv: profile 87/204 could not be processed (function split_profiles_Kivuwatt)
+L2B_20160114_111545.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160210_124954.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20190903_145052.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_090242.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_105930.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_131120.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20210603_105150.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_065003.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_074834.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_083958.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_100903.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_111945.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_121051.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_131136.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_142713.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-07-11 13:43:35)
+*****************
+L2B_20160114_111545.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160210_124954.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20190903_145052.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_090242.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_105930.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_131120.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20210603_105150.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_065003.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_074834.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_083958.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_100903.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_111945.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_121051.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_131136.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_142713.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160114_111545.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160210_124954.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20190903_145052.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_090242.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_105930.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_131120.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20210603_105150.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_065003.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_074834.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_083958.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_100903.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_111945.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_121051.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_131136.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_142713.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2024-07-11 14:38:10)
+*****************
+*****************
+Files not included in database (2024-07-11 14:42:55)
+*****************
+*****************
+Files not included in database (2024-07-11 14:49:34)
+*****************
+L2B_20160114_111545.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20160210_124954.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20190903_145052.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_090242.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_105930.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191028_131120.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20210603_105150.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_065003.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_074834.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_083958.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_100903.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_111945.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_121051.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_131136.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20200317_142713.nc: not included in L3 file because it belongs to a period with incorrect data
+L2B_20191107_094316.nc: not included in L3 file because it belongs to a period with incorrect data
+*****************
+Files not included in database (2025-01-14 13:25:50)
+*****************
+*****************
+Files not included in database (2025-01-14 14:06:23)
+*****************
+*****************
+Files not included in database (2025-01-14 14:07:31)
+*****************
+*****************
+Files not included in database (2025-01-14 14:15:30)
+*****************
+*****************
+Files not included in database (2025-01-14 14:23:52)
+*****************
+*****************
+Files not included in database (2025-01-15 08:41:27)
+*****************
+*****************
+Files not included in database (2025-01-15 08:42:59)
+*****************
+*****************
+Files not included in database (2025-01-15 08:46:45)
+*****************
+*****************
+Files not included in database (2025-01-15 08:51:55)
+*****************
+*****************
+Files not included in database (2025-01-15 08:55:34)
+*****************
+Ishungu_170507001.cnv: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2025-01-15 09:03:57)
+*****************
+Ishungu_170507001.cnv: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2025-01-15 09:07:10)
+*****************
+*****************
+Files not included in database (2025-01-15 09:22:46)
+*****************
+*****************
+Files not included in database (2025-01-15 09:23:18)
+*****************
+*****************
+Files not included in database (2025-01-15 09:23:49)
+*****************
+*****************
+Files not included in database (2025-01-15 09:24:04)
+*****************
+*****************
+Files not included in database (2025-01-15 09:24:20)
+*****************
+*****************
+Files not included in database (2025-01-15 09:24:34)
+*****************
+*****************
+Files not included in database (2025-01-15 09:30:25)
+*****************
+*****************
+Files not included in database (2025-01-15 09:36:51)
+*****************
+*****************
+Files not included in database (2025-01-15 09:38:14)
+*****************
+*****************
+Files not included in database (2025-01-15 09:39:07)
+*****************
+*****************
+Files not included in database (2025-01-15 18:27:21)
+*****************
+*****************
+Files not included in database (2025-01-15 18:54:49)
+*****************
+kivu01a000.cnv: file could not be read (function read_raw_data)
+*****************
+Files not included in database (2025-01-15 19:01:30)
+*****************
+*****************
+Files not included in database (2025-01-15 19:11:25)
+*****************
+*****************
+Files not included in database (2025-01-15 19:14:53)
+*****************
+*****************
+Files not included in database (2025-01-15 19:15:57)
+*****************
+*****************
+Files not included in database (2025-01-15 19:18:58)
+*****************
+*****************
+Files not included in database (2025-01-15 19:24:13)
+*****************
+*****************
+Files not included in database (2025-01-15 19:25:13)
+*****************
