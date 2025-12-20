@@ -5,7 +5,7 @@
 The CTD data has been collected by the Lake Kivu Monitoring Program (REMA) since 2008 and by Kivuwatt since 2010, at different locations in Lake Kivu but mostly near the KP1 methane extraction plant (29.242921°E,-1.732214°N) and the Kivuwatt methane extraction plant (29.202352°E,-2.087932°N).  
 A special feature in the processing of the CTD data is the implementation of lake level measurements, which are used to adjust the depth values for each CTD to a standard level of 1462 meters above sea level.
 
-Data and scripts are available on the following git repository: https://gitlab.renkulab.io/eawag-surf/lake-kivu-ctd-profiles.git 
+Data and scripts are available on the following git repository: https://github.com/tdoda/lake-kivu-ctd-database.git 
 
 More detailed information about the database: see technical report (<font color='red'>*work in progress*</font>).
 
@@ -18,7 +18,7 @@ The CTD probe is an instrument used to measure the conductivity, temperature, an
 
 - Clone the repository to your local machine using the command: 
 
- `git clone https://renkulab.io/gitlab/eawag-surf/lake-kivu-ctd-profiles.git`
+ `git clone https://github.com/tdoda/lake-kivu-ctd-database.git`
  
  Note that the repository will be copied to your current working directory.
 
@@ -43,12 +43,12 @@ You can also install each package separately:
 
 ## Usage
 
-The CTD database is stored in the `data/ctd`folder. The datafiles cannot be uploaded to Github, but can be accessed, downloaded and uploaded at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. 
+The CTD database is stored in the `data\ctd` folder. The datafiles cannot be uploaded to Github, but can be accessed, downloaded and uploaded at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. 
 
 ### Access the database
 The final, depth-interpolated and quality checked database is available in two different folders depending on the type of files that the user wants to access:
-- one file per CTD profile: folder `data\Level2B`, one netCDF and one CSV file per profile, for REMA and Kivuwatt separately (the profiling date is indicated in the file name).
-- one file combing all CTD profiles: folder `data\Level3`, one netCDF for the entire database and one CSV file per variable, from the (i) REMA database, (ii) Kivuwatt database and (iii) combined REMA-Kivuwatt database.
+- one file per CTD profile: folder `data\ctd\Level2B`, one netCDF and one CSV file per profile, for REMA and Kivuwatt separately (the profiling date is indicated in the file name).
+- one file combing all CTD profiles: folder `data\ctd\Level3`, one netCDF for the entire database and one CSV file per variable, from the (i) REMA database, (ii) Kivuwatt database and (iii) combined REMA-Kivuwatt database.
 
 See part [`Folder Data`](#folder-data) for more information.
 
@@ -61,7 +61,7 @@ The data will be available for visualization on the following website (<font col
 ### Process new REMA data
 
 <font color='red'>*Work in progress, quick summary of the steps for now:*</font>
-1. Add the new files in the folder `data\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
+1. Add the new files in the folder `data\ctd\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
 2. In the section `Parameters` of the script `scripts\main_ctd_database.py`, add the names of the new files in the list `files_REMA` and make sure that the new profiles were taken after `min_date_period`. 
 If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. Example: 
 ```
@@ -77,13 +77,11 @@ min_date_period=datetime(2001, 1, 1) # 1st January 2001
 
 The data is structured with the following subfolders:
 
-- `Level0`: Raw CTD data collected by REMA and Kivuwatt (*.TOB, *.cnv, *.hex, *.xslx, *.csv files).
-
-- `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quantities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
-
-- `Level2B`: Similar data as Level 2A, except that the profiles have been vertically interpolated to a grid of 0.2 m spacing and that the quality flags have been applied to filter the data.
-
-- `Level3`: Final database combining all the profiles from REMA, Kivuwatt and both ("combined database"). The data is stored as a single netCDF file containing all the L2B profiles and as CSV files (one per variable).
+- `ctd`: CTD database, not stored on Github but accessible at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. The CTD data is organized into the following subfolders:
+    - `Level0`: Raw CTD data collected by REMA and Kivuwatt (*.TOB, *.cnv, *.hex, *.xslx, *.csv files).
+    - `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quantities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
+    - `Level2B`: Similar data as Level 2A, except that the profiles have been vertically interpolated to a grid of 0.2 m spacing and that the quality flags have been applied to filter the data.
+    - `Level3`: Final database combining all the profiles from REMA, Kivuwatt and both ("combined database"). The data is stored as a single netCDF file containing all the L2B profiles and as CSV files (one per variable).
 
 - `lake_level`: Contains three different sources of lake level measurements for lake Kivu:
 1) **dahit**: Offers continuous measurements with about two measurements per month from 2002-08 until 2021-08. However there is a gap of measurements from 2010-09 until 2013-04.
