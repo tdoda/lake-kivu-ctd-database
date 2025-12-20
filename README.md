@@ -43,6 +43,8 @@ You can also install each package separately:
 
 ## Usage
 
+The CTD database is stored in the `data/ctd`folder. The datafiles cannot be uploaded to Github, but can be accessed, downloaded and uploaded at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. 
+
 ### Access the database
 The final, depth-interpolated and quality checked database is available in two different folders depending on the type of files that the user wants to access:
 - one file per CTD profile: folder `data\Level2B`, one netCDF and one CSV file per profile, for REMA and Kivuwatt separately (the profiling date is indicated in the file name).
