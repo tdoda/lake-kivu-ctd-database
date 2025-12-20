@@ -3,20 +3,20 @@
 #### DO NOT CHANGE THE VARIABLE NAMES ####
 
 # Level 0 output directory
-Level0_dir: "../data/Level0/REMA/"
-Level0_KW_dir: "../data/Level0/Kivuwatt/"
+Level0_dir: "../data/ctd/Level0/REMA/"
+Level0_KW_dir: "../data/ctd/Level0/Kivuwatt/"
 
 
 # Level 2A output directory
-Level2A_dir: "../data/Level2A/REMA/"
-Level2A_KW_dir: "../data/Level2A/Kivuwatt/"
+Level2A_dir: "../data/ctd/Level2A/REMA/"
+Level2A_KW_dir: "../data/ctd/Level2A/Kivuwatt/"
 
 # Level 2B output directory
-Level2B_dir: "../data/Level2B/REMA/"
-Level2B_KW_dir: "../data/Level2B/Kivuwatt/"
+Level2B_dir: "../data/ctd/Level2B/REMA/"
+Level2B_KW_dir: "../data/ctd/Level2B/Kivuwatt/"
 
 
-Level3_dir: "../data/Level3/"
+Level3_dir: "../data/ctd/Level3/"
 
 
 quality_assurance: "quality_assurance.json"
