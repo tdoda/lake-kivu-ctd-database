@@ -164,10 +164,10 @@ class ctd:
                 log("Wrong file format", indent=1,printlog=self.printlog)
                 return False
         
-            # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
+            # Define the parameters used to read the files (rows to skip, name of columns, starting date, etc.):
             skip_rows, columns, units, valid, start_date, time_interval = parse_file(infile,keyword_skip)
             if valid == False:
-                log("Parse file failed.", indent=1,printlog=self.printlog)
+                log("Parse file failed (not enough data points in the file)", indent=1,printlog=self.printlog)
                 return False
 
             df = pd.read_csv(infile, sep='\s+', header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")

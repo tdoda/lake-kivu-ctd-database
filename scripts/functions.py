@@ -428,7 +428,7 @@ def parse_file(input_file_path, string):
         # Should match the variable names and units of CTD class to save the variables
         #columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
         #units=['min','m','degC','_','mg/m^3','uS/cm','_']
-        valid=True
+        #valid=True
         #date_format='%b %d %Y %H:%M:%S'
         
     # Do not return date_format anymore because this variable is not used by ctd.read_raw_data
