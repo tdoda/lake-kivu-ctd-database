@@ -23,6 +23,9 @@ import time
 import pandas as pd
 from functions import *
 
+# Make sure the current working directory is the one of the script (to avoid problems with relative paths):
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 #%% Choices for the database creation
 show_output=False # To print the different steps in the console with the log function
 save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
@@ -31,6 +34,7 @@ save_csv=True # To save the data of L2A and L2B as csv files in addition to netC
 #%% Parameters
 lake_info = {"lat": -2, "alt": 1462} # Latitude [°] and altitude [m]
 lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
+min_date_period=datetime(2001, 1, 1) # Minimum date of the profiles to include in the database
 
 # Import the name of directories:
 with open("input_python.yaml", "r") as f:
@@ -42,11 +46,11 @@ for directory in directories.values():
         os.makedirs(directory)
 
 # List of datafiles to read (could specify a specific file name here):
-files_REMA=[];
-files_KW=[];
-min_date_period=datetime(2001, 1, 1)
+# files_REMA=[]
+files_KW=[]
+
 # To reprocess all files:
-# files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
 # files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
 
 
@@ -104,7 +108,7 @@ CTD_metaKW.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"],
 df_gas=pd.read_excel('../data/gas_profile/Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
 
 # Create txt file to save name of data files not included in database
-with open("../data/files_removed.txt", "a") as file_txt:
+with open("../data/ctd/files_removed.txt", "a") as file_txt:
     file_txt.write("*****************\nFiles not included in database ({})\n*****************\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 #breakpoint()
 #%% Data extraction and export to Levels 2A and 2B
@@ -121,9 +125,9 @@ for file in files:
         time_prof=(end_time-start_time)/10 # time needed to process one profile [s]
     if index_file>=10:
         time_rem=(len(files)-index_file-1)*time_prof/60 # Remaining time [min]
-        print('File {}/{} ({}%): {}. Time remaining: {:.1f} min'.format(index_file+1,len(files),round((index_file+1)/len(files)*100),data_type_name[data_type[index_file]],time_rem))
+        print('File {}/{} ({}%): {}, {}. Time remaining: {:.1f} min'.format(index_file+1,len(files),round((index_file+1)/len(files)*100),file,data_type_name[data_type[index_file]],time_rem))
     else:
-        print('File {}/{} ({}%): {}'.format(index_file+1,len(files),round((index_file+1)/len(files)*100),data_type_name[data_type[index_file]]))
+        print('File {}/{} ({}%): {}, {}'.format(index_file+1,len(files),round((index_file+1)/len(files)*100),file,data_type_name[data_type[index_file]]))
         
     if data_type[index_file]==1: # Kivuwatt profiles
         try:
@@ -152,7 +156,7 @@ for file in files:
                 # Read data
                 if not CTD_prof.split_profiles_Kivuwatt(df_KW,CTD_metaKW,indprof,multip_cond=fcond,press_to_depth_factor=fdepth):
                     print('Not possible to process profile {}'.format(indprof))
-                    with open("../data/files_removed.txt", "a") as file_txt:
+                    with open("../data/ctd/files_removed.txt", "a") as file_txt:
                         file_txt.write(file+": profile {}/{} could not be processed (function split_profiles_Kivuwatt)\n".format(indprof,n_subprof))
                     continue
                 CTD_prof.extract_water_level(lake_level, lake_info["alt"])
@@ -160,7 +164,7 @@ for file in files:
                 CTD_subprof[kprof]=CTD_prof
         except Exception:
             failed.append(file)
-            with open("../data/files_removed.txt", "a") as file_txt:
+            with open("../data/ctd/files_removed.txt", "a") as file_txt:
                 file_txt.write(file+": Kivuwatt profile could not be extracted\n")
             print('Kivuwatt profile data could not be read')
         CTD_subprof=list(np.array(CTD_subprof)[np.array(CTD_subprof)!=None]) # Keep only the profiles that are not empty
@@ -201,17 +205,17 @@ for file in files:
                     CTD.quality_assurance(directories["quality_assurance"])
                 else:
                     failed.append(file)
-                    with open("../data/files_removed.txt", "a") as file:
+                    with open("../data/ctd/files_removed.txt", "a") as file:
                         file.write(file+": profile {}/{} could not be extracted\n".format(ksubprof,len(CTD_subprof)))
                     break
         else:
             failed.append(file)
-            with open("../data/files_removed.txt", "a") as file_txt:
+            with open("../data/ctd/files_removed.txt", "a") as file_txt:
                 file_txt.write(file+": file could not be read (function read_raw_data)\n")
             
             
         if file in failed:
-            print('profile data could not be read')
+            print('Profile data in {} could not be read, see data/ctd/files_removed.txt for more information'.format(file))
             continue # Go to the next file
     
     # Loop on each profile from REMA or Kivuwatt:
@@ -250,7 +254,7 @@ for file in files:
                 # CTD.to_netcdf_combine(directories["Level3_dir"], "L3_KW")
         else:
             failed.append(CTD.general_attributes["filename"])
-            with open("../data/files_removed.txt", "a") as file_txt:
+            with open("../data/ctd/files_removed.txt", "a") as file_txt:
                 file_txt.write(CTD.general_attributes["filename"]+": additional variables could be calculated\n")
             
 
@@ -350,7 +354,7 @@ for file in files_L2B:
         tprof=nc_L2B.variables["time"][:].data[0]
         if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[0])[:,0],tprof<np.array(tperiod_rem_all[0])[:,1]))>0: # Profile was taken during the period to remove
             files_remove.append(file)  
-            with open("../data/files_removed.txt", "a") as file_txt:
+            with open("../data/ctd/files_removed.txt", "a") as file_txt:
                 file_txt.write(file+": not included in L3 file because it belongs to a period with incorrect data\n")
             
             continue
@@ -359,7 +363,7 @@ for file in files_L2B:
         tprof=nc_L2B.variables["time"][:].data[0]
         if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[1])[:,0],tprof<np.array(tperiod_rem_all[1])[:,1]))>0: # Profile was taken during the period to remove
             files_remove.append(file) 
-            with open("../data/files_removed.txt", "a") as file_txt:
+            with open("../data/ctd/files_removed.txt", "a") as file_txt:
                 file_txt.write(file+": not included in L3 file because it belongs to a period with incorrect data\n")
             continue
     
@@ -393,14 +397,15 @@ for file in files_L2B:
 print('Files removed:')
 print(files_remove)
     
-# Add datetime:
-data_nc_REMA["datetime"]=np.array([int(datetime.fromtimestamp(data_nc_REMA["time"][i],UTC).strftime('%Y%m%d%H%M%S')) for i in range(len(data_nc_REMA["time"]))])   
-data_nc_KW["datetime"]=np.array([int(datetime.fromtimestamp(data_nc_KW["time"][i],UTC).strftime('%Y%m%d%H%M%S'))for i in range(len(data_nc_KW["time"]))]) 
-# Add min depth and max depth:
-data_nc_REMA["min_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][0]] for i in range(len(data_nc_REMA["time"]))])
-data_nc_REMA["max_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][-1]] for i in range(len(data_nc_REMA["time"]))])
-data_nc_KW["min_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][0]] for i in range(len(data_nc_KW["time"]))])
-data_nc_KW["max_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][-1]] for i in range(len(data_nc_KW["time"]))])
+# Add datetime, min depth and max depth to the dictionaries:
+if data_nc_REMA: # If not empty
+    data_nc_REMA["datetime"]=np.array([int(datetime.fromtimestamp(data_nc_REMA["time"][i],UTC).strftime('%Y%m%d%H%M%S')) for i in range(len(data_nc_REMA["time"]))])   
+    data_nc_REMA["min_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][0]] for i in range(len(data_nc_REMA["time"]))])
+    data_nc_REMA["max_depth"]=np.array([data_nc_REMA["depth_interp"][np.where(~np.isnan(data_nc_REMA["rho"][:,i]))[0][-1]] for i in range(len(data_nc_REMA["time"]))])
+if data_nc_KW: # If not empty
+    data_nc_KW["datetime"]=np.array([int(datetime.fromtimestamp(data_nc_KW["time"][i],UTC).strftime('%Y%m%d%H%M%S'))for i in range(len(data_nc_KW["time"]))]) 
+    data_nc_KW["min_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][0]] for i in range(len(data_nc_KW["time"]))])
+    data_nc_KW["max_depth"]=np.array([data_nc_KW["depth_interp"][np.where(~np.isnan(data_nc_KW["rho"][:,i]))[0][-1]] for i in range(len(data_nc_KW["time"]))])
 
     
 # Export the combined profiles to netCDF file (overwrite)
