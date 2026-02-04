@@ -58,20 +58,18 @@ With jupyter notebook: <font color='red'>*work in progress*</font>
 
 The data will be available for visualization on the following website (<font color='red'>*work in progress*</font>): https://www.datalakes-eawag.ch/datadetail/964.
 
-### Process new REMA data
+### Process new data
 
-The current version of the database is only able to process .TOB and .cnv data files from REMA. The steps to follow to process new REMA data are:
-1. Add the new files in the folder `data\ctd\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
+The current version of the database is only able to process .TOB and .cnv data files from REMA and .csv files from Kivuwatt. The steps to follow to process new data are:
+1. Add the new files in the folder `data\ctd\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`). You can also specify in `scripts\input_python.yaml` where the Level2 and Level3 folders should be created, if not existing already.
 2. In `scripts\main_ctd_database.py`, modify the *Parameters* section as followed:
-    - Add the names of the new files in the list `files_REMA` and make sure that the new profiles were taken after `min_date_period`. If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. Example: 
+    - Specify which data processing steps should be performed (from Level 0 to Level 2 only, from Level 2 to Level 3 only, or both steps):
         ```
-        files_REMA=['0000.TOB','0001.TOB']
-        min_date_period=datetime(2001, 1, 1) # 1st January 2001
+        process_L0toL2=True # To process Level 0 to Level 2
+        process_L2toL3=True # To process Level 2 to Level 3
         ```
-        To reprocess all the data files, use
-        ```
-        files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv"))]
-        ```
+        - Processing from Level 0 to Level 2: only done for the selected files (see below), if they were not exported to Level 2 yet 
+        - Processing from Level 2 to Level 3: if Level 3 files do not exist yet, all Level 2 files are exported to Level 3; if level 3 files already exist, only the Level 2 files from selected Level 0 files (see below) are exported to Level 3.   
     - To display detailed information on each data file processing in the Python command (useful for debugging, but takes more time), use:
         ```
         show_output=True
@@ -80,7 +78,30 @@ The current version of the database is only able to process .TOB and .cnv data f
         ```
         save_csv=True
         ```
+    - Select Level 0 files to export, with one of the three following methods:
+        - Interactively with a GUI interface (requires the tkinter package):
+            ```
+            # Use GUI to select new files to process (requires tkinter):
+            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
 
+            files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
+            ```
+        - By specifying filenames in the lists `files_REMA` and `files_KW`. Example: 
+            ```
+            files_REMA = ['0000.TOB','0001.TOB']
+
+            files_KW = ['Data1.csv']
+            ```
+        - By processing all Level 0 data files:
+            ```
+            files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv"))]
+
+            files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+            ```
+        Make sure that the new profiles were taken after `min_date_period`. If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. For example:
+        ```
+        min_date_period=datetime(2001, 1, 1) # 1st January 2001
+        ```
 3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\ctd\Level2A` and `data\ctd\Level2B` and L3 files in folder `data\ctd\Level3` should be replaced by the new database containing the new files. 
 
     In case some of the data files cannot be read (e.g., wrong format), those files will be skipped and their names will be saved in the file `data\ctd\files_removed.txt`, with some information about the error source. More detailed information about the location of the error is displayed in the Python terminal if 
