@@ -10,6 +10,8 @@ from envass import qualityassurance
 from datetime import datetime, timedelta
 import time
 from scipy.ndimage import uniform_filter1d
+import tkinter as tk
+from tkinter import filedialog
 
 
 def copyFiles(outfolder, infolder):
@@ -963,3 +965,19 @@ def get_nc_data(nc):
     for key in varnames:
         data_nc[key]=nc.variables[key][:].data
     return data_nc
+
+def select_files(dirname,messagestr="Select CTD files to process",filetypes=(("All files", "*.*"),)):
+    """
+    Open a file dialog to select multiple files.
+    Inputs:
+        dirname (str): directory to start the file dialog in.
+        messagestr (str): message to display in the file dialog.
+        filetypes (tuple): file types to display in the dialog.
+        Outputs:
+            files (list): list of selected file paths.
+    """
+    root = tk.Tk()
+    root.withdraw()  # Hide the main Tk window
+    files = filedialog.askopenfilenames(initialdir=dirname,title=messagestr, filetypes=filetypes)
+
+    return list(files)
