@@ -897,7 +897,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
 
     
 
-def parse_chl(df, name, columns, units, ref_date, date_format):
+def parse_chl(df, name, columns, units):
     # if units == "g/l" or units == "g/L":
     #     try:
     #         log("Changed Chl unit")

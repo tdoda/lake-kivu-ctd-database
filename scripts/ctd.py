@@ -190,8 +190,8 @@ class ctd:
                 df.drop(index=df.index[-1], axis=0, inplace=True)
             for variable in self.variables:
                 if variable in df.columns:
-                    if "function" in self.variables[variable]:
-                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units, ref_date, date_format))
+                    if "function" in self.variables[variable]: # If a specific function is defined to parse the variable, use it (e.g., for chlorophyll)
+                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units))
                     else:
                         self.data[variable] = np.array(df[variable].values)
                 else:
