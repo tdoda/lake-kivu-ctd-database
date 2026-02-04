@@ -43,7 +43,7 @@ You can also install each package separately:
 
 ## Usage
 
-The CTD database is stored in the `data\ctd` folder. The datafiles cannot be uploaded to Github, but can be accessed, downloaded and uploaded at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. 
+The CTD database is stored in the `data\ctd` folder. The datafiles cannot be uploaded to Github, but can be accessed, downloaded and uploaded on [this One Drive repository](https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS). 
 
 ### Access the database
 The final, depth-interpolated and quality checked database is available in two different folders depending on the type of files that the user wants to access:
@@ -60,16 +60,35 @@ The data will be available for visualization on the following website (<font col
 
 ### Process new REMA data
 
-<font color='red'>*Work in progress, quick summary of the steps for now:*</font>
+The current version of the database is only able to process .TOB and .cnv data files from REMA. The steps to follow to process new REMA data are:
 1. Add the new files in the folder `data\ctd\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`).
-2. In the section `Parameters` of the script `scripts\main_ctd_database.py`, add the names of the new files in the list `files_REMA` and make sure that the new profiles were taken after `min_date_period`. 
-If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. Example: 
-```
-files_REMA=['0000.TOB','0001.TOB']
-min_date_period=datetime(2001, 1, 1) # 1st January 2001
-```
+2. In `scripts\main_ctd_database.py`, modify the *Parameters* section as followed:
+    - Add the names of the new files in the list `files_REMA` and make sure that the new profiles were taken after `min_date_period`. If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. Example: 
+        ```
+        files_REMA=['0000.TOB','0001.TOB']
+        min_date_period=datetime(2001, 1, 1) # 1st January 2001
+        ```
+        To reprocess all the data files, use
+        ```
+        files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv"))]
+        ```
+    - To display detailed information on each data file processing in the Python command (useful for debugging, but takes more time), use:
+        ```
+        show_output=True
+        ```
+    - To save data as .csv files in addition to .nc files, use:
+        ```
+        save_csv=True
+        ```
 
-3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\Level2A` and `data\Level2B` and L3 files in folder `data\Level3` should be replaced by the new database containing the new files.
+3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\ctd\Level2A` and `data\ctd\Level2B` and L3 files in folder `data\ctd\Level3` should be replaced by the new database containing the new files. 
+
+    In case some of the data files cannot be read (e.g., wrong format), those files will be skipped and their names will be saved in the file `data\ctd\files_removed.txt`, with some information about the error source. More detailed information about the location of the error is displayed in the Python terminal if 
+    ```
+    show_output=True
+    ``` 
+    in `scripts\main_ctd_database.py`.
+
 
 
 ## Organization of the repository
@@ -77,7 +96,7 @@ min_date_period=datetime(2001, 1, 1) # 1st January 2001
 
 The data is structured with the following subfolders:
 
-- `ctd`: CTD database, not stored on Github but accessible at https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS. The CTD data is organized into the following subfolders:
+- `ctd`: CTD database, not stored on Github but accessible on [this OneDrive repository](https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS). The CTD data is organized into the following subfolders:
     - `Level0`: Raw CTD data collected by REMA and Kivuwatt (*.TOB, *.cnv, *.hex, *.xslx, *.csv files).
     - `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quantities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
     - `Level2B`: Similar data as Level 2A, except that the profiles have been vertically interpolated to a grid of 0.2 m spacing and that the quality flags have been applied to filter the data.
