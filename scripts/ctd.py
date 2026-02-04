@@ -132,7 +132,7 @@ class ctd:
         self.data = {}
         self.grid = {}
         self.comb_data = {}
-    def show_output(printlog):
+    def show_output(self,printlog):
         self.printlog=printlog
     
     def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
@@ -212,10 +212,11 @@ class ctd:
                 return False
 
             return True
-        except:
-            if not os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # There is not a second version of the file (with corrected data)
-                breakpoint()
+        except Exception as e:
             log("Failed to parse raw data from file {}".format(infile), indent=1,printlog=self.printlog)
+            if os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # A second version of the file exists 
+                log("A second version of the file exists, try to read that one (not done now): {}".format(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]), indent=1,printlog=self.printlog)
+            
             return False
         
     def extract_meta_data_Kivuwatt(self, infile,):
