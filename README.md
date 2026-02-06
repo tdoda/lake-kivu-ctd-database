@@ -18,7 +18,10 @@ The CTD probe is an instrument used to measure the conductivity, temperature, an
 
 ### 1. Python installation
 
-Python 3 is required to run the scripts. It is recommend to install Python through the Anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
+Python 3 is required to run the scripts. Three installation are possible:
+- Recommended option: download [Miniforge](https://github.com/conda-forge/miniforge). 
+- User-friendly option: download the [Anaconda distribution](https://www.anaconda.com/products/individual).
+- Classic option: download Python from the [official website](https://www.python.org/downloads/).
 
 ### 2. Repository installation
 
@@ -35,7 +38,7 @@ Python 3 is required to run the scripts. It is recommend to install Python throu
 
 1. Open the terminal (e.g., Anaconda Prompt), and move to the `lake-kivu-ctd-database` repository.
 2. Create a new environment *kivu-ctd* and install the packages as follows:
-    - If using conda:
+    - If using conda (Anaconda or Miniforge installation):
         ```
         conda env create -f environment.yml
         conda activate kivu-ctd 
@@ -46,7 +49,12 @@ Python 3 is required to run the scripts. It is recommend to install Python throu
         conda activate kivu-ctd
         pip install -r requirements.txt
         ```
-    - If using pip:
+    - If using mamba (Anaconda or Miniforge installation):
+        ```
+        mamba env create -f environment.yml
+        mamba activate kivu-ctd 
+        ```
+    - If using pip (classic Python installation):
         ```
         python -m venv kivu-ctd       
         source kivu-ctd /bin/activate  # For Linux/macOS
