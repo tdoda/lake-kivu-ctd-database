@@ -1,11 +1,26 @@
-dateparser==1.1.8
+# Lake Kivu CTD profiles requirements
+
+# Core packages
+numpy==1.23.5
+pandas==2.2.3
+scipy==1.9.3
+matplotlib==3.10.8
+
+# NetCDF / xarray / Excel
+netCDF4==1.7.4
+xarray==2023.12.0
+openpyxl==3.1.5
+
+# Other utilities
+PyYAML==6.0.3
+dateparser==1.2.0
+python-dateutil==2.9.0.post0
+
+# Oceanographic / scientific
+gsw==3.6.19
 envass==1.0.0
-gsw==3.4.0
-matplotlib==3.5.3
-netCDF4==1.6.2
-numpy==1.21.6
-pandas==1.3.5
-python_dateutil==2.8.2
-PyYAML==6.0.1
-scipy==1.7.3
-seawater==3.3.4
+cmocean==3.0.3
+
+# Optional for Jupyter interactive plots
+notebook==7.2.2
+ipympl==0.9.7 # only if using `%matplotlib widget`

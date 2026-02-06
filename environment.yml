@@ -1,7 +1,23 @@
-name: "base"
+name: kivu-ctd
 channels:
-  - defaults
-# dependencies:
-# - add packages here
-# - one per line
-prefix: "/opt/conda"
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy=1.23.5
+  - pandas==2.2.3
+  - scipy=1.9.3
+  - matplotlib=3.10.8
+  - netcdf4=1.7.4
+  - xarray=2023.12.0
+  - openpyxl=3.1.5
+  - pyyaml=6.0.3
+  - dateparser=1.2.0
+  - python-dateutil=2.9.0.post0
+  - gsw=3.6.19
+  - notebook=7.2.2
+  - ipympl=0.9.7
+  - pip
+  - pip:
+    - envass==1.0.0
+    - cmocean==3.0.3
+
