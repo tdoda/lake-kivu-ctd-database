@@ -412,7 +412,7 @@ def parse_file(input_file_path, string):
         columns=[]
         units=[]
         for krow in range(0,i):
-            if '# name' in lines[krow]:
+            if '# name' in lines[krow] or '#	name' in lines[krow]:
                 # Get the variable name
                 ind_equal=lines[krow].find('=')
                 ind_dots=lines[krow].find(':')
