@@ -57,7 +57,7 @@ if not process_L0toL2 and not process_L2toL3:
 #%% Parameters
 lake_info = {"lat": -2, "alt": 1462} # Latitude [°] and altitude [m]
 lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
-min_date_period=datetime(2001, 1, 1) # Minimum date of the profiles to include in the database
+min_date_period=datetime(2008, 1, 1) # Minimum date of the profiles to include in the database
 
 # Import the name of directories:
 with open("input_python.yaml", "r") as f:
