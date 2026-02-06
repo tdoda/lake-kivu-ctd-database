@@ -21,17 +21,39 @@ import numpy as np
 import copy
 import time
 import pandas as pd
-from functions import *
+from functions import select_processing_options, select_files, get_nc_data
 
 # Make sure the current working directory is the one of the script (to avoid problems with relative paths):
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 #%% Choices for the database creation
-show_output=False # To print the different steps in the console with the log function
-save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
-process_L0toL2=False# To process Level 0 to Level 2
-process_L2toL3=True # To process Level 2 to Level 3
 
+# With GUI:
+options = select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False)
+process_REMA    = options["process_REMA"]
+process_KW      = options["process_KW"]
+show_output     = options["show_output"]
+save_csv        = options["save_csv"]
+process_L0toL2  = options["process_L0toL2"]
+process_L2toL3  = options["process_L2toL3"]
+
+# Manually:
+# process_REMA    = True
+# process_KW      = True
+# show_output=False # To print the different steps in the console with the log function
+# save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
+# process_L2toL3=True # To process Level 2 to Level 3 
+# process_L0toL2=True # To process Level 0 to Level 2
+
+# Check data type selection
+if not process_REMA and not process_KW:
+    print("No data type selected. Exiting script.")
+    sys.exit(0)
+
+# Check data processing selection
+if not process_L0toL2 and not process_L2toL3:
+    print("No data processing selected. Exiting script.")
+    sys.exit(0)
 #%% Parameters
 lake_info = {"lat": -2, "alt": 1462} # Latitude [°] and altitude [m]
 lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
@@ -47,10 +69,16 @@ for directory in directories.values():
         os.makedirs(directory)
 
 if process_L0toL2:
-    # Use GUI to select new files to process (requires tkinter):
-    files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
-    files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
-
+    # Use GUI to select new files to process:
+    if process_REMA:
+        files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+    else:
+        files_REMA = []
+    if process_KW:
+        files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
+    else:
+        files_KW = []
+    
     # List of Level 0 datafiles to read (could specify a specific file name here):
     # files_REMA=[]
     # files_KW=[]
@@ -235,15 +263,16 @@ if process_L0toL2:
             count_subprof+=1
             print('**** Profile {}/{} ****'.format(count_subprof,len(CTD_subprof)))                 
             if CTD.derive_variables(lake_info["lat"],lake_info["alt"],df_gas): # Calculation of additional variables       
+                print('Export to Level 2A')
                 if data_type[index_file]==0: # REMA
                     CTD.quality_assurance(directories["quality_assurance"]) # Re-apply quality assurance on newly created variables
-                    CTD.to_netcdf(directories["Level2A_dir"], "L2A")
-                    if save_csv:
+                    success_export=CTD.to_netcdf(directories["Level2A_dir"], "L2A")
+                    if save_csv and success_export:
                         CTD.to_csv(directories["Level2A_dir"], "L2A",dimrows='time',var_to_remove=["thorpe","pt","prho"])
                 else: # Kivuwatt
                     CTD.quality_assurance(directories["quality_assurance_KW"])
-                    CTD.to_netcdf(directories["Level2A_KW_dir"], "L2A")
-                    if save_csv:
+                    success_export=CTD.to_netcdf(directories["Level2A_KW_dir"], "L2A")
+                    if save_csv and success_export:
                         CTD.to_csv(directories["Level2A_KW_dir"], "L2A",dimrows='time',var_to_remove=["thorpe","pt","prho"])
                 CTD.mask_data() # Apply the mask from quality check
                 # Add latitude and longitude as variables
@@ -251,16 +280,17 @@ if process_L0toL2:
                 CTD.grid["longitude"]=CTD.general_attributes["longitude"]
                 CTD.grid["dist_GEF"]=CTD.general_attributes["distance_to_GEF"]
                 CTD.profile_to_timeseries_grid(vars_nointerp=["latitude","longitude","dist_GEF"],depthgrid=CTD.data["depth_ref"]) # Don't interpolate latitude and longitude
+                print('Export to Level 2B')
                 if data_type[index_file]==0: # REMA
-                    CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
+                    success_export=CTD.to_netcdf(directories["Level2B_dir"], "L2B", output_period="profile", grid=True)
                     files_L2B_REMA.append(CTD.L2B_filename)
-                    if save_csv:
+                    if save_csv and success_export:
                         CTD.to_csv(directories["Level2B_dir"], "L2B",dimrows='depth_interp',grid=True)
                     # CTD.to_netcdf_combine(directories["Level3_dir"], "L3_REMA")
                 else: # Kivuwatt
-                    CTD.to_netcdf(directories["Level2B_KW_dir"], "L2B", output_period="profile", grid=True)
+                    success_export=CTD.to_netcdf(directories["Level2B_KW_dir"], "L2B", output_period="profile", grid=True)
                     files_L2B_KW.append(CTD.L2B_filename)
-                    if save_csv:
+                    if save_csv and success_export:
                         CTD.to_csv(directories["Level2B_KW_dir"], "L2B",dimrows='depth_interp',grid=True)
                     # CTD.to_netcdf_combine(directories["Level3_dir"], "L3_KW")
             else:
@@ -276,6 +306,10 @@ if process_L0toL2:
 #breakpoint()
 
 if process_L2toL3:
+    print('********************************')
+    print('Export to Level 3')
+    print('')
+
     start_time=time.time() # current time
     index_file=-1
 
@@ -294,8 +328,13 @@ if process_L2toL3:
     L3_REMA = os.path.join(folder_REMA, "L3_REMA.nc")
     L3_KW = os.path.join(folder_KW, "L3_KW.nc")
     L3_comb = os.path.join(folder_comb, "L3_comb.nc")
+    createL3_REMA=False
+    createL3_KW=False
 
-    if os.path.isfile(L3_REMA): # File has already been created: only add new profiles processed above from Level0 to Level2B
+    if os.path.isfile(L3_REMA): # File has already been created: only add new profiles processed above from Level0 to Level2B or select them if no Level0
+        if not process_L0toL2 and process_REMA: # If Level 0 to Level 2 is not processed, we need to select the files to add to the existing L3 file 
+            files_L2B_REMA = select_files(dirname=directories["Level2B_dir"],messagestr="Select Level2B files to process",filetypes=(("REMA files", "*.nc"),))
+        
         nc_REMA = netCDF4.Dataset(L3_REMA, mode='a', format='NETCDF4')
         try: 
             nc_REMA__time = nc_REMA.variables["time"]
@@ -305,12 +344,20 @@ if process_L2toL3:
             createL3_REMA=True
             data_nc_REMA=dict()
         nc_REMA.close()
-    else: # File doesn't exist yet: add all profiles from Level2B
+    else: # File doesn't exist yet: add all profiles from Level2B (even if REMA processing not selected)
+        print('L3_REMA file does not exist yet: all Level2B REMA profiles will be added')
         files_L2B_REMA=[f for f in os.listdir(directories["Level2B_dir"]) if f.endswith((".nc")) ]# Get all the L2B files
         data_nc_REMA=dict()
         createL3_REMA=True
+    
+    if createL3_REMA:
+        print('A new L3_REMA file will be created')
+
         
     if os.path.isfile(L3_KW): # File has already been created: only add new profiles processed above from Level0 to Level2B
+        if not process_L0toL2 and process_KW: # If Level 0 to Level 2 is not processed, we need to select the files to add to the existing L3 file 
+            files_L2B_KW = select_files(dirname=directories["Level2B_KW_dir"],messagestr="Select Level2B files to process",filetypes=(("KW files", "*.nc"),))
+         
         nc_KW = netCDF4.Dataset(L3_KW, mode='a', format='NETCDF4')
         try:
             nc_KW__time = nc_KW.variables["time"]
@@ -321,17 +368,15 @@ if process_L2toL3:
             data_nc_KW=dict()
         nc_KW.close()
     else: # File doesn't exist yet: add all profiles from Level2B
+        print('L3_KW file does not exist yet: all Level2B KW profiles will be added')
         files_L2B_KW=[f for f in os.listdir(directories["Level2B_KW_dir"]) if f.endswith((".nc")) ] # Get all the L2B files
         data_nc_KW=dict()
         createL3_KW=True
-        
+    
+    if createL3_KW:
+        print('A new L3_KW file will be created')
 
 
-
-
-    print('********************************')
-    print('Combine all the profiles')
-    print('')
 
     files_remove=[]
 
@@ -354,9 +399,9 @@ if process_L2toL3:
             time_prof=(end_time-start_time)/20 # time needed to process one profile [s]
         if index_file>=20:
             time_rem=(len(files_L2B)-index_file-1)*time_prof/60 # Remaining time [min]
-            print('File {}/{} ({}%): {}. Time remaining: {:.1f} min'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),data_type_name[data_type_L2B[index_file]],time_rem))
+            print('File {}/{} ({}%): {}, {}. Time remaining: {:.1f} min'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),file,data_type_name[data_type_L2B[index_file]],time_rem))
         else:
-            print('File {}/{} ({}%): {}'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),data_type_name[data_type_L2B[index_file]]))
+            print('File {}/{} ({}%): {}, {}'.format(index_file+1,len(files_L2B),round((index_file+1)/len(files_L2B)*100),file,data_type_name[data_type_L2B[index_file]]))
         
         
         # Open L2B file
@@ -365,6 +410,7 @@ if process_L2toL3:
             tprof=nc_L2B.variables["time"][:].data[0]
             if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[0])[:,0],tprof<np.array(tperiod_rem_all[0])[:,1]))>0: # Profile was taken during the period to remove
                 files_remove.append(file)  
+                print("Not included in L3 file because it belongs to a period with incorrect data")
                 with open("../data/ctd/files_removed.txt", "a") as file_txt:
                     file_txt.write(file+": not included in L3 file because it belongs to a period with incorrect data\n")
                 
@@ -374,6 +420,7 @@ if process_L2toL3:
             tprof=nc_L2B.variables["time"][:].data[0]
             if np.sum(np.logical_and(tprof>np.array(tperiod_rem_all[1])[:,0],tprof<np.array(tperiod_rem_all[1])[:,1]))>0: # Profile was taken during the period to remove
                 files_remove.append(file) 
+                print("Not included in L3 file because it belongs to a period with incorrect data")
                 with open("../data/ctd/files_removed.txt", "a") as file_txt:
                     file_txt.write(file+": not included in L3 file because it belongs to a period with incorrect data\n")
                 continue
@@ -392,15 +439,21 @@ if process_L2toL3:
         for key in remvar:
             del CTD_L2B.comb_variables[key]
         
+        added_data_REMA=False
+        added_data_KW=False
         # Add the data to the dictionary
         if data_type_L2B[index_file]==0: # REMA
             # CTD_L2B.write_to_L3(nc_REMA,newfile=createL3_REMA)
-            CTD_L2B.add_to_dict(data_nc_REMA,newfile=createL3_REMA)
+            added_data=CTD_L2B.add_to_dict(data_nc_REMA,newfile=createL3_REMA)
+            if not added_data_REMA and added_data:
+                added_data_REMA=True # At least one REMA profile added
             if createL3_REMA:
                 createL3_REMA=False
         else: # Kivuwatt
             # CTD_L2B.write_to_L3(nc_KW,newfile=createL3_KW)
-            CTD_L2B.add_to_dict(data_nc_KW,newfile=createL3_KW)
+            added_data=CTD_L2B.add_to_dict(data_nc_KW,newfile=createL3_KW)
+            if not added_data_KW and added_data:
+                added_data_KW=True # At least one Kivuwatt profile added
             if createL3_KW:
                 createL3_KW=False
         nc_L2B.close()
@@ -422,7 +475,8 @@ if process_L2toL3:
 
     # Copy the data in CTD objects and export it to netCDF files
     # A. REMA
-    if data_nc_REMA: # Not empty
+    if data_nc_REMA and added_data_REMA: # Not empty and at least one new profile added
+        print('Export to L3_REMA')
         CTD_REMA=ctd(printlog=show_output)
         CTD_REMA.general_attributes["source"]="Lake Kivu Monitoring Program"
         nc_REMA = netCDF4.Dataset(L3_REMA, mode='w', format='NETCDF4') # Create new file
@@ -437,9 +491,11 @@ if process_L2toL3:
         CTD_REMA.write_to_L3(nc_REMA,newfile=True)
         CTD_REMA.var_to_csv(folder_REMA, "L3_REMA", ["Temp","rho","SALIN","Cond20"])
         nc_REMA.close()
+        print('REMA L3 database created!')
 
     # B. Kivuwatt
-    if data_nc_KW: # Not empty
+    if data_nc_KW and added_data_KW: # Not empty and at least one new profile added 
+        print('Export to L3_KW')
         CTD_KW=ctd(printlog=show_output)
         CTD_KW.general_attributes["source"]="Kivuwatt profiles"
         nc_KW = netCDF4.Dataset(L3_KW, mode='w', format='NETCDF4')
@@ -454,9 +510,11 @@ if process_L2toL3:
         CTD_KW.write_to_L3(nc_KW,newfile=True)
         CTD_KW.var_to_csv(folder_KW, "L3_KW", ["Temp","rho","SALIN","Cond20"])
         nc_KW.close()
+        print('Kivuwatt L3 database created!')
 
     # C. Combined
-    if data_nc_REMA and data_nc_KW: # Not empty
+    if data_nc_REMA and data_nc_KW: # Not empty, recompute combined database even if no new profile added
+        print('Export to L3_comb')
         nc_comb = netCDF4.Dataset(L3_comb, mode='w', format='NETCDF4')
         CTD_comb=ctd(printlog=show_output)
         CTD_comb.general_attributes["source"]="Combined Kivuwatt-REMA profiles"
@@ -483,5 +541,4 @@ if process_L2toL3:
         CTD_comb.write_to_L3(nc_comb,newfile=True)
         CTD_comb.var_to_csv(folder_comb, "L3_comb", ["Temp","rho","SALIN","Cond20"])
         nc_comb.close()
-        
-    print('Database created!')
+        print('Combined L3 database created!')

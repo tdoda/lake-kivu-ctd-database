@@ -12,11 +12,9 @@ from datetime import datetime, timedelta, timezone, UTC
 from dateutil.relativedelta import relativedelta
 from functions import *
 from scipy import interpolate
-import seawater as sw
+import gsw
 import re as re
-import matplotlib.pyplot as plt
-import collections
-import time
+
 
 
 class ctd:
@@ -588,8 +586,22 @@ class ctd:
         
         
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
-        
+        """
+        Export profiles to netCDF files, either single profiles or depth-interpolated profiles.
+        Inputs:
+            folder: output folder
+            title: title of the output files
+            output_period: "weekly", "monthly", "yearly", "profile"
+            mode: 'a' to append to existing files, 'w' to overwrite
+            time_label: name of the time variable
+            grid: True for depth-interpolated data (Level 2B), False for raw
+            data (Level 2A).
+        Outputs: 
+            success_export: True if at least one profile was exported, False otherwise.
+        """
         log("Saving to NetCDF", indent=1,printlog=self.printlog)
+
+        success_export=False
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
 
@@ -682,6 +694,7 @@ class ctd:
                                 else:
                                     var[:, idx] = data[key]
                     nc.close()
+                    success_export=True
 
             else:
                 
@@ -715,12 +728,25 @@ class ctd:
                         breakpoint()
                         nc.close()
                 nc.close()
+                success_export=True
 
             start = start + td
-            
-    def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
+        return success_export
         
+    def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
+        """
+        Export combined profiles to netCDF files (Level 3). 
+        Inputs:
+            folder: output folder
+            title: title of the output files
+            mode: 'a' to append to existing files, 'w' to overwrite
+            time_label: name of the time variable
+        Outputs: 
+            success_export: True if at least one profile was exported, False otherwise.
+        """
         log("Saving to combined NetCDF", indent=1,printlog=self.printlog)
+        
+        success_export=False
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
         
@@ -782,6 +808,7 @@ class ctd:
                             else:
                                 var[:, idx] = data[key]
                 nc.close()
+                success_export=True
 
         else:
             
@@ -815,6 +842,8 @@ class ctd:
                     breakpoint()
                     nc.close()
             nc.close()
+            success_export=True
+        return success_export
 
     def write_to_L3(self,nc,time_label="time",newfile=True):
         variables = self.comb_variables
@@ -895,6 +924,16 @@ class ctd:
                     breakpoint()
                     
     def add_to_dict(self,dict_name,time_label="time",newfile=True):
+        """
+        Add the data to a dictionary representing the netCDF file content.
+        Returns True if data was added, False if data was already present.
+        Inputs:
+            dict_name: dictionary representing the netCDF file content.
+            time_label: name of the time variable.
+            newfile: boolean indicating if the file is new or not.
+        Outputs:
+            added_data: boolean indicating if data was added or not.
+        """
         variables = self.comb_variables
         dimensions = self.grid_dimensions
         data = self.grid
@@ -905,12 +944,13 @@ class ctd:
         # data["max_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][-1]]])
 
         time_arr = data[time_label]
-        
+        added_data=True
         if not newfile: # File has already been created
             dict_time = dict_name[time_label]
 
             if time_arr[0] in dict_time: # Profile is already present in the netCDF file
                 print("Data already present in the L3 netCDF file")
+                added_data=False
             else:
                 idx = position_in_array(dict_time, time_arr[0]) # Where to insert the new profile
                 dict_time = np.insert(dict_time, idx, time_arr[0])
@@ -971,6 +1011,7 @@ class ctd:
                     
                 except:
                     breakpoint()
+        return added_data
     
 
     def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time",):
@@ -1034,7 +1075,8 @@ class ctd:
             # rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             rho_TS = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             if calculate_depth: 
-                depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+                # depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+                depth_TS=1e4 * data["adj_press"] / rho_TS / gsw.grav(lat, 0) # With gsw
             else:
                 depth_TS=data["adj_press"]
             C_CH4=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CH4"])], df_gas["CH4"][~np.isnan(df_gas["CH4"])]*16/1000) # g/L
@@ -1062,9 +1104,9 @@ class ctd:
         indrho[np.isnan(rho_p[ind0:])]=np.nan
         rho_avg[ind0:]=np.nancumsum(rho_p[ind0:])/np.nancumsum(indrho)
     
-        if calculate_depth: 
-            #self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
-            self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
+        if calculate_depth:  
+            #self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
+            self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*gsw.grav(lat, 0)) # With gsw
         else:
             self.data["depth"]=data["adj_press"]
         log("Calculating depth_ref...", indent=2,printlog=self.printlog)
@@ -1072,7 +1114,7 @@ class ctd:
         b=(self.data["depth_ref"])
         try:
             log("Calculating potential temperature...", indent=2,printlog=self.printlog)
-            self.data["pt"]  = potential_temperature_sw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
+            self.data["pt"]  = potential_temperature_gsw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature",printlog=self.printlog)

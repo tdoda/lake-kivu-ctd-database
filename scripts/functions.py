@@ -1,17 +1,17 @@
+import sys
 import os
 import json
 import math
 import numpy as np
 import pandas as pd
 import gsw
-import seawater as sw
 from shutil import copyfile
 from envass import qualityassurance
 from datetime import datetime, timedelta
-import time
 from scipy.ndimage import uniform_filter1d
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import ttk
 
 
 def copyFiles(outfolder, infolder):
@@ -270,9 +270,12 @@ def density_Kivu(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_S=0.75E-3,be
 
 
 def Gamma_adiabatic(T, S, p, lat=46.):
-    alpha = sw.alpha(S, T, p)
-    cp = sw.cp(S, T, p)
-    Gamma = sw.g(lat) * alpha * (T - 273.15) / cp
+    # alpha = sw.alpha(S, T, p)
+    # cp = sw.cp(S, T, p)
+    # Gamma = sw.g(lat) * alpha * (T - 273.15) / cp
+    alpha=gsw.alpha(S, T, p)
+    cp=gsw.cp_t_exact(S, T, p)
+    Gamma = gsw.grav(lat, 0) * alpha * (T - 273.15) / cp
     return Gamma
 
 def mask_single_data(data, mask):
@@ -313,14 +316,9 @@ def potential_temperature(T, S, p, z, lat=46.2):
     PT[iif] = pt1
     return PT
 
-
-def potential_temperature_gsw(T, S, p):
-    return gsw.pt_from_t(S, T, p, 0)
-
-
-def potential_temperature_sw(T, S, p, p_ref):
+def potential_temperature_gsw(T, S, p, p_ref):
     """
-    Calculates potential temperature as per UNESCO 1983 report.
+    Calculates potential temperature.
     Parameters
     ----------
     s(p) : array_like
@@ -336,7 +334,7 @@ def potential_temperature_sw(T, S, p, p_ref):
     pt : array_like
         potential temperature relative to PR [℃ (ITS-90)]
     """
-    return sw.ptmp(s=S,t=T,p=p,pr=p_ref)
+    return gsw.pt_from_t(S, T, p, p_ref)
 
 
 def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
@@ -349,7 +347,7 @@ def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
     mmHg_inHg = 25.3970886
     standard_pressure_sea_level = 29.92126
     standard_temperature_sea_level = 15 + 273.15
-    gravitational_acceleration = gr = sw.g(lat)
+    gravitational_acceleration = gr = gsw.grav(lat, 0)
     air_molar_mass = 0.0289644
     universal_gas_constant = 8.31447
     baro = (1. / mmHg_mb) * mmHg_inHg * standard_pressure_sea_level * np.exp(
@@ -974,10 +972,77 @@ def select_files(dirname,messagestr="Select CTD files to process",filetypes=(("A
         messagestr (str): message to display in the file dialog.
         filetypes (tuple): file types to display in the dialog.
         Outputs:
-            files (list): list of selected file paths.
+            filenames (list): list of selected file names.
     """
     root = tk.Tk()
     root.withdraw()  # Hide the main Tk window
     files = filedialog.askopenfilenames(initialdir=dirname,title=messagestr, filetypes=filetypes)
 
-    return list(files)
+    # Extract only the filenames
+    filenames = [os.path.basename(f) for f in files]
+
+    return filenames
+
+def select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False):
+    """
+    Open a dialog to select processing options.
+    Inputs: 
+        process_REMA (bool): whether to process REMA data. Default is True.
+        process_KW (bool): whether to process KW data. Default is True.
+        process_L0toL2 (bool): whether to process Level 0 → Level 2. Default is True.
+        process_L2toL3 (bool): whether to process Level 2 → Level 3. Default is True. 
+        save_csv (bool): whether to save CSV files. Default is True.
+        show_output (bool): whether to show output (logs). Default is False.
+        
+    Outputs:
+        options (dict): dictionary with the selected options.
+    """
+    root = tk.Tk() # Create the main window
+    root.title("Processing options") # Set the window title
+    root.geometry("500x200") # Set the window size
+
+    vars_ = {
+        "process_REMA": tk.BooleanVar(value=process_REMA),
+        "process_KW": tk.BooleanVar(value=process_KW),
+        "process_L0toL2": tk.BooleanVar(value=process_L0toL2),
+        "process_L2toL3": tk.BooleanVar(value=process_L2toL3), 
+        "save_csv": tk.BooleanVar(value=save_csv),
+        "show_output": tk.BooleanVar(value=show_output),
+    } # Create BooleanVars for each option
+
+    # If user closes the window → STOP SCRIPT
+    def on_close():
+        root.destroy()
+        sys.exit(0)
+
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
+    # Create checkbuttons for each option
+    # Horizontal frame for data type checkboxes
+    frame_data = ttk.Frame(root)
+    frame_data.pack(anchor="w", padx=10, pady=5)
+    ttk.Label(frame_data, text="Data type:").pack(side="left")
+    ttk.Checkbutton(frame_data, text="REMA", variable=vars_["process_REMA"]).pack(side="left", padx=5)
+    ttk.Checkbutton(frame_data, text="Kivuwatt", variable=vars_["process_KW"]).pack(side="left", padx=5)
+
+    frame_data2 = ttk.Frame(root)
+    frame_data2.pack(anchor="w", padx=10, pady=5)
+    ttk.Label(frame_data2, text="Processing level:").pack(side="left")
+    ttk.Checkbutton(frame_data2, text="Level 0 → Level 2", variable=vars_["process_L0toL2"]).pack(side="left", padx=5)
+    ttk.Checkbutton(frame_data2, text="Level 2 → Level 3", variable=vars_["process_L2toL3"]).pack(side="left", padx=5)
+
+    # Vertical options
+    ttk.Checkbutton(root, text="Save CSV files in addition to netCDF files", variable=vars_["save_csv"]).pack(anchor="w", padx=10, pady=5)
+    ttk.Checkbutton(root, text="Show output in the terminal", variable=vars_["show_output"]).pack(anchor="w", padx=10, pady=5)
+
+    # Create OK button to close the dialog
+    def validate():
+        root.quit()
+        root.destroy()
+
+    
+    ttk.Button(root, text="OK", command=validate).pack(pady=10) # Create OK button
+
+    root.mainloop() # Start the Tkinter event loop
+
+    return {k: v.get() for k, v in vars_.items()}
