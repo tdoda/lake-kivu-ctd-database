@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import math
+import netCDF4
 import numpy as np
 import pandas as pd
 import gsw
@@ -12,6 +13,7 @@ from scipy.ndimage import uniform_filter1d
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
+import xarray as xr
 
 
 def copyFiles(outfolder, infolder):
@@ -1046,3 +1048,118 @@ def select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=
     root.mainloop() # Start the Tkinter event loop
 
     return {k: v.get() for k, v in vars_.items()}
+
+    #%%############################################################################   
+def read_netCDF(pathname):
+    """Function read_netCDF
+
+    Read a netCDF file with the netCDF4 package and convert it to a dictionary.
+
+    Inputs:
+    ----------
+    pathname (string): netCDF filename with path included
+    
+        
+    Outputs:
+    ----------
+    nc_data (dictionary): dataset as a dictionary of numpy arrays
+    nc_genatt (dictionary): general attributes
+    nc_varatt (dictionary): variable attributes
+    nc_dim (dictionary): variable dimensions
+    """
+    
+    with netCDF4.Dataset(pathname, 'r') as nc_obj:
+        nc_data, nc_genatt, nc_varatt, nc_dim=netCDF2dict(nc_obj)
+
+    
+    return nc_data, nc_genatt, nc_varatt, nc_dim
+
+#%%############################################################################
+def netCDF2dict(nc):
+    """Function netCDF2dict
+
+    Converts a netCDF object to a dictionary
+    
+    """
+    nc_data=dict()
+    nc_genatt=dict()
+    nc_varatt=dict()
+    nc_dim=dict()
+
+    for key,value in nc.variables.items():
+        if value.dtype==np.float64:
+            nc_data[key]=value[:].data
+        else:
+            nc_data[key]=value[:]
+        nc_varatt[key]=dict()
+        nc_varatt[key]["var_name"]=key
+        for att in value.ncattrs():     
+            nc_varatt[key][att]=getattr(value,att)
+        nc_varatt[key]["dim"]=value.dimensions
+            
+    for dim_name in nc.dimensions.keys():
+        nc_dim[dim_name]={"dim_name":nc.dimensions[dim_name].name,"dim_size":nc.dimensions[dim_name].size}
+            
+
+    for att in nc.ncattrs():
+        nc_genatt[att]=getattr(nc,att)
+
+                
+    return nc_data, nc_genatt, nc_varatt, nc_dim
+
+#%%############################################################################
+def ncdicts_to_xarray(nc_data, nc_genatt, nc_varatt, nc_dim):
+    """
+    Convert netCDF dictionaries (from netCDF2dict) to an xarray.Dataset
+    equivalent to xr.open_dataset()
+    """
+
+    data_vars = {}
+    coords = {}
+
+    # Loop over all variables
+    for var_name, data in nc_data.items():
+        var_info = nc_varatt[var_name]
+        dims = var_info["dim"]
+
+        # Variable attributes (exclude internal keys)
+        attrs = {
+            k: v for k, v in var_info.items()
+            if k not in ["var_name", "dim"]
+        }
+
+        # Coordinate variable if its name matches a dimension
+        if len(dims) == 1 and dims[0] == var_name:
+            coords[var_name] = (dims, data, attrs)
+        else:
+            data_vars[var_name] = (dims, data, attrs)
+
+    # Create dataset
+    ds = xr.Dataset(
+        data_vars=data_vars,
+        coords=coords,
+        attrs=nc_genatt
+    )
+
+    return ds
+#%%############################################################################
+def read_netCDF_xr(pathname):
+    """Function read_netCDF_xr
+
+    Read a netCDF file as an xarray by converting it to dictionaries first, working for relative or absolute paths without non-ASCII characters 
+
+    Inputs:
+    ----------
+    pathname (string): netCDF filename with path included
+        
+    Outputs:
+    ----------
+    data_xr (xarray dataset): netCDF data as an xarray
+    
+    """
+    
+    nc_data, nc_genatt, nc_varatt, nc_dim = read_netCDF(pathname)
+
+    data_xr = ncdicts_to_xarray(nc_data, nc_genatt, nc_varatt, nc_dim)
+    
+    return data_xr
