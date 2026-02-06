@@ -16,30 +16,47 @@ The CTD probe is an instrument used to measure the conductivity, temperature, an
 
 ## Installation
 
-- Clone the repository to your local machine using the command: 
+### 1. Python installation
 
- `git clone https://github.com/tdoda/lake-kivu-ctd-database.git`
+Python 3 is required to run the scripts. It is recommend to install Python through the Anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
+
+### 2. Repository installation
+
+- If using GIT, clone the repository to your local machine using the command in Git Bash: 
+
+    ``` 
+    git clone https://github.com/tdoda/lake-kivu-ctd-database.git 
+    ```
  
- Note that the repository will be copied to your current working directory.
+    Note that the repository will be copied to your current working directory.
+- Without GIT, just download the entire ZIP folder from https://github.com/tdoda/lake-kivu-ctd-database.git ("Code" > "Download ZIP") and extract it.
 
-- Use Python 3 and install the requirements with:
+### 3. Packages installation
 
- `pip install -r requirements.txt`
+1. Open the terminal (e.g., Anaconda Prompt), and move to the `lake-kivu-ctd-database` repository.
+2. Create a new environment *kivu-ctd* and install the packages as follows:
+    - If using conda:
+        ```
+        conda env create -f environment.yml
+        conda activate kivu-ctd 
+        ```
+        It is also possible to install the packages from `requirements.txt` with pip instead:
+        ```
+        conda create -n kivu-ctd python=3.11
+        conda activate kivu-ctd
+        pip install -r requirements.txt
+        ```
+    - If using pip:
+        ```
+        python -m venv kivu-ctd       
+        source kivu-ctd /bin/activate  # For Linux/macOS
+        kivu-ctd\Scripts\activate     # For Windows
+        pip install -r requirements.txt
+        ```
 
-The python version can be checked by running the command `python --version`. In case python is not installed or only an older version of it, it is recommend to install python through the anaconda distribution which can be downloaded [here](https://www.anaconda.com/products/individual). 
+## Working with the project online without any installation (Renku)
 
-You can also install each package separately:
-- conda install netCDF4
-- conda install pandas
-- conda install dateparser
-- pip install envass
-- conda install scipy
-- pip install seawater
-- conda install matplotlib
-- pip install gsw
-- conda install numpy
-- pip install python-dateutil
-- pip install PyYAML
+<font color='red'>*To be tested*</font>
 
 ## Usage
 
@@ -47,10 +64,10 @@ The CTD database is stored in the `data\ctd` folder. The datafiles cannot be upl
 
 ### Access the database
 The final, depth-interpolated and quality checked database is available in two different folders depending on the type of files that the user wants to access:
-- one file per CTD profile: folder `data\ctd\Level2B`, one netCDF and one CSV file per profile, for REMA and Kivuwatt separately (the profiling date is indicated in the file name).
-- one file combing all CTD profiles: folder `data\ctd\Level3`, one netCDF for the entire database and one CSV file per variable, from the (i) REMA database, (ii) Kivuwatt database and (iii) combined REMA-Kivuwatt database.
+- One file per CTD profile in folder `data\ctd\Level2B`: one netCDF and one CSV file per profile, for REMA (`data\ctd\Level2B\REMA`) and Kivuwatt (`data\ctd\Level2B\Kivuwatt`). The profiling date is indicated in the file name.
+- One file combing all CTD profiles in folder `data\ctd\Level3`: one netCDF for the entire database and one CSV file per variable, from the (i) REMA database (`data\ctd\Level3\REMA`), (ii) Kivuwatt database (`data\ctd\Level3\Kivuwatt`) and (iii) combined REMA-Kivuwatt database (`data\ctd\Level3\Combined`).
 
-See part [`Folder Data`](#folder-data) for more information.
+See the section [`Folder Data`](#folder-data) for more information.
 
 ### Visualize the database
 
@@ -60,32 +77,91 @@ The data will be available for visualization on the following website (<font col
 
 ### Process new data
 
-The current version of the database is only able to process .TOB and .cnv data files from REMA and .csv files from Kivuwatt. The steps to follow to process new data are:
-1. Add the new files in the folder `data\ctd\Level0\REMA` (or in a separate folder that should be specified as `Level0_dir` in the file `scripts\input_python.yaml`). You can also specify in `scripts\input_python.yaml` where the Level2 and Level3 folders should be created, if not existing already.
-2. In `scripts\main_ctd_database.py`, modify the *Parameters* section as followed:
-    - Specify which data processing steps should be performed (from Level 0 to Level 2 only, from Level 2 to Level 3 only, or both steps):
-        ```
-        process_L0toL2=True # To process Level 0 to Level 2
-        process_L2toL3=True # To process Level 2 to Level 3
-        ```
-        - Processing from Level 0 to Level 2: only done for the selected files (see below), if they were not exported to Level 2 yet 
-        - Processing from Level 2 to Level 3: if Level 3 files do not exist yet, all Level 2 files are exported to Level 3; if level 3 files already exist, only the Level 2 files from selected Level 0 files (see below) are exported to Level 3.   
-    - To display detailed information on each data file processing in the Python command (useful for debugging, but takes more time), use:
-        ```
-        show_output=True
-        ```
-    - To save data as .csv files in addition to .nc files, use:
-        ```
-        save_csv=True
-        ```
-    - Select Level 0 files to export, with one of the three following methods:
-        - Interactively with a GUI interface (requires the tkinter package):
-            ```
-            # Use GUI to select new files to process (requires tkinter):
-            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+The current version of the database is only able to process .TOB and .cnv data files from REMA and .csv files from Kivuwatt. The steps to follow to process new data are described below.
 
-            files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
+#### 1. Store new data
+Add new REMA data files in the folder `data\ctd\Level0\REMA` and new Kivuwatt data files in the folder `data\ctd\Level0\Kivuwatt`. 
+
+To store the data at another location, you need to spoecify the path to the folders in the file `scripts\input_python.yaml` as `Level0_dir` (REMA) and `Level0_KW_dir` (Kivuwatt). You can also specify in the same file where the Level2A, Level2B and Level3 folders should be created, if not existing already.
+
+#### 2A. Launch data processing without opening the scripts (easy option) 
+
+1. Locate the location of the installed `python.exe` for the *kivu-ctd* environment by typing 
+    ```
+    where python
+    ```
+    in the terminal (e.g., Anaconda prompt) with the *kivu-ctd* environment activated.
+2. Copy the path and paste it in the file `python_path.txt`.
+3. Run the script by double clicking on `process_database.bat`. A terminal should open showing
+    ```
+    Active code page: 65001
+    Starting data processing
+    Please wait until the Processing Options window opens...
+    ```
+    Wait for a few seconds until the *Processing Options* window opens.
+4. In the *Processing Options* window, you can select the following options:
+    - *Data type*: "REMA" and/or "Kivuwatt" (at least one of the two options is required).
+    - *Processing level*: "Level 0 → Level 2" and/or "Level 2 → Level 3" (at least one of the two options is required).
+    - *Save CSV files in addition to netCDF files*: select it to save L2 and L3 data as .csv files in addition to .nc files.
+    - *Show output in the terminal*: select it to display detailed information about each processing step in the terminal (useful for debugging, but takes more time).
+    
+    Then click on *OK*.
+5. Selection windows will open in the following cases:
+    - If the option "Level 0 → Level 2" was selected, a selection window will open to select the Level0 files to process (separate windows for REMA and Kivuwatt files). These files will be automatically converted to Level3 files if "Level 2 → Level 3" was also selected.
+    - If the option "Level 2 → Level 3" was selected **without** "Level 0 → Level 2" and **with** existing Level 3 files, a selection window will open to select the Level2B files to process.
+
+    Note that if Level3 files do not exist yet, **all existing Level2B files** will be automatically converted to Level3 files, including Level2B files not corresponding to the chosen Level0 files, as long as "Level 2 → Level 3" was selected. 
+
+#### 2B. Launch data processing by using the Python script (advanced option) 
+
+1. Open `scripts\main_ctd_database.py` in a Python IDE (e.g., Spyder, VS Code).
+2. Run the script directly to use the GUI windows (follow steps 4-5 from [Option 2A](#2a-launch-data-processing-without-opening-the-scripts-easy-option)). You can also modify the parameters manually as follows:
+    - In the section *Choices for the database creation*, comment the part 
+        ```
+        # With GUI:
+        options = select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False)
+        process_REMA    = options["process_REMA"]
+        process_KW      = options["process_KW"]
+        show_output     = options["show_output"]
+        save_csv        = options["save_csv"]
+        process_L0toL2  = options["process_L0toL2"]
+        process_L2toL3  = options["process_L2toL3"]
+        ```
+        and uncomment the part below 
+        ```
+        # Manually
+        ```
+        - Specify which data type you want to process:
             ```
+            process_REMA    = True # To process REMA data
+            process_KW      = True # To process Kivuwatt data
+            ```
+        - Specify the processing steps to perform (from Level 0 to Level 2 only, from Level 2 to Level 3 only, or both steps):
+            ```
+            process_L0toL2=True # To process Level 0 to Level 2
+            process_L2toL3=True # To process Level 2 to Level 3
+            ```
+        - To display detailed information about each processing step in the terminal (useful for debugging, but takes more time), use:
+            ```
+            show_output=True
+            ```
+        - To save data as .csv files in addition to .nc files, use:
+            ```
+            save_csv=True
+            ```
+    - In the Section *Parameters*, comment the part 
+        ```
+        # Use GUI to select new files to process:
+        if process_REMA:
+            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+        else:
+            files_REMA = []
+        if process_KW:
+            files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
+        else:
+            files_KW = []
+        ```
+        Select Level 0 files to export, with one of the two following methods:
         - By specifying filenames in the lists `files_REMA` and `files_KW`. Example: 
             ```
             files_REMA = ['0000.TOB','0001.TOB']
@@ -102,15 +178,14 @@ The current version of the database is only able to process .TOB and .cnv data f
         ```
         min_date_period=datetime(2001, 1, 1) # 1st January 2001
         ```
-3. Run the script `scripts\main_ctd_database.py`: new L2A and L2B files corresponding the new profiles should be added to the folders `data\ctd\Level2A` and `data\ctd\Level2B` and L3 files in folder `data\ctd\Level3` should be replaced by the new database containing the new files. 
 
-    In case some of the data files cannot be read (e.g., wrong format), those files will be skipped and their names will be saved in the file `data\ctd\files_removed.txt`, with some information about the error source. More detailed information about the location of the error is displayed in the Python terminal if 
-    ```
-    show_output=True
-    ``` 
-    in `scripts\main_ctd_database.py`.
+#### 3. Track the data processing steps  
 
+The progress can be tracked in the terminal, with the name of each file that is processed. 
 
+The selected Level0 files (if any) are exported to Level2A (`data\ctd\Level2A`) and Level2B (`data\ctd\Level2B`), except if they were already exported. If Level3 files (`data\ctd\Level3`) do not exist, they are created from all the existing Level3B files. If Level3 files already exist, the selected Level2B files (if any) are added to the existing Level3 files, except if they were already included. The combined Level3 database (`data\ctd\Level3\Combined`) is created only if there are already Level2B files from REMA and Kivuwatt.
+
+In case some of the data files cannot be read (e.g., wrong format), those files will be skipped and their names will be saved in the file `data\ctd\files_removed.txt`, with some information about the error source. More detailed information about the location of the error is displayed in the Python terminal if the option *Show output in the terminal* was selected.
 
 ## Organization of the repository
 ### Folder `data`
@@ -160,4 +235,4 @@ Quality checks include but are not limited to range validation, data type checki
 
 ## Contact information
 
-This database is the result of a collaboration between REMA, Kivuwatt and Eawag. The contact people at Eawag are Martin Schmid (martin.schmid@eawag.ch) and Tomy Doda (tomy.doda@eawag.ch).
+This database is the result of a collaboration between REMA, Kivuwatt and Eawag. The contact people at Eawag are Martin Schmid (martin.schmid@eawag.ch), Tomy Doda (tomy.doda@eawag.ch) and Jean Modeste Mushimiyimana (jeanmodeste.mushimiyimana@eawag.ch).
