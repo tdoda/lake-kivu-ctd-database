@@ -328,7 +328,8 @@ class ctd:
             Waterlevel = [i['water_surface_height_above_reference_datum'] for i in data1['data']]
             df1 = pd.DataFrame({'Date1':Date1, 'Waterlevel':Waterlevel})
             #df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"], format= "%Y/%m/%d", dayfirst=True).values.astype(float) / 10 ** 9)
-            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format= 'ISO8601', dayfirst=True).values.astype(float) / 10 ** 9) # Specify ISO8601 to deal with formats "yyyy/mm/dd HH:MM"
+            #df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format= 'ISO8601', dayfirst=True).values.astype(float) / 10 ** 9) # Specify ISO8601 to deal with formats "yyyy/mm/dd HH:MM"
+            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format="%Y/%m/%d %H:%M", dayfirst=True).values.astype(float) / 10 ** 9) 
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
             f = interpolate.interp1d(x, y)
@@ -1083,6 +1084,7 @@ class ctd:
             C_CO2=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CO2"])], df_gas["CO2"][~np.isnan(df_gas["CO2"])]*44/1000) # g/L
             # self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
             self.data["rho"] = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
+        
         except Exception :
             log("Failed to calculate density", indent=2,printlog=self.printlog)
             return False
