@@ -390,6 +390,9 @@ if process_L2toL3:
         
     data_type_L2B=[0]*len(files_L2B_REMA)+[1]*len(files_L2B_KW)
 
+    added_data_REMA=False # Will become True as soon as a new REMA L2B file is imported and should be added to the L3 file
+    added_data_KW=False # Will become True as soon as a new Kivuwatt L2B file is imported and should be added to the L3 file
+
     for file in files_L2B:
         index_file=index_file+1
         
@@ -439,8 +442,6 @@ if process_L2toL3:
         for key in remvar:
             del CTD_L2B.comb_variables[key]
         
-        added_data_REMA=False
-        added_data_KW=False
         # Add the data to the dictionary
         if data_type_L2B[index_file]==0: # REMA
             # CTD_L2B.write_to_L3(nc_REMA,newfile=createL3_REMA)
