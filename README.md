@@ -18,7 +18,7 @@ The CTD probe is an instrument used to measure the conductivity, temperature, an
 
 ### 1. Python installation
 
-Python 3 is required to run the scripts. Three installation are possible:
+Python 3 (version > 3.11) is required to run the scripts. Three installation are possible:
 - Recommended option: download [Miniforge](https://github.com/conda-forge/miniforge). 
 - User-friendly option: download the [Anaconda distribution](https://www.anaconda.com/products/individual).
 - Classic option: download Python from the [official website](https://www.python.org/downloads/).
@@ -88,9 +88,21 @@ The data will be available for visualization on the following website (<font col
 The current version of the database is only able to process .TOB and .cnv data files from REMA and .csv files from Kivuwatt. The steps to follow to process new data are described below.
 
 #### 1. Store new data
+##### CTD data
 Add new REMA data files in the folder `data\ctd\Level0\REMA` and new Kivuwatt data files in the folder `data\ctd\Level0\Kivuwatt`. 
 
-To store the data at another location, you need to spoecify the path to the folders in the file `scripts\input_python.yaml` as `Level0_dir` (REMA) and `Level0_KW_dir` (Kivuwatt). You can also specify in the same file where the Level2A, Level2B and Level3 folders should be created, if not existing already.
+To store the data at another location, you need to specify the path to the folders in the file `scripts\input_python.yaml` as `Level0_dir` (REMA) and `Level0_KW_dir` (Kivuwatt). You can also specify in the same file where the Level2A, Level2B and Level3 folders should be created, if not existing already.
+
+##### Metadata
+<font color='red'>*New metadata should be read by the script*</font>
+
+
+
+##### Lake level data
+
+The lake level data in `data\lake_level` should cover the CTD measurement period. It is possible to update satellite-derived lake level data (CGLS) by downloading it from https://land.copernicus.eu/en/products/water-bodies?tab=river_and_lake_water_level using the [Copernicus Browser](https://browser.dataspace.copernicus.eu) (a free account is required). <font color='red'>*See manual for more info.*</font>
+
+Rename the file as `c_gls.json` or update its name in `scripts\main_ctd_database.py`.
 
 #### 2A. Launch data processing without opening the scripts (easy option) 
 
@@ -196,11 +208,66 @@ The selected Level0 files (if any) are exported to Level2A (`data\ctd\Level2A`) 
 In case some of the data files cannot be read (e.g., wrong format), those files will be skipped and their names will be saved in the file `data\ctd\files_removed.txt`, with some information about the error source. More detailed information about the location of the error is displayed in the Python terminal if the option *Show output in the terminal* was selected.
 
 ## Organization of the repository
+
+### Overview of the repository structure
+
+    lake-kivu-ctd-profiles/
+    ├── data/ # Data folder
+    │   ├── ctd/
+    │   │   ├── Level0/
+    │   │   │   ├── Kivuwatt/
+    │   │   │   ├── REMA/
+    │   │   │   └── .gitkeep
+    │   │   ├── Level2A/
+    │   │   │   ├── Kivuwatt/
+    │   │   │   ├── REMA/
+    │   │   │   └── README_csv.md
+    │   │   ├── Level2B/
+    │   │   │   ├── Kivuwatt/
+    │   │   │   ├── REMA/
+    │   │   │   └── README_csv.md
+    │   │   ├── Level3/
+    │   │   │   ├── Kivuwatt/
+    │   │   │   ├── REMA/
+    │   │   │   ├── Combined/
+    │   │   │   └── .gitkeep
+    │   │   └── files_removed.txt
+    │   ├── gas_profile/
+    │   │   └── Gas_profile.xlsx
+    │   ├── lake_level/
+    │   │   ├── bukavu.csv
+    │   │   ├── c_gls.json
+    │   │   └── dahiti.txt
+    │   └── meta_data/
+    │   │   ├── 0_CTD information_2008-2022_ms_221201.xlsx 
+    │   │   └── Metadata.csv
+    ├── scripts/ # Scripts folder
+    │   ├── main_ctd_database.py
+    │   ├── ctd.py
+    │   ├── functions.py
+    │   ├── input_python.yml
+    │   ├── quality_assurance.json
+    │   ├── quality_assurance_KW.json
+    │   └── log.txt
+    ├── notebooks/ # Jupyter notebooks for vizualisation
+    │   └── plot_database.ipynb
+    └── support_scripts/ # Additional scripts
+    │   ├── adding_meta_data.py
+    │   ├── lake_level_plot.py
+    │   ├── NetCDF_gridded_reader.py
+    │   └── NetCDF_reader.py  
+    ├── requirements.txt # List of required Python packages (with pip)
+    ├── environment.yml # List of required Python packages (with conda)
+    ├── process_database.bat # To be run to add new files to the database
+    ├── python_path.txt # Location of the Python installation to run .bat file
+    ├── .gitignore # Files to be ignored by git
+    └── README.md # = this file, information about the repository
+
 ### Folder `data`
 
 The data is structured with the following subfolders:
 
-- `ctd`: CTD database, not stored on Github but accessible on [this OneDrive repository](https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=6J5zUS). The CTD data is organized into the following subfolders:
+- `ctd`: CTD database, not stored on Github but accessible on [this OneDrive repository](https://unils-my.sharepoint.com/:f:/g/personal/tomy_doda_unil_ch/IgA6OpMf4csFTr5knuORmeJCAZ4UavAgWEneRdtgZn8CDlA?e=PVLBhp). The CTD data is organized into the following subfolders:
     - `Level0`: Raw CTD data collected by REMA and Kivuwatt (*.TOB, *.cnv, *.hex, *.xslx, *.csv files).
     - `Level2A`: Data stored in netCDF and CSV files, where attributes (e.g., units, description of data, etc.), additional quantities (e.g, water density, salinity, depth, etc.) and quality flags are added. Quality flag "1" indicates that the data point did not pass the quality checks and further investigation is needed, quality flag "0" indicates that no further investigation is needed. Each netCDF and CSV file corresponds to a profile, with the profiling date indicated in the file name.
     - `Level2B`: Similar data as Level 2A, except that the profiles have been vertically interpolated to a grid of 0.2 m spacing and that the quality flags have been applied to filter the data.
@@ -239,7 +306,28 @@ There are 4 support scripts available to visualize the data and add new meta dat
 
 ## Quality assurance
 
-Quality checks include but are not limited to range validation, data type checking and flagging missing data. Check
+Quality checks include but are not limited to range validation, data type checking and flagging missing data. 
+
+## Future modifications (for developers)
+
+The following database modifications are planned to be made in the future:
+
+- Exported CSV files: use the ODV format
+- Make sure all variables are included in Level2A files (e.g., depth)
+- Exported netCDF files: use the same variable names as in the CSV files
+- Metadata import for new CTD files: add the option to import metadata from csv file if not included in .TOB file, and modify .TOB file accordingly
+- Interactive metadata import: create a GUI window with two options for metadata import: from csv file or with manual input in GUI window
+- Add a database manual describing the procedure to add new profiles and visualize database + giving detailed information on the steps/calculations performed to create the database
+- Export Level1 data
+- Make the main script more robust by listing the manual corrections in a separate json file imported by the script and calling functions to perform the corrections. Manual corrections include:
+    -  Division of the data from files with multiple profiles
+    -  Outliers to remove manually
+    -  Periods to remove (explain why)
+    -  Kivuwatt profiles with different conductivity units (mS/mm)
+    -  Kivuwatt profiles with different pressure-depth conversion 
+- Investigate the reason why several profiles are not included (see file `files_removed.txt`)
+- Data storage location must be defined
+- Update the README file (continuous process)
 
 ## Contact information
 
