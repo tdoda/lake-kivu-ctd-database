@@ -217,6 +217,54 @@ class ctd:
             
             return False
         
+    def extract_meta_data_REMA_csv(self, infile,):
+        """"
+        Function description: read the metadata file (*.csv) and add it to the general attributes.
+        Input: 
+            Metadata file
+        Output: 
+            None
+        """
+        log("Reading metadata...",indent=1,printlog=self.printlog)
+
+        df_meta=pd.read_csv(infile,sep=';',encoding='ISO-8859-1',header=0,
+                            names=['campaign_number','profile_count','profile','date','latitude',
+                                   'longitude','distance_to_GEF','rope_length','max_depth','file_name',
+                                   'purpose_of_sampling','pH_Calibration_(7)','pH_Calibration_(9)','pH_Calibration_(4)'],
+                              skiprows=0,dtype={'Date':str})
+        for col in df_meta.columns:
+            if col=="date":
+                self.general_attributes["date"] = df_meta["date"].astype(str).str.zfill(6).values # Make sure there are always 6 characters
+            elif 'pH' not in col:
+                self.general_attributes[col]= df_meta[col].values
+        self.general_attributes["pH_calibration"] = ["(7): " + str(df_meta["pH_Calibration_(7)"][k])  
+        + " (9): " + str(df_meta["pH_Calibration_(9)"][k]) + " (4): " + str(df_meta["pH_Calibration_(4)"][k]) for k in range(len(df_meta))]
+
+    def extract_meta_data_REMA_excel(self, infile,):
+        """"
+        Function description: read the metadata file (*.xlsx) and add it to the general attributes.
+        Input: 
+            Metadata file
+        Output: 
+            None
+        """
+        log("Reading metadata...",indent=1,printlog=self.printlog)
+        columns = ['Campaign_number:','Profile_count:','Profile:','date:','Latitude_S_(digital):',
+                                   'Longitude_E_(digital):','Distance_to_GEF_(m):','Rope_length_(m):','Max_depth_(m):','TOB_name_in_Database:',
+                                   'Purpose_of_sampling:','pH_Calibration_(7):','pH_Calibration_(9):','pH_Calibration_(10):','pH_Calibration_(4):']
+        # Read all sheets into a dict of DataFrames
+        sheets = pd.read_excel(infile, sheet_name=None, dtype={"date": str},skiprows=1)
+
+        # Keep all except "Info" and concatenate
+        df_meta = pd.concat([d.iloc[:, :len(columns)].set_axis(columns, axis=1) for name, d in sheets.items() if name != "Info"],
+            ignore_index=True)
+
+        for col in df_meta.columns:
+            if col=="date":
+                self.general_attributes["date"] = df_meta["date"].astype(str).str.zfill(6).values # Make sure there are always 6 characters
+            else:
+                self.general_attributes[col]= df_meta[col].values
+        
     def extract_meta_data_Kivuwatt(self, infile,):
         """"
         Function description: read the metadata file and add it to the general attributes.
@@ -227,7 +275,7 @@ class ctd:
         """
         log("Reading metadata...",indent=1,printlog=self.printlog)
         df_meta=pd.read_csv(infile,sep=',',encoding='ISO-8859-1',header=0,names=['Profile_count','Date','Lat','Lon','Probe','Distance_GEF'],
-                              skiprows=[1],dtype={'Date':str})
+                                skiprows=[1],dtype={'Date':str})
         self.general_attributes["profile_count"] = df_meta["Profile_count"].values
         self.general_attributes["date"] = df_meta["Date"].values
         self.general_attributes["distance_to_GEF"] = df_meta["Distance_GEF"].values
@@ -341,51 +389,90 @@ class ctd:
             # water level:
             self.depth_value = reference_depth - ynew
 
-    def extract_meta_data(self, infile,):
+    def write_meta_TOB(self,infile,indfile):
         """"
-        Function description
-        Input: 
-            Reads the added meta data which is in the first 15 lines of the files.
-        Outputs: 
-            Adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
-        """
+        Add the metadata specified in the object ctd_meta to the beginning of a TOB file.
         
+        """
+        added = 0
+        columns = ['Campaign_number:','Profile_count:','Profile:','date:','Latitude_S_(digital):',
+                                   'Longitude_E_(digital):','Distance_to_GEF_(m):','Rope_length_(m):','Max_depth_(m):','TOB_name_in_Database:',
+                                   'Purpose_of_sampling:','pH_Calibration_(7):','pH_Calibration_(9):','pH_Calibration_(10):','pH_Calibration_(4):']
+        dict_meta=dict()
+        for col in columns:
+            dict_meta[col]=self.general_attributes[col][indfile]
+
+        quote = str(pd.DataFrame(dict_meta,index=[0]).iloc[0].to_string())
+
+        with open(infile, "r", encoding="utf8", errors='ignore') as f:
+            lines = f.readlines()
+        if lines[0] != "*** Meta Data ***\n":
+            added += 1
+            with open(infile, "w", encoding="utf8", errors='ignore') as f:
+                f.write("*** Meta Data ***")
+                f.write("\n")
+                f.write(quote)
+                f.write("\n")
+                f.write("\n")
+                f.write("*************")
+                f.write("\n")
+                f.writelines(lines)
+             
+    def read_meta_TOB(self,infile,latlim=[-2.555959,-1.520405],lonlim=[28.737987,29.501541]):
+        """"
+        Reads the added meta data which is in the first 15 lines of the files and adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
+        """
+        with open(infile, 'r', encoding="utf8", errors='ignore') as f:
+            f.readline()
+            line_numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+            lines = []
+            for i, line in enumerate(f):
+                if i in line_numbers:
+                    lines.append(line.strip())
+            self.general_attributes["campaign_number"] = strip_metadata(lines[0])
+            self.general_attributes["profile_count"] = strip_metadata(lines[1])
+            self.general_attributes["profile"] = strip_metadata(lines[2])
+            self.general_attributes["date"] = strip_metadata(lines[3])
+            self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
+            self.general_attributes["rope_length"] = strip_metadata(lines[7])
+            self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
+            self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
+                lines[11]) + " (9): " + strip_metadata(lines[12]) + " (4): " + strip_metadata(lines[13])
+
+            latitude = float(strip_metadata(lines[4]))
+            longitude = float(strip_metadata(lines[5]))
+            if (latlim[1] > latitude > latlim[0]) and (lonlim[0] < longitude < lonlim[1]):
+                self.general_attributes["latitude"] = latitude
+                self.general_attributes["longitude"] = longitude
+            elif (-1*latlim[1] < latitude < -1*latlim[0]) and (lonlim[0] < longitude < lonlim[1]):
+                self.general_attributes["latitude"] = -latitude
+                self.general_attributes["longitude"] = longitude
+            else:
+                log("Latitude and longitude fall outside lake bounds.",printlog=self.printlog)
+    
+    def add_meta_data(self, infile,ctd_meta,):
+        """"
+        Add metadata from TOB file or from csv file. 
+        """
+        import_meta_TOB=False
         self.general_attributes["file_name"] = infile[infile.rfind("/")+1:]
         with open(infile, 'r', encoding="utf8", errors='ignore') as f:
             first_line = f.readline()
             if "Meta Data" in first_line: # Only for TOB files
-                line_numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-                lines = []
-                for i, line in enumerate(f):
-                    if i in line_numbers:
-                        lines.append(line.strip())
-                self.general_attributes["campaign_number"] = strip_metadata(lines[0])
-                self.general_attributes["profile_count"] = strip_metadata(lines[1])
-                self.general_attributes["profile"] = strip_metadata(lines[2])
-                self.general_attributes["date"] = strip_metadata(lines[3])
-                self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
-                self.general_attributes["rope_length"] = strip_metadata(lines[7])
-                #self.general_attributes["file_name"] = strip_metadata(lines[9])
-                self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
-                self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
-                    lines[11]) + " (9): " + strip_metadata(lines[12]) + " (4): " + strip_metadata(lines[13])
-
-                latitude = float(strip_metadata(lines[4]))
-                longitude = float(strip_metadata(lines[5]))
-                if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
-                    self.general_attributes["latitude"] = latitude
-                    self.general_attributes["longitude"] = longitude
-                elif (1.520405 < latitude < 2.555959) and (28.737987 < longitude < 29.501541):
-                    self.general_attributes["latitude"] = -latitude
-                    self.general_attributes["longitude"] = longitude
-                else:
-                    log("Latitude and longitude fall outside lake bounds.",printlog=self.printlog)
+                import_meta_TOB=True
+            elif self.general_attributes["file_name"] in ctd_meta.general_attributes["TOB_name_in_Database:"]:# Find filename in metadata csv file
+                indfile=np.where(ctd_meta.general_attributes["TOB_name_in_Database:"]==self.general_attributes["file_name"])[0][0]
+                ctd_meta.write_meta_TOB(infile,indfile) # Add the metadata to the TOB file
+                import_meta_TOB=True
             else: # SBE files
+                log("No metadata found!",printlog=self.printlog)
                 self.general_attributes["distance_to_GEF"] = np.nan
                 self.general_attributes["latitude"] = np.nan
                 self.general_attributes["longitude"] = np.nan
-                
-                
+        if import_meta_TOB:
+            self.read_meta_TOB(infile)
+    
+    
     def extract_profile(self, remove_botdist=1,remove_topdist=1,press_surface=100,):
         log("Extracting profile...", indent=1,printlog=self.printlog)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])

@@ -27,23 +27,26 @@ from functions import select_processing_options, select_files, get_nc_data
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 #%% Choices for the database creation
+use_GUI=True # = True to use GUI Windows, = False to specify options in the script
 
-# With GUI:
-options = select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False)
-process_REMA    = options["process_REMA"]
-process_KW      = options["process_KW"]
-show_output     = options["show_output"]
-save_csv        = options["save_csv"]
-process_L0toL2  = options["process_L0toL2"]
-process_L2toL3  = options["process_L2toL3"]
+if use_GUI:
+    # With GUI:
+    options = select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False)
+    process_REMA    = options["process_REMA"]
+    process_KW      = options["process_KW"]
+    show_output     = options["show_output"]
+    save_csv        = options["save_csv"]
+    process_L0toL2  = options["process_L0toL2"]
+    process_L2toL3  = options["process_L2toL3"]
 
-# Manually:
-# process_REMA    = True
-# process_KW      = True
-# show_output=False # To print the different steps in the console with the log function
-# save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
-# process_L2toL3=True # To process Level 2 to Level 3 
-# process_L0toL2=True # To process Level 0 to Level 2
+else:
+    # Manually:
+    process_REMA    = True
+    process_KW      = True
+    show_output=False # To print the different steps in the console with the log function
+    save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
+    process_L2toL3=True # To process Level 2 to Level 3 
+    process_L0toL2=True # To process Level 0 to Level 2
 
 # Check data type selection
 if not process_REMA and not process_KW:
@@ -69,23 +72,24 @@ for directory in directories.values():
         os.makedirs(directory)
 
 if process_L0toL2:
-    # Use GUI to select new files to process:
-    if process_REMA:
-        files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+    if use_GUI:
+        # Use GUI to select new files to process:
+        if process_REMA:
+            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+        else:
+            files_REMA = []
+        if process_KW:
+            files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
+        else:
+            files_KW = []
     else:
-        files_REMA = []
-    if process_KW:
-        files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
-    else:
-        files_KW = []
-    
-    # List of Level 0 datafiles to read (could specify a specific file name here):
-    # files_REMA=[]
-    # files_KW=[]
+        # List of Level 0 datafiles to read (could specify a specific file name here):
+        files_REMA=[]
+        files_KW=[]
 
-    # To reprocess all files:
-    # files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
-    # files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+        # To reprocess all files:
+        #files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+        #files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
 
 
     # Associate the data type to each file (REMA or Kivuwatt)
@@ -138,8 +142,14 @@ indprof_noconv_depth=np.arange(562,572,1)
 
 #%% Load metadata and gas data
 # Metadata for Kivuwatt profiles:
-CTD_metaKW = ctd(printlog=show_output)
-CTD_metaKW.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"], 'Metadata.csv'))
+if process_KW:
+    CTD_metaKW = ctd(printlog=show_output)
+    CTD_metaKW.extract_meta_data_Kivuwatt(os.path.join(directories["Level0_KW_dir"], 'Metadata.csv'))
+
+# Metadata for REMA profiles
+if process_REMA:
+    CTD_metaREMA = ctd(printlog=show_output)
+    CTD_metaREMA.extract_meta_data_REMA_excel(os.path.join(directories["Level0_dir"], 'Metadata.xlsx'))
 
 # Load gas data
 df_gas=pd.read_excel('../data/gas_profile/Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err'])
@@ -216,7 +226,7 @@ if process_L0toL2:
             # Read data:
             if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18),min_date=min_date_period):
                 CTD_initial.extract_water_level(lake_level, lake_info["alt"]) # Extract water level data
-                CTD_initial.extract_meta_data(os.path.join(directories["Level0_dir"], file)) # Extract metadata
+                CTD_initial.add_meta_data(os.path.join(directories["Level0_dir"], file),CTD_metaREMA) # Extract metadata
                 
                 # Divide profiles if several profiles present in the file:
                 if file in files_severalprof:
