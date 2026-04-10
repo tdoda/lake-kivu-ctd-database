@@ -216,7 +216,12 @@ In case some of the data files cannot be read (e.g., wrong format), those files 
     │   ├── ctd/
     │   │   ├── Level0/
     │   │   │   ├── Kivuwatt/
+    │   │   │   │   ├── *.csv # CTD data files
+    │   │   │   │   └── Metadata.csv # Metadata file
     │   │   │   ├── REMA/
+    │   │   │   │   ├── *.TOB # Sea&Sun CTD data files
+    │   │   │   │   ├── *.cnv # Seabird CTD data files
+    │   │   │   │   └── Metadata.csv # Metadata file
     │   │   │   └── .gitkeep
     │   │   ├── Level2A/
     │   │   │   ├── Kivuwatt/
