@@ -38,6 +38,7 @@ if use_GUI:
     save_csv        = options["save_csv"]
     process_L0toL2  = options["process_L0toL2"]
     process_L2toL3  = options["process_L2toL3"]
+    reprocess_all=False # = True to reprocess all files (only used when use_GUI=False), = False to select files to process
 
 else:
     # Manually:
@@ -47,6 +48,11 @@ else:
     save_csv=True # To save the data of L2A and L2B as csv files in addition to netCDF files
     process_L2toL3=True # To process Level 2 to Level 3 
     process_L0toL2=True # To process Level 0 to Level 2
+    reprocess_all=True # = True to reprocess all files (only used when use_GUI=False), = False to select files to process
+    if not reprocess_all:
+        # List of Level 0 datafiles to read (could specify a specific file name here):
+        files_REMA=[]
+        files_KW=[]
 
 # Check data type selection
 if not process_REMA and not process_KW:
@@ -82,14 +88,10 @@ if process_L0toL2:
             files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
         else:
             files_KW = []
-    else:
-        # List of Level 0 datafiles to read (could specify a specific file name here):
-        files_REMA=[]
-        files_KW=[]
-
+    elif reprocess_all:
         # To reprocess all files:
-        #files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
-        #files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
+        files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+        files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
 
 
     # Associate the data type to each file (REMA or Kivuwatt)
@@ -110,7 +112,6 @@ data_type_name=["REMA","Kivuwatt"]
 files_severalprof=['SA241437_6.TOB','SA241437_8.TOB']
 indstart=[[1004,3719,10031],[1096,6352,12450]]
 indend=[[3718,9165,14210],[5090,10250,15603]]
-
 
 # Files with data to remove manually:
 files_datarem=['SBE19plus_01907894_2020_11_02_0002.cnv']
