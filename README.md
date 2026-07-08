@@ -135,69 +135,59 @@ Rename the file as `c_gls.json` or update its name in `scripts\main_ctd_database
 #### 2B. Launch data processing by using the Python script (advanced option) 
 
 1. Open `scripts\main_ctd_database.py` in a Python IDE (e.g., Spyder, VS Code).
-2. Run the script directly to use the GUI windows (follow steps 4-5 from [Option 2A](#2a-launch-data-processing-without-opening-the-scripts-easy-option)). You can also modify the parameters manually as follows:
-    - In the section *Choices for the database creation*, comment the part 
+2. You can run the script either with GUI windows to select options and files as in [Option 2A](#2a-launch-data-processing-without-opening-the-scripts-easy-option) or with manual selections. 
+    
+    To use the GUI windows, make sure that 
+    ```
+    use_GUI=True
+    ``` 
+    and follow steps 4-5 from [Option 2A](#2a-launch-data-processing-without-opening-the-scripts-easy-option). 
+    
+    To modify the parameters manually, use:
+    ```
+    use_GUI=False
+    ```
+    and adapt the parameters below:
+    - Specify which data type you want to process:
         ```
-        # With GUI:
-        options = select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False)
-        process_REMA    = options["process_REMA"]
-        process_KW      = options["process_KW"]
-        show_output     = options["show_output"]
-        save_csv        = options["save_csv"]
-        process_L0toL2  = options["process_L0toL2"]
-        process_L2toL3  = options["process_L2toL3"]
+        process_REMA    = True # To process REMA data
+        process_KW      = True # To process Kivuwatt data
         ```
-        and uncomment the part below 
+    - Specify the processing steps to perform (from Level 0 to Level 2 only, from Level 2 to Level 3 only, or both steps):
         ```
-        # Manually
+        process_L0toL2=True # To process Level 0 to Level 2
+        process_L2toL3=True # To process Level 2 to Level 3
         ```
-        - Specify which data type you want to process:
-            ```
-            process_REMA    = True # To process REMA data
-            process_KW      = True # To process Kivuwatt data
-            ```
-        - Specify the processing steps to perform (from Level 0 to Level 2 only, from Level 2 to Level 3 only, or both steps):
-            ```
-            process_L0toL2=True # To process Level 0 to Level 2
-            process_L2toL3=True # To process Level 2 to Level 3
-            ```
-        - To display detailed information about each processing step in the terminal (useful for debugging, but takes more time), use:
-            ```
-            show_output=True
-            ```
-        - To save data as .csv files in addition to .nc files, use:
-            ```
-            save_csv=True
-            ```
-    - In the Section *Parameters*, comment the part 
+    - To display detailed information about each processing step in the terminal (useful for debugging, but takes more time), use:
         ```
-        # Use GUI to select new files to process:
-        if process_REMA:
-            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
-        else:
-            files_REMA = []
-        if process_KW:
-            files_KW = select_files(dirname=directories["Level0_KW_dir"],messagestr="Select Kivuwatt CTD files to process",filetypes=(("KW files", "*.csv"),))
-        else:
-            files_KW = []
+        show_output=True
         ```
-        Select Level 0 files to export, with one of the two following methods:
-        - By specifying filenames in the lists `files_REMA` and `files_KW`. Example: 
-            ```
+    - To save data as .csv files in addition to .nc files, use:
+        ```
+        save_csv=True
+        ```
+    - To process all L0 files, use:
+        ```
+        process_L0toL2=True # (see above)
+        reprocess_all=True
+        ```
+        To process specific files, use:
+        ```
+        process_L0toL2=True # (see above)
+        reprocess_all=False
+        ```
+        and select Level 0 files to export by specifying filenames in the lists `files_REMA` and `files_KW`. Example: 
+        ```
+        if not reprocess_all:
+        # List of Level 0 datafiles to read (could specify a specific file name here):
             files_REMA = ['0000.TOB','0001.TOB']
-
             files_KW = ['Data1.csv']
-            ```
-        - By processing all Level 0 data files:
-            ```
-            files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv"))]
-
-            files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
-            ```
+        ```
         Make sure that the new profiles were taken after `min_date_period`. If not, change the date of `min_date_period` with the format `datetime(yyyy,mm,dd)`. For example:
         ```
         min_date_period=datetime(2001, 1, 1) # 1st January 2001
         ```
+3. Run the script.
 
 #### 3. Track the data processing steps  
 
