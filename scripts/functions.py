@@ -1,15 +1,19 @@
+import sys
 import os
 import json
 import math
+import netCDF4
 import numpy as np
 import pandas as pd
 import gsw
-import seawater as sw
 from shutil import copyfile
 from envass import qualityassurance
 from datetime import datetime, timedelta
-import time
 from scipy.ndimage import uniform_filter1d
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import ttk
+import xarray as xr
 
 
 def copyFiles(outfolder, infolder):
@@ -268,9 +272,12 @@ def density_Kivu(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_S=0.75E-3,be
 
 
 def Gamma_adiabatic(T, S, p, lat=46.):
-    alpha = sw.alpha(S, T, p)
-    cp = sw.cp(S, T, p)
-    Gamma = sw.g(lat) * alpha * (T - 273.15) / cp
+    # alpha = sw.alpha(S, T, p)
+    # cp = sw.cp(S, T, p)
+    # Gamma = sw.g(lat) * alpha * (T - 273.15) / cp
+    alpha=gsw.alpha(S, T, p)
+    cp=gsw.cp_t_exact(S, T, p)
+    Gamma = gsw.grav(lat, 0) * alpha * (T - 273.15) / cp
     return Gamma
 
 def mask_single_data(data, mask):
@@ -311,14 +318,9 @@ def potential_temperature(T, S, p, z, lat=46.2):
     PT[iif] = pt1
     return PT
 
-
-def potential_temperature_gsw(T, S, p):
-    return gsw.pt_from_t(S, T, p, 0)
-
-
-def potential_temperature_sw(T, S, p, p_ref):
+def potential_temperature_gsw(T, S, p, p_ref):
     """
-    Calculates potential temperature as per UNESCO 1983 report.
+    Calculates potential temperature.
     Parameters
     ----------
     s(p) : array_like
@@ -334,7 +336,7 @@ def potential_temperature_sw(T, S, p, p_ref):
     pt : array_like
         potential temperature relative to PR [℃ (ITS-90)]
     """
-    return sw.ptmp(s=S,t=T,p=p,pr=p_ref)
+    return gsw.pt_from_t(S, T, p, p_ref)
 
 
 def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
@@ -347,7 +349,7 @@ def oxygen_saturation(T, S, altitude=372., lat=46.2, units="mgl"):
     mmHg_inHg = 25.3970886
     standard_pressure_sea_level = 29.92126
     standard_temperature_sea_level = 15 + 273.15
-    gravitational_acceleration = gr = sw.g(lat)
+    gravitational_acceleration = gr = gsw.grav(lat, 0)
     air_molar_mass = 0.0289644
     universal_gas_constant = 8.31447
     baro = (1. / mmHg_mb) * mmHg_inHg * standard_pressure_sea_level * np.exp(
@@ -410,7 +412,7 @@ def parse_file(input_file_path, string):
         columns=[]
         units=[]
         for krow in range(0,i):
-            if '# name' in lines[krow]:
+            if '# name' in lines[krow] or '#	name' in lines[krow]:
                 # Get the variable name
                 ind_equal=lines[krow].find('=')
                 ind_dots=lines[krow].find(':')
@@ -428,7 +430,7 @@ def parse_file(input_file_path, string):
         # Should match the variable names and units of CTD class to save the variables
         #columns=['Minutes','Depth','Temp','pH','Fluo','Cond','Flag'] 
         #units=['min','m','degC','_','mg/m^3','uS/cm','_']
-        valid=True
+        #valid=True
         #date_format='%b %d %Y %H:%M:%S'
         
     # Do not return date_format anymore because this variable is not used by ctd.read_raw_data
@@ -897,7 +899,7 @@ def parse_time(df, variable, name, columns, units, ref_date,day_month=True):
 
     
 
-def parse_chl(df, name, columns, units, ref_date, date_format):
+def parse_chl(df, name, columns, units):
     # if units == "g/l" or units == "g/L":
     #     try:
     #         log("Changed Chl unit")
@@ -963,3 +965,201 @@ def get_nc_data(nc):
     for key in varnames:
         data_nc[key]=nc.variables[key][:].data
     return data_nc
+
+def select_files(dirname,messagestr="Select CTD files to process",filetypes=(("All files", "*.*"),)):
+    """
+    Open a file dialog to select multiple files.
+    Inputs:
+        dirname (str): directory to start the file dialog in.
+        messagestr (str): message to display in the file dialog.
+        filetypes (tuple): file types to display in the dialog.
+        Outputs:
+            filenames (list): list of selected file names.
+    """
+    root = tk.Tk()
+    root.withdraw()  # Hide the main Tk window
+    files = filedialog.askopenfilenames(initialdir=dirname,title=messagestr, filetypes=filetypes)
+
+    # Extract only the filenames
+    filenames = [os.path.basename(f) for f in files]
+
+    return filenames
+
+def select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False):
+    """
+    Open a dialog to select processing options.
+    Inputs: 
+        process_REMA (bool): whether to process REMA data. Default is True.
+        process_KW (bool): whether to process KW data. Default is True.
+        process_L0toL2 (bool): whether to process Level 0 → Level 2. Default is True.
+        process_L2toL3 (bool): whether to process Level 2 → Level 3. Default is True. 
+        save_csv (bool): whether to save CSV files. Default is True.
+        show_output (bool): whether to show output (logs). Default is False.
+        
+    Outputs:
+        options (dict): dictionary with the selected options.
+    """
+    root = tk.Tk() # Create the main window
+    root.title("Processing options") # Set the window title
+    root.geometry("500x200") # Set the window size
+
+    vars_ = {
+        "process_REMA": tk.BooleanVar(value=process_REMA),
+        "process_KW": tk.BooleanVar(value=process_KW),
+        "process_L0toL2": tk.BooleanVar(value=process_L0toL2),
+        "process_L2toL3": tk.BooleanVar(value=process_L2toL3), 
+        "save_csv": tk.BooleanVar(value=save_csv),
+        "show_output": tk.BooleanVar(value=show_output),
+    } # Create BooleanVars for each option
+
+    # If user closes the window → STOP SCRIPT
+    def on_close():
+        root.destroy()
+        sys.exit(0)
+
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
+    # Create checkbuttons for each option
+    # Horizontal frame for data type checkboxes
+    frame_data = ttk.Frame(root)
+    frame_data.pack(anchor="w", padx=10, pady=5)
+    ttk.Label(frame_data, text="Data type:").pack(side="left")
+    ttk.Checkbutton(frame_data, text="REMA", variable=vars_["process_REMA"]).pack(side="left", padx=5)
+    ttk.Checkbutton(frame_data, text="Kivuwatt", variable=vars_["process_KW"]).pack(side="left", padx=5)
+
+    frame_data2 = ttk.Frame(root)
+    frame_data2.pack(anchor="w", padx=10, pady=5)
+    ttk.Label(frame_data2, text="Processing level:").pack(side="left")
+    ttk.Checkbutton(frame_data2, text="Level 0 → Level 2", variable=vars_["process_L0toL2"]).pack(side="left", padx=5)
+    ttk.Checkbutton(frame_data2, text="Level 2 → Level 3", variable=vars_["process_L2toL3"]).pack(side="left", padx=5)
+
+    # Vertical options
+    ttk.Checkbutton(root, text="Save CSV files in addition to netCDF files", variable=vars_["save_csv"]).pack(anchor="w", padx=10, pady=5)
+    ttk.Checkbutton(root, text="Show output in the terminal", variable=vars_["show_output"]).pack(anchor="w", padx=10, pady=5)
+
+    # Create OK button to close the dialog
+    def validate():
+        root.quit()
+        root.destroy()
+
+    
+    ttk.Button(root, text="OK", command=validate).pack(pady=10) # Create OK button
+
+    root.mainloop() # Start the Tkinter event loop
+
+    return {k: v.get() for k, v in vars_.items()}
+
+    #%%############################################################################   
+def read_netCDF(pathname):
+    """Function read_netCDF
+
+    Read a netCDF file with the netCDF4 package and convert it to a dictionary.
+
+    Inputs:
+    ----------
+    pathname (string): netCDF filename with path included
+    
+        
+    Outputs:
+    ----------
+    nc_data (dictionary): dataset as a dictionary of numpy arrays
+    nc_genatt (dictionary): general attributes
+    nc_varatt (dictionary): variable attributes
+    nc_dim (dictionary): variable dimensions
+    """
+    
+    with netCDF4.Dataset(pathname, 'r') as nc_obj:
+        nc_data, nc_genatt, nc_varatt, nc_dim=netCDF2dict(nc_obj)
+
+    
+    return nc_data, nc_genatt, nc_varatt, nc_dim
+
+#%%############################################################################
+def netCDF2dict(nc):
+    """Function netCDF2dict
+
+    Converts a netCDF object to a dictionary
+    
+    """
+    nc_data=dict()
+    nc_genatt=dict()
+    nc_varatt=dict()
+    nc_dim=dict()
+
+    for key,value in nc.variables.items():
+        if value.dtype==np.float64:
+            nc_data[key]=value[:].data
+        else:
+            nc_data[key]=value[:]
+        nc_varatt[key]=dict()
+        nc_varatt[key]["var_name"]=key
+        for att in value.ncattrs():     
+            nc_varatt[key][att]=getattr(value,att)
+        nc_varatt[key]["dim"]=value.dimensions
+            
+    for dim_name in nc.dimensions.keys():
+        nc_dim[dim_name]={"dim_name":nc.dimensions[dim_name].name,"dim_size":nc.dimensions[dim_name].size}
+            
+
+    for att in nc.ncattrs():
+        nc_genatt[att]=getattr(nc,att)
+
+                
+    return nc_data, nc_genatt, nc_varatt, nc_dim
+
+#%%############################################################################
+def ncdicts_to_xarray(nc_data, nc_genatt, nc_varatt, nc_dim):
+    """
+    Convert netCDF dictionaries (from netCDF2dict) to an xarray.Dataset
+    equivalent to xr.open_dataset()
+    """
+
+    data_vars = {}
+    coords = {}
+
+    # Loop over all variables
+    for var_name, data in nc_data.items():
+        var_info = nc_varatt[var_name]
+        dims = var_info["dim"]
+
+        # Variable attributes (exclude internal keys)
+        attrs = {
+            k: v for k, v in var_info.items()
+            if k not in ["var_name", "dim"]
+        }
+
+        # Coordinate variable if its name matches a dimension
+        if len(dims) == 1 and dims[0] == var_name:
+            coords[var_name] = (dims, data, attrs)
+        else:
+            data_vars[var_name] = (dims, data, attrs)
+
+    # Create dataset
+    ds = xr.Dataset(
+        data_vars=data_vars,
+        coords=coords,
+        attrs=nc_genatt
+    )
+
+    return ds
+#%%############################################################################
+def read_netCDF_xr(pathname):
+    """Function read_netCDF_xr
+
+    Read a netCDF file as an xarray by converting it to dictionaries first, working for relative or absolute paths without non-ASCII characters 
+
+    Inputs:
+    ----------
+    pathname (string): netCDF filename with path included
+        
+    Outputs:
+    ----------
+    data_xr (xarray dataset): netCDF data as an xarray
+    
+    """
+    
+    nc_data, nc_genatt, nc_varatt, nc_dim = read_netCDF(pathname)
+
+    data_xr = ncdicts_to_xarray(nc_data, nc_genatt, nc_varatt, nc_dim)
+    
+    return data_xr

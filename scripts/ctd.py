@@ -12,11 +12,9 @@ from datetime import datetime, timedelta, timezone, UTC
 from dateutil.relativedelta import relativedelta
 from functions import *
 from scipy import interpolate
-import seawater as sw
+import gsw
 import re as re
-import matplotlib.pyplot as plt
-import collections
-import time
+
 
 
 class ctd:
@@ -132,7 +130,7 @@ class ctd:
         self.data = {}
         self.grid = {}
         self.comb_data = {}
-    def show_output(printlog):
+    def show_output(self,printlog):
         self.printlog=printlog
     
     def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
@@ -164,10 +162,10 @@ class ctd:
                 log("Wrong file format", indent=1,printlog=self.printlog)
                 return False
         
-            # Define the parameters used to read the files (rows to skip, name of columns, date_format, etc.):
+            # Define the parameters used to read the files (rows to skip, name of columns, starting date, etc.):
             skip_rows, columns, units, valid, start_date, time_interval = parse_file(infile,keyword_skip)
             if valid == False:
-                log("Parse file failed.", indent=1,printlog=self.printlog)
+                log("Parse file failed (not enough data points in the file)", indent=1,printlog=self.printlog)
                 return False
 
             df = pd.read_csv(infile, sep='\s+', header=None, skiprows=skip_rows, names=columns, engine='python', encoding="cp1252")
@@ -190,8 +188,8 @@ class ctd:
                 df.drop(index=df.index[-1], axis=0, inplace=True)
             for variable in self.variables:
                 if variable in df.columns:
-                    if "function" in self.variables[variable]:
-                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units, ref_date, date_format))
+                    if "function" in self.variables[variable]: # If a specific function is defined to parse the variable, use it (e.g., for chlorophyll)
+                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units))
                     else:
                         self.data[variable] = np.array(df[variable].values)
                 else:
@@ -212,11 +210,60 @@ class ctd:
                 return False
 
             return True
-        except:
-            if not os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # There is not a second version of the file (with corrected data)
-                breakpoint()
+        except Exception as e:
             log("Failed to parse raw data from file {}".format(infile), indent=1,printlog=self.printlog)
+            if os.path.exists(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]): # A second version of the file exists 
+                log("A second version of the file exists, try to read that one (not done now): {}".format(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]), indent=1,printlog=self.printlog)
+            
             return False
+        
+    def extract_meta_data_REMA_csv(self, infile,):
+        """"
+        Function description: read the metadata file (*.csv) and add it to the general attributes.
+        Input: 
+            Metadata file
+        Output: 
+            None
+        """
+        log("Reading metadata...",indent=1,printlog=self.printlog)
+
+        df_meta=pd.read_csv(infile,sep=';',encoding='ISO-8859-1',header=0,
+                            names=['campaign_number','profile_count','profile','date','latitude',
+                                   'longitude','distance_to_GEF','rope_length','max_depth','file_name',
+                                   'purpose_of_sampling','pH_Calibration_(7)','pH_Calibration_(9)','pH_Calibration_(4)'],
+                              skiprows=0,dtype={'Date':str})
+        for col in df_meta.columns:
+            if col=="date":
+                self.general_attributes["date"] = df_meta["date"].astype(str).str.zfill(6).values # Make sure there are always 6 characters
+            elif 'pH' not in col:
+                self.general_attributes[col]= df_meta[col].values
+        self.general_attributes["pH_calibration"] = ["(7): " + str(df_meta["pH_Calibration_(7)"][k])  
+        + " (9): " + str(df_meta["pH_Calibration_(9)"][k]) + " (4): " + str(df_meta["pH_Calibration_(4)"][k]) for k in range(len(df_meta))]
+
+    def extract_meta_data_REMA_excel(self, infile,):
+        """"
+        Function description: read the metadata file (*.xlsx) and add it to the general attributes.
+        Input: 
+            Metadata file
+        Output: 
+            None
+        """
+        log("Reading metadata...",indent=1,printlog=self.printlog)
+        columns = ['Campaign_number:','Profile_count:','Profile:','date:','Latitude_S_(digital):',
+                                   'Longitude_E_(digital):','Distance_to_GEF_(m):','Rope_length_(m):','Max_depth_(m):','TOB_name_in_Database:',
+                                   'Purpose_of_sampling:','pH_Calibration_(7):','pH_Calibration_(9):','pH_Calibration_(10):','pH_Calibration_(4):']
+        # Read all sheets into a dict of DataFrames
+        sheets = pd.read_excel(infile, sheet_name=None, dtype={"date": str},skiprows=1)
+
+        # Keep all except "Info" and concatenate
+        df_meta = pd.concat([d.iloc[:, :len(columns)].set_axis(columns, axis=1) for name, d in sheets.items() if name != "Info"],
+            ignore_index=True)
+
+        for col in df_meta.columns:
+            if col=="date":
+                self.general_attributes["date"] = df_meta["date"].astype(str).str.zfill(6).values # Make sure there are always 6 characters
+            else:
+                self.general_attributes[col]= df_meta[col].values
         
     def extract_meta_data_Kivuwatt(self, infile,):
         """"
@@ -228,7 +275,7 @@ class ctd:
         """
         log("Reading metadata...",indent=1,printlog=self.printlog)
         df_meta=pd.read_csv(infile,sep=',',encoding='ISO-8859-1',header=0,names=['Profile_count','Date','Lat','Lon','Probe','Distance_GEF'],
-                              skiprows=[1],dtype={'Date':str})
+                                skiprows=[1],dtype={'Date':str})
         self.general_attributes["profile_count"] = df_meta["Profile_count"].values
         self.general_attributes["date"] = df_meta["Date"].values
         self.general_attributes["distance_to_GEF"] = df_meta["Distance_GEF"].values
@@ -329,7 +376,8 @@ class ctd:
             Waterlevel = [i['water_surface_height_above_reference_datum'] for i in data1['data']]
             df1 = pd.DataFrame({'Date1':Date1, 'Waterlevel':Waterlevel})
             #df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"], format= "%Y/%m/%d", dayfirst=True).values.astype(float) / 10 ** 9)
-            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format= 'ISO8601', dayfirst=True).values.astype(float) / 10 ** 9) # Specify ISO8601 to deal with formats "yyyy/mm/dd HH:MM"
+            #df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format= 'ISO8601', dayfirst=True).values.astype(float) / 10 ** 9) # Specify ISO8601 to deal with formats "yyyy/mm/dd HH:MM"
+            df1['seconds_since_1970'] = list(pd.to_datetime(df1["Date1"],format="%Y/%m/%d %H:%M", dayfirst=True).values.astype(float) / 10 ** 9) 
             x= df1["seconds_since_1970"]
             y= df1["Waterlevel"]
             f = interpolate.interp1d(x, y)
@@ -341,51 +389,90 @@ class ctd:
             # water level:
             self.depth_value = reference_depth - ynew
 
-    def extract_meta_data(self, infile,):
+    def write_meta_TOB(self,infile,indfile):
         """"
-        Function description
-        Input: 
-            Reads the added meta data which is in the first 15 lines of the files.
-        Outputs: 
-            Adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
-        """
+        Add the metadata specified in the object ctd_meta to the beginning of a TOB file.
         
+        """
+        added = 0
+        columns = ['Campaign_number:','Profile_count:','Profile:','date:','Latitude_S_(digital):',
+                                   'Longitude_E_(digital):','Distance_to_GEF_(m):','Rope_length_(m):','Max_depth_(m):','TOB_name_in_Database:',
+                                   'Purpose_of_sampling:','pH_Calibration_(7):','pH_Calibration_(9):','pH_Calibration_(10):','pH_Calibration_(4):']
+        dict_meta=dict()
+        for col in columns:
+            dict_meta[col]=self.general_attributes[col][indfile]
+
+        quote = str(pd.DataFrame(dict_meta,index=[0]).iloc[0].to_string())
+
+        with open(infile, "r", encoding="utf8", errors='ignore') as f:
+            lines = f.readlines()
+        if lines[0] != "*** Meta Data ***\n":
+            added += 1
+            with open(infile, "w", encoding="utf8", errors='ignore') as f:
+                f.write("*** Meta Data ***")
+                f.write("\n")
+                f.write(quote)
+                f.write("\n")
+                f.write("\n")
+                f.write("*************")
+                f.write("\n")
+                f.writelines(lines)
+             
+    def read_meta_TOB(self,infile,latlim=[-2.555959,-1.520405],lonlim=[28.737987,29.501541]):
+        """"
+        Reads the added meta data which is in the first 15 lines of the files and adds the meta data to the general_attibutes so it can be looked at in the level2A data. 
+        """
+        with open(infile, 'r', encoding="utf8", errors='ignore') as f:
+            f.readline()
+            line_numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+            lines = []
+            for i, line in enumerate(f):
+                if i in line_numbers:
+                    lines.append(line.strip())
+            self.general_attributes["campaign_number"] = strip_metadata(lines[0])
+            self.general_attributes["profile_count"] = strip_metadata(lines[1])
+            self.general_attributes["profile"] = strip_metadata(lines[2])
+            self.general_attributes["date"] = strip_metadata(lines[3])
+            self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
+            self.general_attributes["rope_length"] = strip_metadata(lines[7])
+            self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
+            self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
+                lines[11]) + " (9): " + strip_metadata(lines[12]) + " (4): " + strip_metadata(lines[13])
+
+            latitude = float(strip_metadata(lines[4]))
+            longitude = float(strip_metadata(lines[5]))
+            if (latlim[1] > latitude > latlim[0]) and (lonlim[0] < longitude < lonlim[1]):
+                self.general_attributes["latitude"] = latitude
+                self.general_attributes["longitude"] = longitude
+            elif (-1*latlim[1] < latitude < -1*latlim[0]) and (lonlim[0] < longitude < lonlim[1]):
+                self.general_attributes["latitude"] = -latitude
+                self.general_attributes["longitude"] = longitude
+            else:
+                log("Latitude and longitude fall outside lake bounds.",printlog=self.printlog)
+    
+    def add_meta_data(self, infile,ctd_meta,):
+        """"
+        Add metadata from TOB file or from csv file. 
+        """
+        import_meta_TOB=False
         self.general_attributes["file_name"] = infile[infile.rfind("/")+1:]
         with open(infile, 'r', encoding="utf8", errors='ignore') as f:
             first_line = f.readline()
             if "Meta Data" in first_line: # Only for TOB files
-                line_numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-                lines = []
-                for i, line in enumerate(f):
-                    if i in line_numbers:
-                        lines.append(line.strip())
-                self.general_attributes["campaign_number"] = strip_metadata(lines[0])
-                self.general_attributes["profile_count"] = strip_metadata(lines[1])
-                self.general_attributes["profile"] = strip_metadata(lines[2])
-                self.general_attributes["date"] = strip_metadata(lines[3])
-                self.general_attributes["distance_to_GEF"] = strip_metadata(lines[6])
-                self.general_attributes["rope_length"] = strip_metadata(lines[7])
-                #self.general_attributes["file_name"] = strip_metadata(lines[9])
-                self.general_attributes["purpose_of_sampling"] = strip_metadata(lines[10])
-                self.general_attributes["pH_calibration"] = "(7): " + strip_metadata(
-                    lines[11]) + " (9): " + strip_metadata(lines[12]) + " (4): " + strip_metadata(lines[13])
-
-                latitude = float(strip_metadata(lines[4]))
-                longitude = float(strip_metadata(lines[5]))
-                if (-1.520405 > latitude > -2.555959) and (28.737987 < longitude < 29.501541):
-                    self.general_attributes["latitude"] = latitude
-                    self.general_attributes["longitude"] = longitude
-                elif (1.520405 < latitude < 2.555959) and (28.737987 < longitude < 29.501541):
-                    self.general_attributes["latitude"] = -latitude
-                    self.general_attributes["longitude"] = longitude
-                else:
-                    log("Latitude and longitude fall outside lake bounds.",printlog=self.printlog)
+                import_meta_TOB=True
+            elif self.general_attributes["file_name"] in ctd_meta.general_attributes["TOB_name_in_Database:"]:# Find filename in metadata csv file
+                indfile=np.where(ctd_meta.general_attributes["TOB_name_in_Database:"]==self.general_attributes["file_name"])[0][0]
+                ctd_meta.write_meta_TOB(infile,indfile) # Add the metadata to the TOB file
+                import_meta_TOB=True
             else: # SBE files
+                log("No metadata found!",printlog=self.printlog)
                 self.general_attributes["distance_to_GEF"] = np.nan
                 self.general_attributes["latitude"] = np.nan
                 self.general_attributes["longitude"] = np.nan
-                
-                
+        if import_meta_TOB:
+            self.read_meta_TOB(infile)
+    
+    
     def extract_profile(self, remove_botdist=1,remove_topdist=1,press_surface=100,):
         log("Extracting profile...", indent=1,printlog=self.printlog)
         self.data["Press"] = np.array([float(i) for i in self.data["Press"]])
@@ -587,8 +674,22 @@ class ctd:
         
         
     def to_netcdf(self, folder, title,  output_period="profile", mode='a', time_label="time", grid=False,):
-        
+        """
+        Export profiles to netCDF files, either single profiles or depth-interpolated profiles.
+        Inputs:
+            folder: output folder
+            title: title of the output files
+            output_period: "weekly", "monthly", "yearly", "profile"
+            mode: 'a' to append to existing files, 'w' to overwrite
+            time_label: name of the time variable
+            grid: True for depth-interpolated data (Level 2B), False for raw
+            data (Level 2A).
+        Outputs: 
+            success_export: True if at least one profile was exported, False otherwise.
+        """
         log("Saving to NetCDF", indent=1,printlog=self.printlog)
+
+        success_export=False
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
 
@@ -681,6 +782,7 @@ class ctd:
                                 else:
                                     var[:, idx] = data[key]
                     nc.close()
+                    success_export=True
 
             else:
                 
@@ -714,12 +816,25 @@ class ctd:
                         breakpoint()
                         nc.close()
                 nc.close()
+                success_export=True
 
             start = start + td
-            
-    def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
+        return success_export
         
+    def to_netcdf_combine(self, folder, title, mode='a', time_label="time",):
+        """
+        Export combined profiles to netCDF files (Level 3). 
+        Inputs:
+            folder: output folder
+            title: title of the output files
+            mode: 'a' to append to existing files, 'w' to overwrite
+            time_label: name of the time variable
+        Outputs: 
+            success_export: True if at least one profile was exported, False otherwise.
+        """
         log("Saving to combined NetCDF", indent=1,printlog=self.printlog)
+        
+        success_export=False
         if not os.path.exists(folder): # Create folder if it doesn't exist
             os.makedirs(folder)
         
@@ -781,6 +896,7 @@ class ctd:
                             else:
                                 var[:, idx] = data[key]
                 nc.close()
+                success_export=True
 
         else:
             
@@ -814,6 +930,8 @@ class ctd:
                     breakpoint()
                     nc.close()
             nc.close()
+            success_export=True
+        return success_export
 
     def write_to_L3(self,nc,time_label="time",newfile=True):
         variables = self.comb_variables
@@ -894,6 +1012,16 @@ class ctd:
                     breakpoint()
                     
     def add_to_dict(self,dict_name,time_label="time",newfile=True):
+        """
+        Add the data to a dictionary representing the netCDF file content.
+        Returns True if data was added, False if data was already present.
+        Inputs:
+            dict_name: dictionary representing the netCDF file content.
+            time_label: name of the time variable.
+            newfile: boolean indicating if the file is new or not.
+        Outputs:
+            added_data: boolean indicating if data was added or not.
+        """
         variables = self.comb_variables
         dimensions = self.grid_dimensions
         data = self.grid
@@ -904,12 +1032,13 @@ class ctd:
         # data["max_depth"]=np.array([data["depth_interp"][np.where(~np.isnan(data["rho"]))[0][-1]]])
 
         time_arr = data[time_label]
-        
+        added_data=True
         if not newfile: # File has already been created
             dict_time = dict_name[time_label]
 
             if time_arr[0] in dict_time: # Profile is already present in the netCDF file
                 print("Data already present in the L3 netCDF file")
+                added_data=False
             else:
                 idx = position_in_array(dict_time, time_arr[0]) # Where to insert the new profile
                 dict_time = np.insert(dict_time, idx, time_arr[0])
@@ -970,6 +1099,7 @@ class ctd:
                     
                 except:
                     breakpoint()
+        return added_data
     
 
     def profile_to_timeseries_grid(self, vars_nointerp,depthgrid=np.array([]),time_label="time",):
@@ -1033,13 +1163,15 @@ class ctd:
             # rho_TS = density(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             rho_TS = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],press=self.data["Press"])
             if calculate_depth: 
-                depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+                # depth_TS=1e4 * data["adj_press"] / rho_TS / sw.g(lat)
+                depth_TS=1e4 * data["adj_press"] / rho_TS / gsw.grav(lat, 0) # With gsw
             else:
                 depth_TS=data["adj_press"]
             C_CH4=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CH4"])], df_gas["CH4"][~np.isnan(df_gas["CH4"])]*16/1000) # g/L
             C_CO2=np.interp(depth_TS, df_gas["Depth"][~np.isnan(df_gas["CO2"])], df_gas["CO2"][~np.isnan(df_gas["CO2"])]*44/1000) # g/L
             # self.data["rho"] = density(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
             self.data["rho"] = density_Kivu(temperature=data["Temp"], salinity=self.data["SALIN"],C_CH4=C_CH4,C_CO2=C_CO2)
+        
         except Exception :
             log("Failed to calculate density", indent=2,printlog=self.printlog)
             return False
@@ -1061,9 +1193,9 @@ class ctd:
         indrho[np.isnan(rho_p[ind0:])]=np.nan
         rho_avg[ind0:]=np.nancumsum(rho_p[ind0:])/np.nancumsum(indrho)
     
-        if calculate_depth: 
-            #self.data["depth"] = 1e4 * data["adj_press"] / (rho_p*sw.g(lat))
-            self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
+        if calculate_depth:  
+            #self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*sw.g(lat))
+            self.data["depth"] = 1e4 * data["adj_press"] / (rho_avg*gsw.grav(lat, 0)) # With gsw
         else:
             self.data["depth"]=data["adj_press"]
         log("Calculating depth_ref...", indent=2,printlog=self.printlog)
@@ -1071,7 +1203,7 @@ class ctd:
         b=(self.data["depth_ref"])
         try:
             log("Calculating potential temperature...", indent=2,printlog=self.printlog)
-            self.data["pt"]  = potential_temperature_sw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
+            self.data["pt"]  = potential_temperature_gsw(S=self.data["SALIN"], T=data["Temp"], p=data["adj_press"], p_ref=0)
         except Exception:
             self.data["pt"] = np.asarray([np.nan] * len(data["time"]))
             log("Failed to calculate potential temperature",printlog=self.printlog)
