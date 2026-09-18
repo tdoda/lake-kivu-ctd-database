@@ -11,7 +11,10 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 from support_scripts.adding_meta_data import add_metadata_GUI
-
+import yaml
+from datetime import datetime
+from pathlib import Path
+import re
 
 # ---------------------------------------------------------
 # GLOBAL ROOT WINDOW
@@ -198,7 +201,13 @@ def process_metadata_async(popup, progress, metadata_path, tob_directory, start_
 
     def worker():
         try:
-            for processed, total, meta_files, lost_files, added in add_metadata_GUI(metadata_path, tob_directory, start_year, end_year):
+            # Initialize progress bar exactly like original
+            progress["mode"] = "determinate"
+            progress["value"] = 0
+
+            for processed, total, meta_files, lost_files, added in add_metadata_GUI(
+                metadata_path, tob_directory, start_year, end_year
+            ):
                 progress["maximum"] = total
                 progress["value"] = processed
                 popup.update_idletasks()
@@ -217,6 +226,8 @@ def process_metadata_async(popup, progress, metadata_path, tob_directory, start_
             tk.Label(popup, text=str(e), font=("Arial", 12)).pack()
 
     threading.Thread(target=worker).start()
+
+
 
 COLUMNS = [
     "Campaign_number:", "Profile_count:", "Profile:", "date:",
@@ -320,6 +331,383 @@ def create_new_metadata_page():
     # ---------------------------------------------------------
     add_back_button().place(x=50, y=840)
 
+# ---------------------------------------------------------
+#------------------- PROCESS & RUN DATABASE ---------------
+# ---------------------------------------------------------
+def run_process_database_page():
+    clear_window()
+
+    # =========================================================
+    # Appearance
+    # =========================================================
+    bg_color = "#CEE5FD"
+    frame_color = "#97B0CA"
+
+    root.configure(bg=bg_color)
+
+    # =========================================================
+    # Window / layout parameters
+    # =========================================================
+    WINDOW_WIDTH = 1400
+    WINDOW_HEIGHT = 900
+
+    # ---- Main frames ----
+    FRAME_Y = 180
+    FRAME_HEIGHT = 540
+
+    FRAME_LEFT = 40
+    FRAME_RIGHT = 40
+    FRAME_GAP = 20
+
+    # ---- Bottom buttons ----
+    BUTTON_Y = 820
+
+    # =========================================================
+    # Title
+    # =========================================================
+    tk.Label(
+        root,
+        text="Run & process database",
+        font=("Arial", 36, "bold"),
+        bg=bg_color,
+        fg="black"
+    ).place(
+        relx=0.5,
+        y=20,
+        anchor="n"
+    )
+
+    # =========================================================
+    # Calculate frame widths
+    # =========================================================
+    total_width = WINDOW_WIDTH - FRAME_LEFT - FRAME_RIGHT
+
+    frame_width = (
+        total_width - 2 * FRAME_GAP
+    ) / 3
+
+    # =========================================================
+    # Frame definitions
+    # =========================================================
+    frame_titles = [
+        "Required packages",
+        "Database minimum date",
+        "Required lake level data"
+    ]
+
+    for i, title_text in enumerate(frame_titles):
+
+        x = FRAME_LEFT + i * (frame_width + FRAME_GAP)
+
+        frame = tk.Frame(
+            root,
+            bg=frame_color,
+            bd=3,
+            relief="ridge"
+        )
+
+        frame.place(
+            x=x,
+            y=FRAME_Y,
+            width=frame_width,
+            height=FRAME_HEIGHT
+        )
+
+        # -----------------------------------------------------
+        # Frame title
+        # -----------------------------------------------------
+        tk.Label(
+            frame,
+            text=title_text,
+            font=("Arial", 20, "bold"),
+            bg=frame_color,
+            fg="black"
+        ).pack(pady=(10, 5))
+
+        # -----------------------------------------------------
+        # Frame-specific content
+        # -----------------------------------------------------
+
+        # STEP 1: Required packages
+        if i == 0:
+
+            step1_text = tk.Text(
+                frame,
+                font=("Arial", 14, "bold"),
+                bg=frame_color,
+                fg="white",
+                wrap="word",
+                height=4,
+                width=1,
+                bd=0,
+                highlightthickness=0,
+                spacing3=5
+            )
+
+            step1_text.pack(
+                padx=35,
+                pady=(120, 15),
+                fill="x"
+            )
+
+            # Add the normal text
+            step1_text.insert(
+                "end",
+                "STEP 1: Make sure that all required packages "
+                "(requirements.txt) are installed in your " 
+                "active Python environment. "
+            )
+
+            # Add the hyperlink text
+            step1_text.insert("end", "See here.", "link")
+
+            # Define the hyperlink appearance
+            step1_text.tag_config(
+                "link",
+                foreground="blue",
+                underline=True
+            )
+
+            # Make the hyperlink clickable
+            import webbrowser
+
+            step1_text.tag_bind(
+                "link",
+                "<Button-1>",
+                lambda event: webbrowser.open("https://github.com/tdoda/lake-kivu-ctd-database/tree/master")
+            )
+
+            def update_cursor(event):
+                index = step1_text.index(f"@{event.x},{event.y}")
+
+                if "link" in step1_text.tag_names(index):
+                    step1_text.config(cursor="hand2")
+                else:
+                    step1_text.config(cursor="arrow")
+
+
+            step1_text.bind("<Motion>", update_cursor)
+            # Prevent the user from editing the text
+            step1_text.config(state="disabled")
+
+        # STEP 2: Minimum date
+        elif i == 1:
+            min_date_var = create_step2_min_date(frame, frame_color)
+
+        # STEP 3: Lake level
+        elif i == 2:
+
+            pass
+
+    # =========================================================
+    # Bottom buttons
+    # =========================================================
+    tk.Button(
+        root,
+        text="Save & continue",
+        font=("Arial", 18),
+        width=20,
+        bg="#97B0CA",
+        fg="white",
+        activebackground="#93C6FC",
+        activeforeground="white",
+        relief="raised",
+        bd=3,
+        command=lambda: save_min_date_to_yaml(min_date_var)
+    ).place(
+        x=1080,
+        y=BUTTON_Y
+    )
+
+    add_back_button().place(
+        x=50,
+        y=BUTTON_Y
+    )
+
+
+def create_step2_min_date(frame, frame_color):
+
+    # ---------------------------------------------------------
+    # Load minimum date from YAML
+    # ---------------------------------------------------------
+    config_file = Path(__file__).parent / "input_python.yaml"
+
+    with open(config_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    min_date = config["processing"]["min_date_period"]
+
+    # ---------------------------------------------------------
+    # Step 2 explanatory text
+    # ---------------------------------------------------------
+    step2_text = tk.Text(
+        frame,
+        font=("Arial", 14, "bold"),
+        bg=frame_color,
+        fg="white",
+        wrap="word",
+        height=3,
+        width=1,
+        bd=0,
+        highlightthickness=0,
+        spacing3=5
+    )
+
+    step2_text.pack(
+        padx=35,
+        pady=(70, 15),
+        fill="x"
+    )
+
+    step2_text.insert(
+        "end",
+        "STEP 2: Define the minimum date for the database. "
+        "Profiles collected before this date will not be included "
+        "in the database."
+    )
+
+    step2_text.config(state="disabled")
+
+    # ---------------------------------------------------------
+    # Minimum date label
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="Minimum date:",
+        font=("Arial", 16, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=35,
+        pady=(10, 5),
+        anchor="w"
+    )
+    # ---------------------------------------------------------
+    # Date entry + Edit ON/OFF button
+    # ---------------------------------------------------------
+    date_var = tk.StringVar(value=min_date)
+    date_edit_frame = tk.Frame(
+        frame,
+        bg=frame_color
+    )
+
+    date_edit_frame.pack(
+        padx=35,
+        pady=(0, 10),
+        anchor="w"
+    )
+
+    # Date entry
+    date_entry = tk.Entry(
+        date_edit_frame,
+        textvariable=date_var,
+        font=("Arial", 16),
+        width=15,
+        justify="center",
+        state="readonly",
+        readonlybackground="#B7C5D2",
+        fg="#6F6F6F",
+        relief="sunken",
+        bd=2
+    )
+
+    date_entry.pack(
+        side="left"
+    )
+
+    # Edit ON/OFF button
+    edit_var = tk.BooleanVar(value=False)
+
+    def toggle_edit():
+
+        if edit_var.get():
+
+            # Editing ON
+            date_entry.config(
+                state="normal",
+                bg="white",
+                fg="black"
+            )
+
+            edit_button.config(
+                text="ON"
+            )
+
+        else:
+
+            # Editing OFF
+            date_entry.config(
+                state="readonly",
+                readonlybackground="#B7C5D2",
+                fg="#6F6F6F"
+            )
+
+            edit_button.config(
+                text="OFF"
+            )
+
+
+    edit_button = tk.Checkbutton(
+        date_edit_frame,
+        text="OFF",
+        variable=edit_var,
+        command=toggle_edit,
+        font=("Arial", 14, "bold"),
+        bg=frame_color,
+        fg="white",
+        activebackground=frame_color,
+        activeforeground="white",
+        selectcolor=frame_color,
+        cursor="hand2"
+    )
+
+    edit_button.pack(
+        side="left",
+        padx=(15, 0)
+    )
+
+    return date_var
+
+def save_min_date_to_yaml(min_date_var):
+    """
+    Validate and save the minimum date from the GUI
+    back to input_python.yaml.
+    """
+
+    new_date = min_date_var.get().strip()
+
+    # Check that the date has the correct format
+    try:
+        datetime.strptime(new_date, "%Y-%m-%d")
+    except ValueError:
+        tk.messagebox.showerror(
+            "Invalid date",
+            "Please enter the minimum date in the format YYYY-MM-DD."
+        )
+        return False
+
+    # Locate YAML file
+    config_file = Path(__file__).parent / "input_python.yaml"
+
+    # Read the existing YAML file
+    with open(config_file, "r") as f:
+        content = f.read()
+
+    # Replace only the min_date_period line
+    new_content = re.sub(
+        r'(^\s*min_date_period:\s*")[^"]*(")',
+        rf'\g<1>{new_date}\g<2>',
+        content,
+        flags=re.MULTILINE
+    )
+
+    # Write the updated YAML
+    with open(config_file, "w") as f:
+        f.write(new_content)
+
+    return True
+
+
 
 # ---------------------------------------------------------
 # BACK BUTTON (standalone reusable)
@@ -400,6 +788,21 @@ def homepage():
         command=create_new_metadata_page
     )
     btn_new.grid(row=1, column=0, padx=20, pady=20)
+
+    btn_run_db = tk.Button(
+        frame,
+        text="Run & process database",
+        font=("Arial", 20),
+        width=30,
+        bg=btn_colors[0],
+        fg=btn_colors[2],
+        activebackground=btn_colors[1],
+        activeforeground=btn_colors[2],
+        relief="raised",
+        bd=3,
+        command=run_process_database_page
+    )
+    btn_run_db.grid(row=2, column=0, padx=20, pady=20)
 
 # ---------------------------------------------------------
 # START APPLICATION

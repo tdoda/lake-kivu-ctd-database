@@ -22,6 +22,7 @@ import copy
 import time
 import pandas as pd
 from functions import select_processing_options, select_files, get_nc_data
+from pathlib import Path
 
 # Make sure the current working directory is the one of the script (to avoid problems with relative paths):
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -63,14 +64,22 @@ if not process_REMA and not process_KW:
 if not process_L0toL2 and not process_L2toL3:
     print("No data processing selected. Exiting script.")
     sys.exit(0)
-#%% Parameters
-lake_info = {"lat": -2, "alt": 1462} # Latitude [°] and altitude [m]
-lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
-min_date_period=datetime(2008, 1, 1) # Minimum date of the profiles to include in the database
 
+# Get inputs from yaml file
+#with open("input_python.yaml", "r") as f:
+config_file = Path(__file__).parent / "input_python.yaml"
+with open(config_file, "r") as f:
+    config = yaml.safe_load(f)
+
+#%% Parameters
+#lake_info = {"lat": -2, "alt": 1462}
+lake_info = {"lat": config["lake"]["latitude"], "alt": config["lake"]["altitude"]} # Latitude [°] and altitude [m]
+#lake_level = "../data/lake_level/c_gls.json" # File containing the lake level data
+lake_level = config["directories"]["lake_level_file"]
+#min_date_period=datetime(2008, 1, 1) # Minimum date of the profiles to include in the database
+min_date_period = datetime.strptime(config["processing"]["min_date_period"],"%Y-%m-%d")
 # Import the name of directories:
-with open("input_python.yaml", "r") as f:
-    directories = yaml.load(f, Loader=yaml.FullLoader) 
+directories = config["directories"]
 
 # Create the directories if not existing:
 for directory in directories.values(): 
