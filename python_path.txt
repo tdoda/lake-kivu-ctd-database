@@ -1,1 +1,1 @@
-C:\Users\tdoda\AppData\Local\anaconda3\envs\kivu-ctd-pip\python.exe
+/home/mushimje@eawag.wroot.emp-eaw.ch/.conda/envs/kivudatabase/bin/python

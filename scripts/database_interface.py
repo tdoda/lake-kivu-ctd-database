@@ -314,7 +314,7 @@ def create_new_metadata_page():
 
     tk.Button(
         root,
-        text="Save Metadata",
+        text="Save Metadata >>>",
         font=("Arial", 18),
         width=20,
         bg=btn_colors[0],
@@ -430,65 +430,66 @@ def run_process_database_page():
 
         # STEP 1: Required packages
         if i == 0:
+            python_var = create_step1_packages(frame, frame_color)
 
-            step1_text = tk.Text(
-                frame,
-                font=("Arial", 14, "bold"),
-                bg=frame_color,
-                fg="white",
-                wrap="word",
-                height=4,
-                width=1,
-                bd=0,
-                highlightthickness=0,
-                spacing3=5
-            )
+            # step1_text = tk.Text(
+            #     frame,
+            #     font=("Arial", 14, "bold"),
+            #     bg=frame_color,
+            #     fg="white",
+            #     wrap="word",
+            #     height=4,
+            #     width=1,
+            #     bd=0,
+            #     highlightthickness=0,
+            #     spacing3=5
+            # )
 
-            step1_text.pack(
-                padx=35,
-                pady=(120, 15),
-                fill="x"
-            )
+            # step1_text.pack(
+            #     padx=35,
+            #     pady=(120, 15),
+            #     fill="x"
+            # )
 
-            # Add the normal text
-            step1_text.insert(
-                "end",
-                "STEP 1: Make sure that all required packages "
-                "(requirements.txt) are installed in your " 
-                "active Python environment. "
-            )
+            # # Add the normal text
+            # step1_text.insert(
+            #     "end",
+            #     "STEP 1: Make sure that all required packages "
+            #     "(requirements.txt) are installed in your " 
+            #     "active Python environment. "
+            # )
 
-            # Add the hyperlink text
-            step1_text.insert("end", "See here.", "link")
+            # # Add the hyperlink text
+            # step1_text.insert("end", "See here.", "link")
 
-            # Define the hyperlink appearance
-            step1_text.tag_config(
-                "link",
-                foreground="blue",
-                underline=True
-            )
+            # # Define the hyperlink appearance
+            # step1_text.tag_config(
+            #     "link",
+            #     foreground="blue",
+            #     underline=True
+            # )
 
-            # Make the hyperlink clickable
-            import webbrowser
+            # # Make the hyperlink clickable
+            # import webbrowser
 
-            step1_text.tag_bind(
-                "link",
-                "<Button-1>",
-                lambda event: webbrowser.open("https://github.com/tdoda/lake-kivu-ctd-database/tree/master")
-            )
+            # step1_text.tag_bind(
+            #     "link",
+            #     "<Button-1>",
+            #     lambda event: webbrowser.open("https://github.com/tdoda/lake-kivu-ctd-database/tree/master")
+            # )
 
-            def update_cursor(event):
-                index = step1_text.index(f"@{event.x},{event.y}")
+            # def update_cursor(event):
+            #     index = step1_text.index(f"@{event.x},{event.y}")
 
-                if "link" in step1_text.tag_names(index):
-                    step1_text.config(cursor="hand2")
-                else:
-                    step1_text.config(cursor="arrow")
+            #     if "link" in step1_text.tag_names(index):
+            #         step1_text.config(cursor="hand2")
+            #     else:
+            #         step1_text.config(cursor="arrow")
 
 
-            step1_text.bind("<Motion>", update_cursor)
-            # Prevent the user from editing the text
-            step1_text.config(state="disabled")
+            # step1_text.bind("<Motion>", update_cursor)
+            # # Prevent the user from editing the text
+            # step1_text.config(state="disabled")
 
         # STEP 2: Minimum date
         elif i == 1:
@@ -504,7 +505,7 @@ def run_process_database_page():
     # =========================================================
     tk.Button(
         root,
-        text="Save & continue",
+        text="Save & continue >>>",
         font=("Arial", 18),
         width=20,
         bg="#97B0CA",
@@ -513,17 +514,171 @@ def run_process_database_page():
         activeforeground="white",
         relief="raised",
         bd=3,
-        command=lambda: save_min_date_to_yaml(min_date_var)
-    ).place(
-        x=1080,
-        y=BUTTON_Y
-    )
+        command=lambda: save_and_continue(min_date_var,python_var)
+    ).place(x=1080,y=BUTTON_Y)
 
     add_back_button().place(
         x=50,
         y=BUTTON_Y
     )
 
+def create_step1_packages(frame, frame_color):
+
+    # ---------------------------------------------------------
+    # Detect the Python environment currently running the GUI
+    # ---------------------------------------------------------
+    python_path = sys.executable
+    #python_path = update_python_path_file()
+
+    # ---------------------------------------------------------
+    # STEP 1 explanatory text
+    # ---------------------------------------------------------
+    step1_text = tk.Text(
+        frame,
+        font=("Arial", 14, "bold"),
+        bg=frame_color,
+        fg="white",
+        wrap="word",
+        height=4,
+        width=1,
+        bd=0,
+        highlightthickness=0,
+        spacing2=3,
+        spacing3=5
+    )
+
+    step1_text.pack(
+        padx=35,
+        pady=(50, 15),
+        fill="x"
+    )
+
+    # Normal text
+    step1_text.insert(
+        "end",
+        "STEP 1: Make sure that all required packages "
+        "(requirements.txt) are installed in your "
+        "active Python environment. "
+    )
+
+    # Hyperlink text
+    step1_text.insert(
+        "end",
+        "See here.",
+        "link"
+    )
+
+    # ---------------------------------------------------------
+    # Define hyperlink appearance
+    # ---------------------------------------------------------
+    step1_text.tag_config(
+        "link",
+        foreground="blue",
+        underline=True
+    )
+
+    # ---------------------------------------------------------
+    # Make hyperlink clickable
+    # ---------------------------------------------------------
+    import webbrowser
+
+    step1_text.tag_bind(
+        "link",
+        "<Button-1>",
+        lambda event: webbrowser.open(
+            "https://github.com/tdoda/lake-kivu-ctd-database/tree/master"
+        )
+    )
+
+    # ---------------------------------------------------------
+    # Change cursor when hovering over hyperlink
+    # ---------------------------------------------------------
+    def update_cursor(event):
+
+        index = step1_text.index(f"@{event.x},{event.y}")
+
+        if "link" in step1_text.tag_names(index):
+            step1_text.config(cursor="hand2")
+        else:
+            step1_text.config(cursor="arrow")
+
+    step1_text.bind("<Motion>", update_cursor)
+
+    # ---------------------------------------------------------
+    # Prevent the user from editing the text
+    # ---------------------------------------------------------
+    step1_text.config(state="disabled")
+
+    # ---------------------------------------------------------
+    # Python environment
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="Python environment:",
+        font=("Arial", 15, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=35,
+        pady=(10, 5),
+        anchor="w"
+    )
+
+    python_var = tk.StringVar(value=sys.executable)
+
+    # Python path entry
+    python_entry = tk.Entry(
+        frame,
+        textvariable=python_var,
+        font=("Arial", 12),
+        width=1,
+        relief="sunken",
+        bd=2,
+        state="readonly",
+        readonlybackground="white"
+    )
+
+    python_entry.pack(
+        padx=35,
+        pady=(0, 5),
+        fill="x"
+    )
+
+
+    # ---------------------------------------------------------
+    # Browse button
+    # ---------------------------------------------------------
+    def browse_python():
+
+        path = filedialog.askopenfilename(
+            title="Select Python executable"
+        )
+
+        if path:
+            python_var.set(path)
+
+
+    browse_button = tk.Button(
+        frame,
+        text="Browse",
+        command=browse_python,
+        font=("Arial", 14, "bold"),
+        bg=frame_color,
+        fg="white",
+        activebackground=frame_color,
+        activeforeground="white",
+        relief="raised",
+        bd=2,
+        cursor="hand2"
+    )
+
+    browse_button.pack(
+        padx=35,
+        pady=(5, 10),
+        anchor="e"
+    )
+
+    return python_var
 
 def create_step2_min_date(frame, frame_color):
 
@@ -546,7 +701,7 @@ def create_step2_min_date(frame, frame_color):
         bg=frame_color,
         fg="white",
         wrap="word",
-        height=3,
+        height=4,
         width=1,
         bd=0,
         highlightthickness=0,
@@ -555,7 +710,7 @@ def create_step2_min_date(frame, frame_color):
 
     step2_text.pack(
         padx=35,
-        pady=(70, 15),
+        pady=(70, 5),
         fill="x"
     )
 
@@ -579,7 +734,7 @@ def create_step2_min_date(frame, frame_color):
         fg="white"
     ).pack(
         padx=35,
-        pady=(10, 5),
+        pady=(15, 5),
         anchor="w"
     )
     # ---------------------------------------------------------
@@ -630,7 +785,7 @@ def create_step2_min_date(frame, frame_color):
             )
 
             edit_button.config(
-                text="ON"
+                text="edit"
             )
 
         else:
@@ -643,13 +798,13 @@ def create_step2_min_date(frame, frame_color):
             )
 
             edit_button.config(
-                text="OFF"
+                text="edit"
             )
 
 
     edit_button = tk.Checkbutton(
         date_edit_frame,
-        text="OFF",
+        text="edit",
         variable=edit_var,
         command=toggle_edit,
         font=("Arial", 14, "bold"),
@@ -667,6 +822,32 @@ def create_step2_min_date(frame, frame_color):
     )
 
     return date_var
+
+import sys
+import subprocess
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+# update python path automatically
+def save_python_path(python_var):
+
+    python_path = python_var.get().strip()
+
+    if not python_path:
+        messagebox.showerror(
+            "Invalid Python path",
+            "Please select a Python executable."
+        )
+        return False
+
+    python_path_file = PROJECT_DIR / "python_path.txt"
+
+    python_path_file.write_text(
+        python_path,
+        encoding="utf-8"
+    )
+
+    return True
+
+    return sys.executable
 
 def save_min_date_to_yaml(min_date_var):
     """
@@ -707,7 +888,18 @@ def save_min_date_to_yaml(min_date_var):
 
     return True
 
+# start main_ctd_database for processing
+def start_processing_gui():
+    python_path = (PROJECT_DIR / "python_path.txt").read_text().strip()
+    subprocess.Popen([python_path,str(PROJECT_DIR / "scripts" / "main_ctd_database.py")])
 
+# validate user inputs and start processing the db
+def save_and_continue(min_date_var, python_var):
+    if not save_min_date_to_yaml(min_date_var):
+        return
+    if not save_python_path(python_var):
+        return
+    start_processing_gui()
 
 # ---------------------------------------------------------
 # BACK BUTTON (standalone reusable)

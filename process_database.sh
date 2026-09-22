@@ -1,12 +1,20 @@
 #!/bin/bash
 
-# Read Python path from file
+# Directory containing this script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Move to the project root
+cd "$SCRIPT_DIR"
+
+# Read Python path
 PYTHON_PATH=$(cat python_path.txt)
 
-echo "Starting data processing"
-echo "Please wait until the Processing Options window opens..."
+echo "Starting Lake Kivu CTD database interface..."
+echo "Python: $PYTHON_PATH"
+echo
 
-"$PYTHON_PATH" scripts/main_ctd_database.py
+"$PYTHON_PATH" -m scripts.database_interface
 
-echo "Processing finished."
+echo
+echo "Database interface closed."
 read -p "Press Enter to close..."
