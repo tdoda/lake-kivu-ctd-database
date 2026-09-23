@@ -15,6 +15,9 @@ import yaml
 from datetime import datetime
 from pathlib import Path
 import re
+import sys
+import subprocess
+
 
 # ---------------------------------------------------------
 # GLOBAL ROOT WINDOW
@@ -38,6 +41,8 @@ def clear_window():
     for widget in root.winfo_children():
         widget.destroy()
 
+# Parent directory
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------
 # LOAD & ADD EXISTING METADATA PAGE
 # ---------------------------------------------------------
@@ -823,9 +828,6 @@ def create_step2_min_date(frame, frame_color):
 
     return date_var
 
-import sys
-import subprocess
-PROJECT_DIR = Path(__file__).resolve().parent.parent
 # update python path automatically
 def save_python_path(python_var):
 
