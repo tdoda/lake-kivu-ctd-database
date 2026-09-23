@@ -437,65 +437,6 @@ def run_process_database_page():
         if i == 0:
             python_var = create_step1_packages(frame, frame_color)
 
-            # step1_text = tk.Text(
-            #     frame,
-            #     font=("Arial", 14, "bold"),
-            #     bg=frame_color,
-            #     fg="white",
-            #     wrap="word",
-            #     height=4,
-            #     width=1,
-            #     bd=0,
-            #     highlightthickness=0,
-            #     spacing3=5
-            # )
-
-            # step1_text.pack(
-            #     padx=35,
-            #     pady=(120, 15),
-            #     fill="x"
-            # )
-
-            # # Add the normal text
-            # step1_text.insert(
-            #     "end",
-            #     "STEP 1: Make sure that all required packages "
-            #     "(requirements.txt) are installed in your " 
-            #     "active Python environment. "
-            # )
-
-            # # Add the hyperlink text
-            # step1_text.insert("end", "See here.", "link")
-
-            # # Define the hyperlink appearance
-            # step1_text.tag_config(
-            #     "link",
-            #     foreground="blue",
-            #     underline=True
-            # )
-
-            # # Make the hyperlink clickable
-            # import webbrowser
-
-            # step1_text.tag_bind(
-            #     "link",
-            #     "<Button-1>",
-            #     lambda event: webbrowser.open("https://github.com/tdoda/lake-kivu-ctd-database/tree/master")
-            # )
-
-            # def update_cursor(event):
-            #     index = step1_text.index(f"@{event.x},{event.y}")
-
-            #     if "link" in step1_text.tag_names(index):
-            #         step1_text.config(cursor="hand2")
-            #     else:
-            #         step1_text.config(cursor="arrow")
-
-
-            # step1_text.bind("<Motion>", update_cursor)
-            # # Prevent the user from editing the text
-            # step1_text.config(state="disabled")
-
         # STEP 2: Minimum date
         elif i == 1:
             min_date_var = create_step2_min_date(frame, frame_color)
