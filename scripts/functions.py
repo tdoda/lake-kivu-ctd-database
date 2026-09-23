@@ -214,7 +214,8 @@ def salinity_Kivu(Temp, Cond,temperature_func=fcond20_temperature_Kivu):
     # Based on measurements in Lake Kivu by N. Gruber and A. Wüest in 2002
     ft = temperature_func(Temp)
     cond20 = ft * Cond * 1000 # uS/cm
-    salin=3E-08*cond20**2 + 0.001*cond20 - 0.0351 # g/kg
+    #salin=3E-08*cond20**2 + 0.001*cond20 - 0.0351 # g/kg
+    salin = 3.469815E-08*cond20**2 + 1.010677E-3*cond20 - 3.51057E-2 # g/kg (full digits)
     return salin, cond20/1000
 
 def density(temperature, salinity,press=0,C_CH4=0,C_CO2=0,beta_CH4=-1.25E-3,beta_CO2=0.25E-3):
