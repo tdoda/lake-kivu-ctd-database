@@ -24,3 +24,6 @@ cmocean==3.0.3
 # Optional for Jupyter interactive plots
 notebook==7.2.2
 ipympl==0.9.7 # only if using `%matplotlib widget`
+
+# interface 
+mplcursors==0.7.1

@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 from support_scripts.adding_meta_data import add_metadata_GUI
+from support_scripts.visualize_database import load_level3_nc, plot_contour_nc
 import yaml
 from datetime import datetime
 from pathlib import Path
@@ -844,6 +845,329 @@ def save_and_continue(min_date_var, python_var):
         return
     start_processing_gui()
 
+
+def run_visualization_page():
+
+    clear_window()
+
+    root.geometry("1400x900")
+
+    bg_color = "#CEE5FD"
+    frame_color = "#97B0CA"
+
+    root.configure(bg=bg_color)
+
+    # --------------------------------------------------
+    # Title
+    # --------------------------------------------------
+
+    tk.Label(
+        root,
+        text="Visualize Lake Kivu Database",
+        font=("Arial", 24, "bold"),
+        bg=bg_color,
+        fg="white"
+    ).pack(pady=(25, 15))
+
+    # --------------------------------------------------
+    # Main frame
+    # --------------------------------------------------
+
+    visualization_frame = tk.Frame(
+        root,
+        bg=frame_color,
+        relief="groove",
+        bd=2
+    )
+
+    visualization_frame.place(
+        x=40,
+        y=100,
+        width=1320,
+        height=620
+    )
+
+    # --------------------------------------------------
+    # Controls
+    # --------------------------------------------------
+
+    control_frame = tk.Frame(
+        visualization_frame,
+        bg=frame_color,
+        relief="groove",
+        bd=2
+    )
+
+    control_frame.place(
+        x=20,
+        y=20,
+        width=300,
+        height=570
+    )
+
+    (
+        parameter_var,
+        start_date_var,
+        end_date_var,
+        z_below_var
+    ) = create_visualization_controls(
+        control_frame,
+        frame_color
+    )
+
+    # --------------------------------------------------
+    # Plot frame
+    # --------------------------------------------------
+
+    plot_frame = tk.Frame(
+        visualization_frame,
+        bg="white",
+        relief="sunken",
+        bd=2
+    )
+
+    plot_frame.place(
+        x=340,
+        y=20,
+        width=950,
+        height=570
+    )
+
+    # --------------------------------------------------
+    # Load database
+    # --------------------------------------------------
+
+    data_CTD = load_level3_nc()
+
+    # --------------------------------------------------
+    # Plot
+    # --------------------------------------------------
+
+    create_plot_frame(
+        plot_frame,
+        data_CTD,
+        parameter_var,
+        z_below_var
+    )
+
+    # --------------------------------------------------
+    # Buttons
+    # --------------------------------------------------
+
+    create_visualization_buttons()
+
+def create_visualization_controls(frame, frame_color):
+
+    # ---------------------------------------------------------
+    # Section title
+    # ---------------------------------------------------------
+    # tk.Label(
+    #     frame,
+    #     text="Visualization parameters",
+    #     font=("Arial", 17, "bold"),
+    #     bg=frame_color,
+    #     fg="white"
+    # ).pack(
+    #     padx=20,
+    #     pady=(30, 20),
+    #     anchor="w"
+    # )
+
+    # ---------------------------------------------------------
+    # Parameter
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="Parameter:",
+        font=("Arial", 15, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=20,
+        pady=(5, 5),
+        anchor="w"
+    )
+
+    parameter_var = tk.StringVar(
+        value="Temperature"
+    )
+
+    parameter_menu = ttk.Combobox(
+        frame,
+        textvariable=parameter_var,
+        values=[
+            "Temperature",
+            "Salinity",
+            "Density"
+        ],
+        state="readonly",
+        font=("Arial", 14),
+        width=18
+    )
+
+    parameter_menu.pack(
+        padx=20,
+        pady=(0, 20),
+        anchor="w"
+    )
+
+    # ---------------------------------------------------------
+    # From date
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="From:",
+        font=("Arial", 15, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=20,
+        pady=(5, 5),
+        anchor="w"
+    )
+
+    start_date_var = tk.StringVar(
+        value="2008-01-01"
+    )
+
+    start_date_entry = tk.Entry(
+        frame,
+        textvariable=start_date_var,
+        font=("Arial", 14),
+        width=18,
+        justify="center"
+    )
+
+    start_date_entry.pack(
+        padx=20,
+        pady=(0, 15),
+        anchor="w"
+    )
+
+    # ---------------------------------------------------------
+    # To date
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="To:",
+        font=("Arial", 15, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=20,
+        pady=(5, 5),
+        anchor="w"
+    )
+
+    end_date_var = tk.StringVar(
+        value="2025-12-31"
+    )
+
+    end_date_entry = tk.Entry(
+        frame,
+        textvariable=end_date_var,
+        font=("Arial", 14),
+        width=18,
+        justify="center"
+    )
+
+    end_date_entry.pack(
+        padx=20,
+        pady=(0, 15),
+        anchor="w"
+    )
+
+    # ---------------------------------------------------------
+    # z-below
+    # ---------------------------------------------------------
+    tk.Label(
+        frame,
+        text="z-below [m]:",
+        font=("Arial", 15, "bold"),
+        bg=frame_color,
+        fg="white"
+    ).pack(
+        padx=20,
+        pady=(5, 5),
+        anchor="w"
+    )
+
+    z_below_var = tk.StringVar(
+        value="0"
+    )
+
+    z_below_entry = tk.Entry(
+        frame,
+        textvariable=z_below_var,
+        font=("Arial", 14),
+        width=18,
+        justify="center"
+    )
+
+    z_below_entry.pack(
+        padx=20,
+        pady=(0, 15),
+        anchor="w"
+    )
+
+    return (parameter_var, start_date_var, end_date_var, z_below_var)
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+def create_plot_frame(
+    frame,
+    data_CTD,
+    parameter_var,
+    z_below_var
+):
+
+    par = parameter_var.get()
+
+    try:
+        dmin = float(z_below_var.get())
+    except ValueError:
+        dmin = 0
+
+    # Call your existing plotting function
+    fig, ax = plot_contour_nc(
+        data_CTD,
+        par=par,
+        dmin=dmin
+    )
+
+    # Put the Matplotlib figure inside Tkinter
+    canvas = FigureCanvasTkAgg(
+        fig,
+        master=frame
+    )
+
+    canvas.draw()
+
+    canvas.get_tk_widget().pack(
+        fill="both",
+        expand=True
+    )
+
+    return canvas
+
+def create_visualization_buttons():
+
+    add_back_button().place(x=40,y=820)
+
+    tk.Button(
+        root,
+        text="Extract & save data",
+        font=("Arial", 18),
+        width=20,
+        bg="#97B0CA",
+        fg="white",
+        activebackground="#93C6FC",
+        activeforeground="white",
+        relief="raised",
+        bd=3#,
+        #command=extract_and_save_data
+    ).place(x=1080,y=820)
+
+
 # ---------------------------------------------------------
 # BACK BUTTON (standalone reusable)
 # ---------------------------------------------------------
@@ -937,7 +1261,23 @@ def homepage():
         bd=3,
         command=run_process_database_page
     )
+
     btn_run_db.grid(row=2, column=0, padx=20, pady=20)
+
+    btn_run_db = tk.Button(
+        frame,
+        text="Visualize database",
+        font=("Arial", 20),
+        width=30,
+        bg=btn_colors[0],
+        fg=btn_colors[2],
+        activebackground=btn_colors[1],
+        activeforeground=btn_colors[2],
+        relief="raised",
+        bd=3,
+        command=run_visualization_page
+    )
+    btn_run_db.grid(row=3, column=0, padx=20, pady=20)
 
 # ---------------------------------------------------------
 # START APPLICATION
