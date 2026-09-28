@@ -11,13 +11,14 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 from support_scripts.adding_meta_data import add_metadata_GUI
-from support_scripts.visualize_database import load_level3_nc, plot_contour_nc
+from support_scripts.visualize_database import load_level3_nc, plot_contour_nc, get_database_date_range, filter_visualization_data
 import yaml
 from datetime import datetime
 from pathlib import Path
 import re
 import sys
 import subprocess
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 # ---------------------------------------------------------
@@ -42,8 +43,15 @@ def clear_window():
     for widget in root.winfo_children():
         widget.destroy()
 
-# Parent directory
+def close_application():
+    print("Closing database ....")
+    root.quit()
+    root.destroy()
+
+# Global variables ----------------------------------
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+data_CTD = None
+
 # ---------------------------------------------------------
 # LOAD & ADD EXISTING METADATA PAGE
 # ---------------------------------------------------------
@@ -845,309 +853,519 @@ def save_and_continue(min_date_var, python_var):
         return
     start_processing_gui()
 
+# Functions for visualization (out of the class) ------------------------------------------------------
+def get_database():
+    global data_CTD
+    if data_CTD is None:
+        data_CTD = load_level3_nc()
+    return data_CTD
 
-def run_visualization_page():
+def prepare_visualization():
+    loading_label = show_loading_screen(
+        "Loading database..."
+    )
+
+    def worker():
+
+        data = get_database()
+
+        min_date, max_date = get_database_date_range(
+            data
+        )
+        data_plot = filter_visualization_data(
+            data,
+            min_date,
+            max_date,
+            0
+        )
+
+        root.after(
+            0,
+            lambda: start_initial_plot(
+                data,
+                data_plot,
+                min_date,
+                max_date,
+                loading_label
+            )
+        )
+
+    threading.Thread(
+        target=worker,
+        daemon=True
+    ).start()
+
+def start_initial_plot(
+    data_CTD,
+    data_plot,
+    min_date,
+    max_date,
+    loading_label):
+
+    global visualization_page
+
+    visualization_page = VisualizationPage(
+        data_CTD,
+        min_date,
+        max_date
+    )
+
+    visualization_page.show_visualization_page(
+        clear=False
+    )
+
+    visualization_page.create_initial_plot(
+        data_plot
+    )
+
+    loading_label.destroy()
+
+class VisualizationPage:
+
+    def __init__(
+        self,
+        data_CTD,
+        min_date,
+        max_date):
+
+        self.data_CTD = data_CTD
+
+        self.min_date = min_date
+        self.max_date = max_date
+
+        self.fig = None
+        self.ax = None
+        self.canvas = None
+
+        self.parameter_var = None
+        self.start_date_var = None
+        self.end_date_var = None
+        self.z_below_var = None
+
+        self.parameter_menu = None
+
+        self.control_frame = None
+        self.plot_frame = None
+
+    # Fnction 1
+    def show_visualization_page(self, clear=True):
+        if clear:
+            clear_window()
+
+        root.geometry("1400x900")
+
+        bg_color = "#CEE5FD"
+        frame_color = "#97B0CA"
+
+        root.configure(bg=bg_color)
+
+        tk.Label(
+            root,
+            text="Visualize Lake Kivu Database",
+            font=("Arial", 24, "bold"),
+            bg=bg_color,
+            fg="black"
+        ).pack(
+            pady=(25, 15)
+        )
+
+        visualization_frame = tk.Frame(
+            root,
+            bg=frame_color,
+            relief="groove",
+            bd=2
+        )
+
+        visualization_frame.place(
+            x=40,
+            y=100,
+            width=1320,
+            height=620
+        )
+
+        self.control_frame = tk.Frame(
+            visualization_frame,
+            bg=frame_color,
+            relief="groove",
+            bd=2
+        )
+
+        self.control_frame.place(
+            x=20,
+            y=20,
+            width=300,
+            height=570
+        )
+
+        self.plot_frame = tk.Frame(
+            visualization_frame,
+            bg="white",
+            relief="sunken",
+            bd=2
+        )
+
+        self.plot_frame.place(
+            x=340,
+            y=20,
+            width=950,
+            height=570
+        )
+        self.plot_status_label = tk.Label(
+            self.plot_frame,
+            text="",
+            font=("Arial", 16, "bold"),
+            bg="white",
+            fg="#555555"
+        )
+
+        self.create_visualization_controls()
+
+        #self.create_initial_plot()
+
+        self.create_visualization_buttons()
+
+    # Function 2
+    def create_visualization_controls(self):
+
+        frame = self.control_frame
+        frame_color = "#97B0CA"
+
+        tk.Label(
+            frame,
+            text="Parameter:",
+            font=("Arial", 15, "bold"),
+            bg=frame_color,
+            fg="white"
+        ).pack(
+            padx=20,
+            pady=(5, 5),
+            anchor="w"
+        )
+
+        self.parameter_var = tk.StringVar(
+            value="Temperature"
+        )
+
+        self.parameter_menu = ttk.Combobox(
+            frame,
+            textvariable=self.parameter_var,
+            values=[
+                "Temperature",
+                "Salinity",
+                "Density"
+            ],
+            state="readonly",
+            font=("Arial", 14),
+            width=18
+        )
+
+        self.parameter_menu.pack(
+            padx=20,
+            pady=(0, 20),
+            anchor="w"
+        )
+
+        self.parameter_menu.bind(
+            "<<ComboboxSelected>>",
+            self.update_visualization_parameter
+        )
+
+        tk.Label(
+            frame,
+            text="From:",
+            font=("Arial", 15, "bold"),
+            bg=frame_color,
+            fg="white"
+        ).pack(
+            padx=20,
+            pady=(5, 5),
+            anchor="w"
+        )
+
+        self.start_date_var = tk.StringVar(
+            value=self.min_date
+        )
+
+        tk.Entry(
+            frame,
+            textvariable=self.start_date_var,
+            font=("Arial", 14),
+            width=18,
+            justify="center"
+        ).pack(
+            padx=20,
+            pady=(0, 15),
+            anchor="w"
+        )
+
+        tk.Label(
+            frame,
+            text="To:",
+            font=("Arial", 15, "bold"),
+            bg=frame_color,
+            fg="white"
+        ).pack(
+            padx=20,
+            pady=(5, 5),
+            anchor="w"
+        )
+
+        self.end_date_var = tk.StringVar(
+            value=self.max_date
+        )
+
+        tk.Entry(
+            frame,
+            textvariable=self.end_date_var,
+            font=("Arial", 14),
+            width=18,
+            justify="center"
+        ).pack(
+            padx=20,
+            pady=(0, 15),
+            anchor="w"
+        )
+
+        tk.Label(
+            frame,
+            text="z-below [m]:",
+            font=("Arial", 15, "bold"),
+            bg=frame_color,
+            fg="white"
+        ).pack(
+            padx=20,
+            pady=(5, 5),
+            anchor="w"
+        )
+
+        self.z_below_var = tk.StringVar(
+            value="0"
+        )
+
+        tk.Entry(
+            frame,
+            textvariable=self.z_below_var,
+            font=("Arial", 14),
+            width=18,
+            justify="center"
+        ).pack(
+            padx=20,
+            pady=(0, 15),
+            anchor="w"
+        )
+
+    # Function 3
+    def create_initial_plot(self, data_plot):
+
+        self.show_plot_status("Plotting...")
+
+        self.fig, self.ax = plot_contour_nc(
+            data_plot,
+            par="Temperature",
+            dmin=0
+        )
+
+        self.canvas = FigureCanvasTkAgg(
+            self.fig,
+            master=self.plot_frame
+        )
+
+        self.canvas.draw()
+
+        self.canvas.get_tk_widget().pack(
+            fill="both",
+            expand=True
+        )
+
+        self.plot_status_label.lift()
+
+        root.update_idletasks()
+
+        self.hide_plot_status()
+
+    # Function 4
+    def show_plot_status(self, message):
+
+        self.plot_status_label.config(
+            text=message
+        )
+
+        self.plot_status_label.place(
+            relx=0.5,
+            rely=0.5,
+            anchor="center"
+        )
+
+        self.plot_status_label.lift()
+
+        root.update_idletasks()
+
+    # Function 5
+    def hide_plot_status(self):
+        self.plot_status_label.place_forget()
+
+    # Function 6
+    def update_visualization_parameter(self, event=None):
+
+        parameter = self.parameter_var.get()
+
+        start_date = self.start_date_var.get()
+        end_date = self.end_date_var.get()
+
+        try:
+
+            z_below = float(
+                self.z_below_var.get()
+            )
+
+        except ValueError:
+
+            messagebox.showerror(
+                "Invalid depth",
+                "Please enter a valid number for z-below."
+            )
+
+            return
+
+        self.show_plot_status(
+            "Updating plot..."
+        )
+
+        self.parameter_menu.config(
+            state="disabled"
+        )
+
+        worker = threading.Thread(
+            target=self._prepare_parameter_data,
+            args=(
+                parameter,
+                start_date,
+                end_date,
+                z_below
+            ),
+            daemon=True
+        )
+
+        worker.start()
+
+    # Function 7
+    def _prepare_parameter_data(
+        self,
+        parameter,
+        start_date,
+        end_date,
+        z_below
+    ):
+
+        data_plot = filter_visualization_data(
+            self.data_CTD,
+            start_date,
+            end_date,
+            z_below
+        )
+
+        root.after(
+            0,
+            lambda: self._display_parameter_plot(
+                data_plot,
+                parameter
+            )
+        )
+
+    # Function 8
+    def _display_parameter_plot(
+        self,
+        data_plot,
+        parameter):
+
+        fig, ax = plot_contour_nc(
+            data_plot,
+            par=parameter,
+            dmin=0
+        )
+
+        if self.canvas is not None:
+            self.canvas.get_tk_widget().destroy()
+
+        self.fig = fig
+        self.ax = ax
+
+        self.canvas = FigureCanvasTkAgg(
+            self.fig,
+            master=self.plot_frame
+        )
+
+        canvas_widget = self.canvas.get_tk_widget()
+
+        canvas_widget.pack(
+            fill="both",
+            expand=True
+        )
+
+        self.canvas.draw()
+
+        self.plot_frame.update_idletasks()
+
+        root.after(
+            50,
+            self._finish_plot_update
+        )
+
+    # Function 9
+    def _finish_plot_update(self):
+        self.hide_plot_status()
+        self.parameter_menu.config(
+            state="readonly"
+        )
+
+    # Function 10
+    def create_visualization_buttons(self):
+        add_back_button().place(
+            x=40,
+            y=820
+        )
+
+        tk.Button(
+            root,
+            text="Extract & save data",
+            font=("Arial", 18),
+            width=20,
+            bg="#97B0CA",
+            fg="white",
+            activebackground="#93C6FC",
+            activeforeground="white",
+            relief="raised",
+            bd=3
+            # command=self.extract_and_save_data
+        ).place(
+            x=1080,
+            y=820
+        )
+
+ 
+def show_loading_screen(message):
 
     clear_window()
 
     root.geometry("1400x900")
 
     bg_color = "#CEE5FD"
-    frame_color = "#97B0CA"
 
     root.configure(bg=bg_color)
 
-    # --------------------------------------------------
-    # Title
-    # --------------------------------------------------
-
-    tk.Label(
+    loading_label = tk.Label(
         root,
-        text="Visualize Lake Kivu Database",
-        font=("Arial", 24, "bold"),
+        text=message,
+        font=("Arial", 20),
         bg=bg_color,
         fg="white"
-    ).pack(pady=(25, 15))
-
-    # --------------------------------------------------
-    # Main frame
-    # --------------------------------------------------
-
-    visualization_frame = tk.Frame(
-        root,
-        bg=frame_color,
-        relief="groove",
-        bd=2
     )
 
-    visualization_frame.place(
-        x=40,
-        y=100,
-        width=1320,
-        height=620
-    )
+    loading_label.pack(pady=(250, 20))
 
-    # --------------------------------------------------
-    # Controls
-    # --------------------------------------------------
+    root.update_idletasks()
 
-    control_frame = tk.Frame(
-        visualization_frame,
-        bg=frame_color,
-        relief="groove",
-        bd=2
-    )
-
-    control_frame.place(
-        x=20,
-        y=20,
-        width=300,
-        height=570
-    )
-
-    (
-        parameter_var,
-        start_date_var,
-        end_date_var,
-        z_below_var
-    ) = create_visualization_controls(
-        control_frame,
-        frame_color
-    )
-
-    # --------------------------------------------------
-    # Plot frame
-    # --------------------------------------------------
-
-    plot_frame = tk.Frame(
-        visualization_frame,
-        bg="white",
-        relief="sunken",
-        bd=2
-    )
-
-    plot_frame.place(
-        x=340,
-        y=20,
-        width=950,
-        height=570
-    )
-
-    # --------------------------------------------------
-    # Load database
-    # --------------------------------------------------
-
-    data_CTD = load_level3_nc()
-
-    # --------------------------------------------------
-    # Plot
-    # --------------------------------------------------
-
-    create_plot_frame(
-        plot_frame,
-        data_CTD,
-        parameter_var,
-        z_below_var
-    )
-
-    # --------------------------------------------------
-    # Buttons
-    # --------------------------------------------------
-
-    create_visualization_buttons()
-
-def create_visualization_controls(frame, frame_color):
-
-    # ---------------------------------------------------------
-    # Section title
-    # ---------------------------------------------------------
-    # tk.Label(
-    #     frame,
-    #     text="Visualization parameters",
-    #     font=("Arial", 17, "bold"),
-    #     bg=frame_color,
-    #     fg="white"
-    # ).pack(
-    #     padx=20,
-    #     pady=(30, 20),
-    #     anchor="w"
-    # )
-
-    # ---------------------------------------------------------
-    # Parameter
-    # ---------------------------------------------------------
-    tk.Label(
-        frame,
-        text="Parameter:",
-        font=("Arial", 15, "bold"),
-        bg=frame_color,
-        fg="white"
-    ).pack(
-        padx=20,
-        pady=(5, 5),
-        anchor="w"
-    )
-
-    parameter_var = tk.StringVar(
-        value="Temperature"
-    )
-
-    parameter_menu = ttk.Combobox(
-        frame,
-        textvariable=parameter_var,
-        values=[
-            "Temperature",
-            "Salinity",
-            "Density"
-        ],
-        state="readonly",
-        font=("Arial", 14),
-        width=18
-    )
-
-    parameter_menu.pack(
-        padx=20,
-        pady=(0, 20),
-        anchor="w"
-    )
-
-    # ---------------------------------------------------------
-    # From date
-    # ---------------------------------------------------------
-    tk.Label(
-        frame,
-        text="From:",
-        font=("Arial", 15, "bold"),
-        bg=frame_color,
-        fg="white"
-    ).pack(
-        padx=20,
-        pady=(5, 5),
-        anchor="w"
-    )
-
-    start_date_var = tk.StringVar(
-        value="2008-01-01"
-    )
-
-    start_date_entry = tk.Entry(
-        frame,
-        textvariable=start_date_var,
-        font=("Arial", 14),
-        width=18,
-        justify="center"
-    )
-
-    start_date_entry.pack(
-        padx=20,
-        pady=(0, 15),
-        anchor="w"
-    )
-
-    # ---------------------------------------------------------
-    # To date
-    # ---------------------------------------------------------
-    tk.Label(
-        frame,
-        text="To:",
-        font=("Arial", 15, "bold"),
-        bg=frame_color,
-        fg="white"
-    ).pack(
-        padx=20,
-        pady=(5, 5),
-        anchor="w"
-    )
-
-    end_date_var = tk.StringVar(
-        value="2025-12-31"
-    )
-
-    end_date_entry = tk.Entry(
-        frame,
-        textvariable=end_date_var,
-        font=("Arial", 14),
-        width=18,
-        justify="center"
-    )
-
-    end_date_entry.pack(
-        padx=20,
-        pady=(0, 15),
-        anchor="w"
-    )
-
-    # ---------------------------------------------------------
-    # z-below
-    # ---------------------------------------------------------
-    tk.Label(
-        frame,
-        text="z-below [m]:",
-        font=("Arial", 15, "bold"),
-        bg=frame_color,
-        fg="white"
-    ).pack(
-        padx=20,
-        pady=(5, 5),
-        anchor="w"
-    )
-
-    z_below_var = tk.StringVar(
-        value="0"
-    )
-
-    z_below_entry = tk.Entry(
-        frame,
-        textvariable=z_below_var,
-        font=("Arial", 14),
-        width=18,
-        justify="center"
-    )
-
-    z_below_entry.pack(
-        padx=20,
-        pady=(0, 15),
-        anchor="w"
-    )
-
-    return (parameter_var, start_date_var, end_date_var, z_below_var)
-
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-def create_plot_frame(
-    frame,
-    data_CTD,
-    parameter_var,
-    z_below_var
-):
-
-    par = parameter_var.get()
-
-    try:
-        dmin = float(z_below_var.get())
-    except ValueError:
-        dmin = 0
-
-    # Call your existing plotting function
-    fig, ax = plot_contour_nc(
-        data_CTD,
-        par=par,
-        dmin=dmin
-    )
-
-    # Put the Matplotlib figure inside Tkinter
-    canvas = FigureCanvasTkAgg(
-        fig,
-        master=frame
-    )
-
-    canvas.draw()
-
-    canvas.get_tk_widget().pack(
-        fill="both",
-        expand=True
-    )
-
-    return canvas
+    return loading_label
 
 def create_visualization_buttons():
 
@@ -1275,7 +1493,7 @@ def homepage():
         activeforeground=btn_colors[2],
         relief="raised",
         bd=3,
-        command=run_visualization_page
+        command=prepare_visualization
     )
     btn_run_db.grid(row=3, column=0, padx=20, pady=20)
 
@@ -1283,5 +1501,11 @@ def homepage():
 # START APPLICATION
 # ---------------------------------------------------------
 if __name__ == "__main__":
+
+    root.protocol(
+        "WM_DELETE_WINDOW",
+        close_application
+    )
+
     homepage()
     root.mainloop()
