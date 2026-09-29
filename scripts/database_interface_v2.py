@@ -37,35 +37,42 @@ WINDOW_HEIGHT_RATIO = 0.90
 MIN_WINDOW_WIDTH = 900
 MIN_WINDOW_HEIGHT = 600
 
-
-# Background colors
+# Colors
 BG_MAIN = "#CEE5FD"
-BG_FRAME = "#CEE5FD"
-BG_HEADER = "#CEE5FD"
-BG_BUTTON = "#FFFFFF"
 
+BTN_BG = "#97B0CA"
+BTN_ACTIVE_BG = "#93C6FC"
+BTN_FG = "white"
 
-# General fonts
+# Fonts
 FONT_FAMILY = "Arial"
 
-FONT_NORMAL = (FONT_FAMILY, 11)
-FONT_LABEL = (FONT_FAMILY, 11)
-FONT_BUTTON = (FONT_FAMILY, 11)
-FONT_TITLE = (FONT_FAMILY, 18, "bold")
-FONT_SUBTITLE = (FONT_FAMILY, 13)
+FONT_TITLE = (FONT_FAMILY, 36, "bold")
+FONT_SUBTITLE = (FONT_FAMILY, 16)
+FONT_BUTTON = (FONT_FAMILY, 20)
 
 
 # General spacing
 PAD_X = 10
-PAD_Y = 8
+PAD_Y = 10
 
 FRAME_PAD_X = 15
 FRAME_PAD_Y = 10
-#=====================================================================
 
-# ---------------------------------------------------------
-# GLOBAL ROOT WINDOW
-# ---------------------------------------------------------
+FONT_PAGE_TITLE = (FONT_FAMILY, 32, "bold")
+FONT_LABEL = (FONT_FAMILY, 18)
+FONT_ENTRY = (FONT_FAMILY, 16)
+FONT_SMALL_BUTTON = (FONT_FAMILY, 16)
+
+# =========================================================
+# GLOBAL VARIABLES
+# =========================================================
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+data_CTD = None
+
+# =========================================================
+# GENERAL GUI FUNCTIONS
+# =========================================================
 root = tk.Tk()
 
 root.title(WINDOW_TITLE)
@@ -109,125 +116,328 @@ def close_application():
     root.quit()
     root.destroy()
 
-# Global variables ----------------------------------
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-data_CTD = None
-
-# ---------------------------------------------------------
-# LOAD & ADD EXISTING METADATA PAGE
-# ---------------------------------------------------------
+# =========================================================
+# LOAD & ADD EXISTING METADATA
+# =========================================================
 def load_and_add_metadata_page():
     clear_window()
 
-    bg_color = "#CEE5FD"
-
-    title = tk.Label(
+    # -----------------------------------------------------
+    # Main frame
+    # -----------------------------------------------------
+    main_frame = tk.Frame(
         root,
+        bg=BG_MAIN
+    )
+
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # -----------------------------------------------------
+    # Title
+    # -----------------------------------------------------
+    title = tk.Label(
+        main_frame,
         text="Import and add existing metadata",
-        font=("Arial", 32, "bold"),
-        bg=bg_color,
+        font=FONT_PAGE_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
 
-    frame = tk.Frame(root, bg=bg_color)
-    frame.pack(pady=40)
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
+    title.pack(
+        pady=20
+    )
 
-    # --- Metadata file ---
-    tk.Label(frame, text="Metadata Excel File:", font=("Arial", 18), bg=bg_color).grid(row=0, column=0, sticky="w", pady=10)
-    metadata_entry = tk.Entry(frame, width=50, font=("Arial", 16))
-    metadata_entry.grid(row=0, column=1, pady=10)
+    # -----------------------------------------------------
+    # Form frame
+    # -----------------------------------------------------
+    form_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    form_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=30
+    )
+
+    form_frame.grid_columnconfigure(0, weight=0)
+    form_frame.grid_columnconfigure(1, weight=1)
+    form_frame.grid_columnconfigure(2, weight=0)
+
+    # -----------------------------------------------------
+    # Metadata file
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="Metadata Excel File:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    metadata_entry = tk.Entry(
+        form_frame,
+        font=FONT_ENTRY
+    )
+
+    metadata_entry.grid(
+        row=0,
+        column=1,
+        sticky="ew",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
     def select_metadata():
-        path = filedialog.askopenfilename(filetypes=[("Excel Files", "*.xlsx *.xls")])
+        path = filedialog.askopenfilename(
+            filetypes=[("Excel Files", "*.xlsx *.xls")]
+        )
+
         metadata_entry.delete(0, tk.END)
         metadata_entry.insert(0, path)
 
     tk.Button(
-        frame,
+        form_frame,
         text="Browse",
-        font=("Arial", 16),
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=select_metadata
-    ).grid(row=0, column=2, padx=10)
+    ).grid(
+        row=0,
+        column=2,
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- TOB directory ---
-    tk.Label(frame, text="TOB Directory:", font=("Arial", 18), bg=bg_color).grid(row=1, column=0, sticky="w", pady=10)
-    directory_entry = tk.Entry(frame, width=50, font=("Arial", 16))
-    directory_entry.grid(row=1, column=1, pady=10)
+    # -----------------------------------------------------
+    # TOB directory
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="TOB Directory:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    directory_entry = tk.Entry(
+        form_frame,
+        font=FONT_ENTRY
+    )
+
+    directory_entry.grid(
+        row=1,
+        column=1,
+        sticky="ew",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
     def select_directory():
         path = filedialog.askdirectory()
+
         directory_entry.delete(0, tk.END)
         directory_entry.insert(0, path)
 
     tk.Button(
-        frame,
+        form_frame,
         text="Browse",
-        font=("Arial", 16),
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=select_directory
-    ).grid(row=1, column=2, padx=10)
+    ).grid(
+        row=1,
+        column=2,
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
+    # -----------------------------------------------------
+    # Start year
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="Start Year:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- Years ---
-    tk.Label(frame, text="Start Year:", font=("Arial", 18), bg=bg_color).grid(row=2, column=0, sticky="w", pady=10)
-    start_year_entry = tk.Entry(frame, width=10, font=("Arial", 16))
-    start_year_entry.grid(row=2, column=1, sticky="w")
+    start_year_entry = tk.Entry(
+        form_frame,
+        width=10,
+        font=FONT_ENTRY
+    )
 
-    tk.Label(frame, text="End Year:", font=("Arial", 18), bg=bg_color).grid(row=3, column=0, sticky="w", pady=10)
-    end_year_entry = tk.Entry(frame, width=10, font=("Arial", 16))
-    end_year_entry.grid(row=3, column=1, sticky="w")
+    start_year_entry.grid(
+        row=2,
+        column=1,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- Run processing ---
+    # -----------------------------------------------------
+    # End year
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="End Year:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=3,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    end_year_entry = tk.Entry(
+        form_frame,
+        width=10,
+        font=FONT_ENTRY
+    )
+
+    end_year_entry.grid(
+        row=3,
+        column=1,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    # -----------------------------------------------------
+    # Run processing
+    # -----------------------------------------------------
     def run_processing():
+
         metadata_path = metadata_entry.get()
         tob_directory = directory_entry.get()
         start_year = start_year_entry.get()
         end_year = end_year_entry.get()
 
-        check = input_quality_check(metadata_path, tob_directory, start_year, end_year)
+        check = input_quality_check(
+            metadata_path,
+            tob_directory,
+            start_year,
+            end_year
+        )
 
         if check != "OK":
+
             popup = tk.Toplevel(root)
             popup.title("Input Error")
             popup.geometry("400x150")
-            # Make popup modal
-            popup.transient(root)     # keep on top of main window
-            popup.grab_set()          # disable main window interaction
-            tk.Label(popup, text=check, font=("Arial", 16), fg="red").pack(pady=20)
-            tk.Button(popup, text="Close", font=("Arial", 14), command=popup.destroy).pack()
+
+            popup.transient(root)
+            popup.grab_set()
+
+            tk.Label(
+                popup,
+                text=check,
+                font=FONT_LABEL,
+                fg="red"
+            ).pack(pady=20)
+
+            tk.Button(
+                popup,
+                text="Close",
+                font=FONT_SMALL_BUTTON,
+                command=popup.destroy
+            ).pack()
+
             popup.wait_window()
+
             return
 
         popup, progress = show_progress_popup()
-        process_metadata_async(popup, progress, metadata_path, tob_directory, start_year, end_year)
 
-    tk.Button(
-        root,
+        process_metadata_async(
+            popup,
+            progress,
+            metadata_path,
+            tob_directory,
+            start_year,
+            end_year
+        )
+
+    # -----------------------------------------------------
+    # Action frame
+    # -----------------------------------------------------
+    action_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    action_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=30
+    )
+
+    action_frame.grid_columnconfigure(0, weight=1)
+    action_frame.grid_columnconfigure(1, weight=1)
+
+    # Back button
+    back_button = add_back_button_new(action_frame)
+
+    back_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X
+    )
+
+    # Run button
+    run_button = tk.Button(
+        action_frame,
         text="Run metadata processing >>>",
-        font=("Arial", 18),
-        bg="#97B0CA",
-        fg="white",
-        activebackground="#93C6FC",
-        activeforeground="white",
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=run_processing
-    ).place(x=900, y=840)
+    )
 
-    add_back_button().place(x=50, y=840)
+    run_button.grid(
+        row=0,
+        column=1,
+        sticky="e",
+        padx=PAD_X
+    )
 
 def input_quality_check(metadata_path, tob_directory, start_year, end_year):
     if not metadata_path:
@@ -302,7 +512,9 @@ def process_metadata_async(popup, progress, metadata_path, tob_directory, start_
 
     threading.Thread(target=worker).start()
 
-
+# =========================================================
+# CREATE NEW METADATA
+# =========================================================
 
 COLUMNS = [
     "Campaign_number:", "Profile_count:", "Profile:", "date:",
@@ -313,98 +525,294 @@ COLUMNS = [
     "pH_Calibration_(10):", "pH_Calibration_(4):"
 ]
 
-# ---------------------------------------------------------
-# CREATE NEW METADATA PAGE
-# ---------------------------------------------------------
+
 def create_new_metadata_page():
     clear_window()
 
-    bg_color = "#CEE5FD"
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
-
-    title = tk.Label(
+    # ---------------------------------------------------------
+    # MAIN FRAME
+    # ---------------------------------------------------------
+    main_frame = tk.Frame(
         root,
+        bg=BG_MAIN
+    )
+
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # ---------------------------------------------------------
+    # TITLE
+    # ---------------------------------------------------------
+    title = tk.Label(
+        main_frame,
         text="Create New Metadata Entry",
-        font=("Arial", 32, "bold"),
-        bg=bg_color,
+        font=FONT_PAGE_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
 
-    form_frame = tk.Frame(root, bg=bg_color)
-    form_frame.pack(pady=10)
+    title.pack(
+        pady=(20, 10)
+    )
+
+    # ---------------------------------------------------------
+    # SCROLLABLE FORM AREA
+    # ---------------------------------------------------------
+
+    # Container for canvas + scrollbar
+    form_container = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    form_container.pack(
+        fill="both",
+        expand=True,
+        padx=PAD_X,
+        pady=10
+    )
+
+    # Canvas
+    canvas = tk.Canvas(
+        form_container,
+        bg=BG_MAIN,
+        highlightthickness=0
+    )
+
+    canvas.pack(
+        side="left",
+        fill="both",
+        expand=True
+    )
+
+    # Vertical scrollbar
+    scrollbar = tk.Scrollbar(
+        form_container,
+        orient="vertical",
+        command=canvas.yview
+    )
+
+    scrollbar.pack(
+        side="right",
+        fill="y"
+    )
+
+    canvas.configure(
+        yscrollcommand=scrollbar.set
+    )
+
+    # Frame inside the canvas
+    form_frame = tk.Frame(
+        canvas,
+        bg=BG_MAIN
+    )
+
+    # Add the form frame to the canvas
+    canvas_window = canvas.create_window(
+        (0, 0),
+        window=form_frame,
+        anchor="nw"
+    )
+
+    # ---------------------------------------------------------
+    # MAKE THE FORM FRAME UPDATE ITS SCROLL REGION
+    # ---------------------------------------------------------
+    def update_scroll_region(event=None):
+        canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+
+    form_frame.bind(
+        "<Configure>",
+        update_scroll_region
+    )
+
+    # ---------------------------------------------------------
+    # MAKE THE FORM WIDTH FOLLOW THE CANVAS WIDTH
+    # ---------------------------------------------------------
+    def update_form_width(event):
+        canvas.itemconfig(
+            canvas_window,
+            width=event.width
+        )
+
+    canvas.bind(
+        "<Configure>",
+        update_form_width
+    )
+
+    # ---------------------------------------------------------
+    # FORM GRID
+    # ---------------------------------------------------------
+    form_frame.grid_columnconfigure(
+        0,
+        weight=0
+    )
+
+    form_frame.grid_columnconfigure(
+        1,
+        weight=1
+    )
 
     entries = {}
 
-    # Create form fields
+    # ---------------------------------------------------------
+    # CREATE FORM FIELDS
+    # ---------------------------------------------------------
     for i, col in enumerate(COLUMNS):
+
         tk.Label(
             form_frame,
             text=col,
-            font=("Arial", 16),
-            bg=bg_color
-        ).grid(row=i, column=0, sticky="w", pady=5)
+            font=FONT_LABEL,
+            bg=BG_MAIN
+        ).grid(
+            row=i,
+            column=0,
+            sticky="w",
+            padx=PAD_X,
+            pady=5
+        )
 
-        ent = tk.Entry(form_frame, width=40, font=("Arial", 16))
-        ent.grid(row=i, column=1, pady=5)
+        ent = tk.Entry(
+            form_frame,
+            font=FONT_ENTRY
+        )
+
+        ent.grid(
+            row=i,
+            column=1,
+            sticky="ew",
+            padx=PAD_X,
+            pady=5
+        )
+
         entries[col] = ent
 
     # ---------------------------------------------------------
-    # SAVE PROFILE BUTTON (bottom-middle)
+    # ACTION FRAME
+    # ---------------------------------------------------------
+    action_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    action_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=15
+    )
+
+    action_frame.grid_columnconfigure(
+        0,
+        weight=1
+    )
+
+    action_frame.grid_columnconfigure(
+        1,
+        weight=1
+    )
+
+    action_frame.grid_columnconfigure(
+        2,
+        weight=1
+    )
+
+    # ---------------------------------------------------------
+    # BACK BUTTON
+    # ---------------------------------------------------------
+    back_button = add_back_button_new(action_frame)
+
+    back_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X
+    )
+
+    # ---------------------------------------------------------
+    # SAVE PROFILE BUTTON
     # ---------------------------------------------------------
     def save_profile():
-        messagebox.showinfo("Saved", "Profile saved (placeholder).")
+        messagebox.showinfo(
+            "Saved",
+            "Profile saved (placeholder)."
+        )
 
-    tk.Button(
-        root,
+    save_profile_button = tk.Button(
+        action_frame,
         text="Save Profile",
-        font=("Arial", 18),
+        font=FONT_SMALL_BUTTON,
         width=20,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=save_profile
-    ).place(x=570, y=840)
+    )
+
+    save_profile_button.grid(
+        row=0,
+        column=1,
+        sticky="e",
+        padx=PAD_X
+    )
 
     # ---------------------------------------------------------
-    # SAVE METADATA BUTTON (bottom-right)
+    # SAVE METADATA BUTTON
     # ---------------------------------------------------------
     def save_new_metadata():
+
         save_path = filedialog.asksaveasfilename(
             title="Save Metadata Excel File",
             defaultextension=".xlsx",
             filetypes=[("Excel Files", "*.xlsx")]
         )
+
         if not save_path:
             return
 
-        data = {col: [entries[col].get()] for col in COLUMNS}
+        data = {
+            col: [entries[col].get()]
+            for col in COLUMNS
+        }
+
         df = pd.DataFrame(data)
-        df.to_excel(save_path, index=False)
 
-        messagebox.showinfo("Saved", "Metadata saved successfully.")
+        df.to_excel(
+            save_path,
+            index=False
+        )
 
-    tk.Button(
-        root,
+        messagebox.showinfo(
+            "Saved",
+            "Metadata saved successfully."
+        )
+
+    save_metadata_button = tk.Button(
+        action_frame,
         text="Save Metadata >>>",
-        font=("Arial", 18),
+        font=FONT_SMALL_BUTTON,
         width=20,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=save_new_metadata
-    ).place(x=1080, y=840)
+    )
 
-    # ---------------------------------------------------------
-    # BACK BUTTON (bottom-left)
-    # ---------------------------------------------------------
-    add_back_button().place(x=50, y=840)
+    save_metadata_button.grid(
+        row=0,
+        column=2,
+        sticky="e",
+        padx=PAD_X
+    )
 
 # ---------------------------------------------------------
 #------------------- PROCESS & RUN DATABASE ---------------
@@ -1472,40 +1880,87 @@ def add_back_button():
     return btn_back
 
 # ---------------------------------------------------------
+# BACK BUTTON (standalone reusable)
+# ---------------------------------------------------------
+def add_back_button_new(parent):
+
+    btn_back = tk.Button(
+        parent,
+        text="<<< Back",
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
+        relief="raised",
+        bd=3,
+        command=homepage
+    )
+
+    return btn_back
+
+# ---------------------------------------------------------
 # HOMEPAGE
 # ---------------------------------------------------------
 def homepage():
     clear_window()
 
-    bg_color = "#CEE5FD"
+    # ---------------------------------------------------------
+    # Main frame
+    # ---------------------------------------------------------
+    main_frame = tk.Frame(
+        root,
+        bg=BG_MAIN
+    )
 
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # ---------------------------------------------------------
+    # Title
+    # ---------------------------------------------------------
     title = tk.Label(
-        root,
+        main_frame,
         text="Lake Kivu CTD Database",
-        font=("Arial", 36, "bold"),
-        bg=bg_color,
+        font=FONT_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
+    title.pack(pady=(30, 5))
 
+    # ---------------------------------------------------------
+    # Subtitle
+    # ---------------------------------------------------------
     subtitle = tk.Label(
-        root,
+        main_frame,
         text="in-situ observations",
-        font=("Arial", 16),
-        bg=bg_color,
+        font=FONT_SUBTITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    subtitle.pack(pady=5)
+    subtitle.pack(pady=(0, 30))
 
-    frame = tk.Frame(root, bg=bg_color)
-    frame.pack(pady=80)
+    # ---------------------------------------------------------
+    # Button frame
+    # ---------------------------------------------------------
+    button_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
 
+    button_frame.pack(pady=20)
+
+    # -----------------------------------------------------
+    # Buttons
+    # -----------------------------------------------------
     btn_colors = ["#97B0CA", "#93C6FC", "white"]
 
     btn_load = tk.Button(
-        frame,
+        button_frame,
         text="Load and add existing metadata",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
         bg=btn_colors[0],
         fg=btn_colors[2],
@@ -1515,12 +1970,17 @@ def homepage():
         bd=3,
         command=load_and_add_metadata_page
     )
-    btn_load.grid(row=0, column=0, padx=20, pady=20)
+    btn_load.grid(
+        row=0,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
     btn_new = tk.Button(
-        frame,
+        button_frame,
         text="Create new metadata",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
         bg=btn_colors[0],
         fg=btn_colors[2],
@@ -1530,12 +1990,17 @@ def homepage():
         bd=3,
         command=create_new_metadata_page
     )
-    btn_new.grid(row=1, column=0, padx=20, pady=20)
+    btn_new.grid(
+        row=1,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
     btn_run_db = tk.Button(
-        frame,
+        button_frame,
         text="Run & process database",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
         bg=btn_colors[0],
         fg=btn_colors[2],
@@ -1545,13 +2010,17 @@ def homepage():
         bd=3,
         command=run_process_database_page
     )
+    btn_run_db.grid(
+        row=2,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
-    btn_run_db.grid(row=2, column=0, padx=20, pady=20)
-
-    btn_run_db = tk.Button(
-        frame,
+    btn_visualize = tk.Button(
+        button_frame,
         text="Visualize database",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
         bg=btn_colors[0],
         fg=btn_colors[2],
@@ -1561,7 +2030,12 @@ def homepage():
         bd=3,
         command=prepare_visualization
     )
-    btn_run_db.grid(row=3, column=0, padx=20, pady=20)
+    btn_visualize.grid(
+        row=3,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
 # ---------------------------------------------------------
 # START APPLICATION
