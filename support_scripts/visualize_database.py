@@ -8,10 +8,12 @@ import cmocean
 import xarray as xr
 from scripts.functions import read_netCDF_xr
 import mplcursors
+import yaml
+from pathlib import Path
 
-def load_level3_nc():
+def load_level3_nc(database_file):
     #database_file = "../data/ctd/Level3/Combined/L3_comb.nc"
-    database_file = "/storage/lakekivu/1D_Model/WP_workspaces/WP2/db_workspace/database_runs/full_database/L3_comb.nc"
+    #database_file = "/storage/lakekivu/1D_Model/WP_workspaces/WP2/db_workspace/database_runs/full_database/L3_comb.nc"
     data_CTD=read_netCDF_xr(database_file)
     #tnum=data_CTD["time"].values
     ds = xr.decode_cf(xr.Dataset({"time": ("time", data_CTD.time.data,{"units":"seconds since 1970-01-01"})}))

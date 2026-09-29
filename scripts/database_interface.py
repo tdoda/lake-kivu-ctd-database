@@ -19,6 +19,7 @@ import re
 import sys
 import subprocess
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import yaml
 
 
 # ---------------------------------------------------------
@@ -857,7 +858,12 @@ def save_and_continue(min_date_var, python_var):
 def get_database():
     global data_CTD
     if data_CTD is None:
-        data_CTD = load_level3_nc()
+        config_file = Path(__file__).resolve().parent / "input_python.yaml"
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+        directories = config["directories"]
+        database_file = (config_file.parent / directories["Level3_dir"] / "Combined" / "L3_comb.nc").resolve()
+        data_CTD = load_level3_nc(database_file)
     return data_CTD
 
 def prepare_visualization():
