@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import cmocean
 import xarray as xr
 from scripts.functions import read_netCDF_xr
-import mplcursors
+#import mplcursors
 import yaml
 from pathlib import Path
 
