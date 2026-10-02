@@ -163,8 +163,8 @@ if process_REMA:
     CTD_metaREMA.extract_meta_data_REMA_excel(os.path.join(directories["REMA_metadata_dir"], 'Metadata.xlsx'))
 
 # Load gas data
-df_gas=pd.read_excel('../data/gas_profile/Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err']) # to be changed from yamal inputs
-
+#df_gas=pd.read_excel('../data/gas_profile/Gas_profile.xlsx',names=['Depth','CH4','CH4_err','CO2','CO2_err']) # to be changed from yamal inputs
+df_gas=pd.read_excel((config_file.parent / directories["gas_profiles_file"]).resolve(), names=['Depth','CH4','CH4_err','CO2','CO2_err'])
 # Create txt file to save name of data files not included in database
 with open("../data/ctd/files_removed.txt", "a") as file_txt:
     file_txt.write("*****************\nFiles not included in database ({})\n*****************\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))

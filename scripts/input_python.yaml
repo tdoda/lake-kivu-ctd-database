@@ -33,6 +33,11 @@ directories:
   lake_level_file: "../data/lake_level/c_gls.json"
 
   # ---------------------------------------------------------
+  # Lake level data
+  # ---------------------------------------------------------
+  gas_profiles_file: "../data/gas_profile/Gas_profile.xlsx"
+
+  # ---------------------------------------------------------
   # Metadata - REMA
   # ---------------------------------------------------------
   REMA_metadata_dir: "../data/meta_data/"

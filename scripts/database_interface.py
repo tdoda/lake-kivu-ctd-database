@@ -11,7 +11,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 from support_scripts.adding_meta_data import add_metadata_GUI
-from support_scripts.visualize_database import load_level3_nc, plot_contour_nc, get_database_date_range, filter_visualization_data
+from support_scripts.visualize_database import (
+    load_level3_nc, plot_contour_nc, get_database_date_range, 
+    filter_visualization_data, export_variable_to_csv)
 import yaml
 from datetime import datetime
 from pathlib import Path
@@ -37,35 +39,49 @@ WINDOW_HEIGHT_RATIO = 0.90
 MIN_WINDOW_WIDTH = 900
 MIN_WINDOW_HEIGHT = 600
 
+# Colors
+BG_MAIN = "#E8EDF2"
 
-# Background colors
-BG_MAIN = "#CEE5FD"
-BG_FRAME = "#CEE5FD"
-BG_HEADER = "#CEE5FD"
-BG_BUTTON = "#FFFFFF"
+#PANEL_BG = "#D5DDE5"
+#ENTRY_BG = "#FFFFFF"
+#ENTRY_FG = "#20252A"
+#TEXT_FG = "#20252A"
 
 
-# General fonts
+BTN_BG = "#7F8C99"
+BTN_ACTIVE_BG = "#657585"
+BTN_FG = "#FFFFFF"
+
+# Fonts
 FONT_FAMILY = "Arial"
 
-FONT_NORMAL = (FONT_FAMILY, 11)
-FONT_LABEL = (FONT_FAMILY, 11)
-FONT_BUTTON = (FONT_FAMILY, 11)
-FONT_TITLE = (FONT_FAMILY, 18, "bold")
-FONT_SUBTITLE = (FONT_FAMILY, 13)
+FONT_TITLE = (FONT_FAMILY, 36, "bold")
+FONT_SUBTITLE = (FONT_FAMILY, 16)
+FONT_BUTTON = (FONT_FAMILY, 20)
 
 
 # General spacing
 PAD_X = 10
-PAD_Y = 8
+PAD_Y = 10
 
 FRAME_PAD_X = 15
 FRAME_PAD_Y = 10
-#=====================================================================
 
-# ---------------------------------------------------------
-# GLOBAL ROOT WINDOW
-# ---------------------------------------------------------
+FONT_PAGE_TITLE = (FONT_FAMILY, 32, "bold")
+FONT_LABEL = (FONT_FAMILY, 18)
+FONT_ENTRY = (FONT_FAMILY, 16)
+FONT_SMALL_BUTTON = (FONT_FAMILY, 16)
+
+# =========================================================
+# GLOBAL VARIABLES
+# =========================================================
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+data_CTD = None
+data_plot = None
+
+# =========================================================
+# GENERAL GUI FUNCTIONS
+# =========================================================
 root = tk.Tk()
 
 root.title(WINDOW_TITLE)
@@ -109,125 +125,328 @@ def close_application():
     root.quit()
     root.destroy()
 
-# Global variables ----------------------------------
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-data_CTD = None
-
-# ---------------------------------------------------------
-# LOAD & ADD EXISTING METADATA PAGE
-# ---------------------------------------------------------
+# =========================================================
+# LOAD & ADD EXISTING METADATA
+# =========================================================
 def load_and_add_metadata_page():
     clear_window()
 
-    bg_color = "#CEE5FD"
-
-    title = tk.Label(
+    # -----------------------------------------------------
+    # Main frame
+    # -----------------------------------------------------
+    main_frame = tk.Frame(
         root,
+        bg=BG_MAIN
+    )
+
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # -----------------------------------------------------
+    # Title
+    # -----------------------------------------------------
+    title = tk.Label(
+        main_frame,
         text="Import and add existing metadata",
-        font=("Arial", 32, "bold"),
-        bg=bg_color,
+        font=FONT_PAGE_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
 
-    frame = tk.Frame(root, bg=bg_color)
-    frame.pack(pady=40)
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
+    title.pack(
+        pady=20
+    )
 
-    # --- Metadata file ---
-    tk.Label(frame, text="Metadata Excel File:", font=("Arial", 18), bg=bg_color).grid(row=0, column=0, sticky="w", pady=10)
-    metadata_entry = tk.Entry(frame, width=50, font=("Arial", 16))
-    metadata_entry.grid(row=0, column=1, pady=10)
+    # -----------------------------------------------------
+    # Form frame
+    # -----------------------------------------------------
+    form_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    form_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=30
+    )
+
+    form_frame.grid_columnconfigure(0, weight=0)
+    form_frame.grid_columnconfigure(1, weight=1)
+    form_frame.grid_columnconfigure(2, weight=0)
+
+    # -----------------------------------------------------
+    # Metadata file
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="Metadata Excel File:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    metadata_entry = tk.Entry(
+        form_frame,
+        font=FONT_ENTRY
+    )
+
+    metadata_entry.grid(
+        row=0,
+        column=1,
+        sticky="ew",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
     def select_metadata():
-        path = filedialog.askopenfilename(filetypes=[("Excel Files", "*.xlsx *.xls")])
+        path = filedialog.askopenfilename(
+            filetypes=[("Excel Files", "*.xlsx *.xls")]
+        )
+
         metadata_entry.delete(0, tk.END)
         metadata_entry.insert(0, path)
 
     tk.Button(
-        frame,
+        form_frame,
         text="Browse",
-        font=("Arial", 16),
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=select_metadata
-    ).grid(row=0, column=2, padx=10)
+    ).grid(
+        row=0,
+        column=2,
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- TOB directory ---
-    tk.Label(frame, text="TOB Directory:", font=("Arial", 18), bg=bg_color).grid(row=1, column=0, sticky="w", pady=10)
-    directory_entry = tk.Entry(frame, width=50, font=("Arial", 16))
-    directory_entry.grid(row=1, column=1, pady=10)
+    # -----------------------------------------------------
+    # TOB directory
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="TOB Directory:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    directory_entry = tk.Entry(
+        form_frame,
+        font=FONT_ENTRY
+    )
+
+    directory_entry.grid(
+        row=1,
+        column=1,
+        sticky="ew",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
     def select_directory():
         path = filedialog.askdirectory()
+
         directory_entry.delete(0, tk.END)
         directory_entry.insert(0, path)
 
     tk.Button(
-        frame,
+        form_frame,
         text="Browse",
-        font=("Arial", 16),
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=select_directory
-    ).grid(row=1, column=2, padx=10)
+    ).grid(
+        row=1,
+        column=2,
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
+    # -----------------------------------------------------
+    # Start year
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="Start Year:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- Years ---
-    tk.Label(frame, text="Start Year:", font=("Arial", 18), bg=bg_color).grid(row=2, column=0, sticky="w", pady=10)
-    start_year_entry = tk.Entry(frame, width=10, font=("Arial", 16))
-    start_year_entry.grid(row=2, column=1, sticky="w")
+    start_year_entry = tk.Entry(
+        form_frame,
+        width=10,
+        font=FONT_ENTRY
+    )
 
-    tk.Label(frame, text="End Year:", font=("Arial", 18), bg=bg_color).grid(row=3, column=0, sticky="w", pady=10)
-    end_year_entry = tk.Entry(frame, width=10, font=("Arial", 16))
-    end_year_entry.grid(row=3, column=1, sticky="w")
+    start_year_entry.grid(
+        row=2,
+        column=1,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
 
-    # --- Run processing ---
+    # -----------------------------------------------------
+    # End year
+    # -----------------------------------------------------
+    tk.Label(
+        form_frame,
+        text="End Year:",
+        font=FONT_LABEL,
+        bg=BG_MAIN
+    ).grid(
+        row=3,
+        column=0,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    end_year_entry = tk.Entry(
+        form_frame,
+        width=10,
+        font=FONT_ENTRY
+    )
+
+    end_year_entry.grid(
+        row=3,
+        column=1,
+        sticky="w",
+        padx=PAD_X,
+        pady=PAD_Y
+    )
+
+    # -----------------------------------------------------
+    # Run processing
+    # -----------------------------------------------------
     def run_processing():
+
         metadata_path = metadata_entry.get()
         tob_directory = directory_entry.get()
         start_year = start_year_entry.get()
         end_year = end_year_entry.get()
 
-        check = input_quality_check(metadata_path, tob_directory, start_year, end_year)
+        check = input_quality_check(
+            metadata_path,
+            tob_directory,
+            start_year,
+            end_year
+        )
 
         if check != "OK":
+
             popup = tk.Toplevel(root)
             popup.title("Input Error")
             popup.geometry("400x150")
-            # Make popup modal
-            popup.transient(root)     # keep on top of main window
-            popup.grab_set()          # disable main window interaction
-            tk.Label(popup, text=check, font=("Arial", 16), fg="red").pack(pady=20)
-            tk.Button(popup, text="Close", font=("Arial", 14), command=popup.destroy).pack()
+
+            popup.transient(root)
+            popup.grab_set()
+
+            tk.Label(
+                popup,
+                text=check,
+                font=FONT_LABEL,
+                fg="red"
+            ).pack(pady=20)
+
+            tk.Button(
+                popup,
+                text="Close",
+                font=FONT_SMALL_BUTTON,
+                command=popup.destroy
+            ).pack()
+
             popup.wait_window()
+
             return
 
         popup, progress = show_progress_popup()
-        process_metadata_async(popup, progress, metadata_path, tob_directory, start_year, end_year)
 
-    tk.Button(
-        root,
+        process_metadata_async(
+            popup,
+            progress,
+            metadata_path,
+            tob_directory,
+            start_year,
+            end_year
+        )
+
+    # -----------------------------------------------------
+    # Action frame
+    # -----------------------------------------------------
+    action_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    action_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=30
+    )
+
+    action_frame.grid_columnconfigure(0, weight=1)
+    action_frame.grid_columnconfigure(1, weight=1)
+
+    # Back button
+    back_button = add_back_button_new(action_frame)
+
+    back_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X
+    )
+
+    # Run button
+    run_button = tk.Button(
+        action_frame,
         text="Run metadata processing >>>",
-        font=("Arial", 18),
-        bg="#97B0CA",
-        fg="white",
-        activebackground="#93C6FC",
-        activeforeground="white",
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=run_processing
-    ).place(x=900, y=840)
+    )
 
-    add_back_button().place(x=50, y=840)
+    run_button.grid(
+        row=0,
+        column=1,
+        sticky="e",
+        padx=PAD_X
+    )
 
 def input_quality_check(metadata_path, tob_directory, start_year, end_year):
     if not metadata_path:
@@ -302,7 +521,9 @@ def process_metadata_async(popup, progress, metadata_path, tob_directory, start_
 
     threading.Thread(target=worker).start()
 
-
+# =========================================================
+# CREATE NEW METADATA
+# =========================================================
 
 COLUMNS = [
     "Campaign_number:", "Profile_count:", "Profile:", "date:",
@@ -313,179 +534,375 @@ COLUMNS = [
     "pH_Calibration_(10):", "pH_Calibration_(4):"
 ]
 
-# ---------------------------------------------------------
-# CREATE NEW METADATA PAGE
-# ---------------------------------------------------------
+
 def create_new_metadata_page():
     clear_window()
 
-    bg_color = "#CEE5FD"
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
-
-    title = tk.Label(
+    # ---------------------------------------------------------
+    # MAIN FRAME
+    # ---------------------------------------------------------
+    main_frame = tk.Frame(
         root,
+        bg=BG_MAIN
+    )
+
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # ---------------------------------------------------------
+    # TITLE
+    # ---------------------------------------------------------
+    title = tk.Label(
+        main_frame,
         text="Create New Metadata Entry",
-        font=("Arial", 32, "bold"),
-        bg=bg_color,
+        font=FONT_PAGE_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
 
-    form_frame = tk.Frame(root, bg=bg_color)
-    form_frame.pack(pady=10)
+    title.pack(
+        pady=(20, 10)
+    )
+
+    # ---------------------------------------------------------
+    # SCROLLABLE FORM AREA
+    # ---------------------------------------------------------
+
+    # Container for canvas + scrollbar
+    form_container = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    form_container.pack(
+        fill="both",
+        expand=True,
+        padx=PAD_X,
+        pady=10
+    )
+
+    # Canvas
+    canvas = tk.Canvas(
+        form_container,
+        bg=BG_MAIN,
+        highlightthickness=0
+    )
+
+    canvas.pack(
+        side="left",
+        fill="both",
+        expand=True
+    )
+
+    # Vertical scrollbar
+    scrollbar = tk.Scrollbar(
+        form_container,
+        orient="vertical",
+        command=canvas.yview
+    )
+
+    scrollbar.pack(
+        side="right",
+        fill="y"
+    )
+
+    canvas.configure(
+        yscrollcommand=scrollbar.set
+    )
+
+    # Frame inside the canvas
+    form_frame = tk.Frame(
+        canvas,
+        bg=BG_MAIN
+    )
+
+    # Add the form frame to the canvas
+    canvas_window = canvas.create_window(
+        (0, 0),
+        window=form_frame,
+        anchor="nw"
+    )
+
+    # ---------------------------------------------------------
+    # MAKE THE FORM FRAME UPDATE ITS SCROLL REGION
+    # ---------------------------------------------------------
+    def update_scroll_region(event=None):
+        canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+
+    form_frame.bind(
+        "<Configure>",
+        update_scroll_region
+    )
+
+    # ---------------------------------------------------------
+    # MAKE THE FORM WIDTH FOLLOW THE CANVAS WIDTH
+    # ---------------------------------------------------------
+    def update_form_width(event):
+        canvas.itemconfig(
+            canvas_window,
+            width=event.width
+        )
+
+    canvas.bind(
+        "<Configure>",
+        update_form_width
+    )
+
+    # ---------------------------------------------------------
+    # FORM GRID
+    # ---------------------------------------------------------
+    form_frame.grid_columnconfigure(
+        0,
+        weight=0
+    )
+
+    form_frame.grid_columnconfigure(
+        1,
+        weight=1
+    )
 
     entries = {}
 
-    # Create form fields
+    # ---------------------------------------------------------
+    # CREATE FORM FIELDS
+    # ---------------------------------------------------------
     for i, col in enumerate(COLUMNS):
+
         tk.Label(
             form_frame,
             text=col,
-            font=("Arial", 16),
-            bg=bg_color
-        ).grid(row=i, column=0, sticky="w", pady=5)
+            font=FONT_LABEL,
+            bg=BG_MAIN
+        ).grid(
+            row=i,
+            column=0,
+            sticky="w",
+            padx=PAD_X,
+            pady=5
+        )
 
-        ent = tk.Entry(form_frame, width=40, font=("Arial", 16))
-        ent.grid(row=i, column=1, pady=5)
+        ent = tk.Entry(
+            form_frame,
+            font=FONT_ENTRY
+        )
+
+        ent.grid(
+            row=i,
+            column=1,
+            sticky="ew",
+            padx=PAD_X,
+            pady=5
+        )
+
         entries[col] = ent
 
     # ---------------------------------------------------------
-    # SAVE PROFILE BUTTON (bottom-middle)
+    # ACTION FRAME
+    # ---------------------------------------------------------
+    action_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    action_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=15
+    )
+
+    action_frame.grid_columnconfigure(
+        0,
+        weight=1
+    )
+
+    action_frame.grid_columnconfigure(
+        1,
+        weight=1
+    )
+
+    action_frame.grid_columnconfigure(
+        2,
+        weight=1
+    )
+
+    # ---------------------------------------------------------
+    # BACK BUTTON
+    # ---------------------------------------------------------
+    back_button = add_back_button_new(action_frame)
+
+    back_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X
+    )
+
+    # ---------------------------------------------------------
+    # SAVE PROFILE BUTTON
     # ---------------------------------------------------------
     def save_profile():
-        messagebox.showinfo("Saved", "Profile saved (placeholder).")
+        messagebox.showinfo(
+            "Saved",
+            "Profile saved (placeholder)."
+        )
 
-    tk.Button(
-        root,
+    save_profile_button = tk.Button(
+        action_frame,
         text="Save Profile",
-        font=("Arial", 18),
+        font=FONT_SMALL_BUTTON,
         width=20,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=save_profile
-    ).place(x=570, y=840)
+    )
+
+    save_profile_button.grid(
+        row=0,
+        column=1,
+        sticky="e",
+        padx=PAD_X
+    )
 
     # ---------------------------------------------------------
-    # SAVE METADATA BUTTON (bottom-right)
+    # SAVE METADATA BUTTON
     # ---------------------------------------------------------
     def save_new_metadata():
+
         save_path = filedialog.asksaveasfilename(
             title="Save Metadata Excel File",
             defaultextension=".xlsx",
             filetypes=[("Excel Files", "*.xlsx")]
         )
+
         if not save_path:
             return
 
-        data = {col: [entries[col].get()] for col in COLUMNS}
+        data = {
+            col: [entries[col].get()]
+            for col in COLUMNS
+        }
+
         df = pd.DataFrame(data)
-        df.to_excel(save_path, index=False)
 
-        messagebox.showinfo("Saved", "Metadata saved successfully.")
+        df.to_excel(
+            save_path,
+            index=False
+        )
 
-    tk.Button(
-        root,
+        messagebox.showinfo(
+            "Saved",
+            "Metadata saved successfully."
+        )
+
+    save_metadata_button = tk.Button(
+        action_frame,
         text="Save Metadata >>>",
-        font=("Arial", 18),
+        font=FONT_SMALL_BUTTON,
         width=20,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=save_new_metadata
-    ).place(x=1080, y=840)
+    )
 
-    # ---------------------------------------------------------
-    # BACK BUTTON (bottom-left)
-    # ---------------------------------------------------------
-    add_back_button().place(x=50, y=840)
+    save_metadata_button.grid(
+        row=0,
+        column=2,
+        sticky="e",
+        padx=PAD_X
+    )
 
 # ---------------------------------------------------------
-#------------------- PROCESS & RUN DATABASE ---------------
+# PROCESS & RUN DATABASE
 # ---------------------------------------------------------
 def run_process_database_page():
     clear_window()
 
     # =========================================================
-    # Appearance
+    # MAIN FRAME
     # =========================================================
-    bg_color = "#CEE5FD"
-    frame_color = "#97B0CA"
-
-    root.configure(bg=bg_color)
-
-    # =========================================================
-    # Window / layout parameters
-    # =========================================================
-    WINDOW_WIDTH = 1400
-    WINDOW_HEIGHT = 900
-
-    # ---- Main frames ----
-    FRAME_Y = 180
-    FRAME_HEIGHT = 540
-
-    FRAME_LEFT = 40
-    FRAME_RIGHT = 40
-    FRAME_GAP = 20
-
-    # ---- Bottom buttons ----
-    BUTTON_Y = 820
-
-    # =========================================================
-    # Title
-    # =========================================================
-    tk.Label(
+    main_frame = tk.Frame(
         root,
-        text="Run & process database",
-        font=("Arial", 36, "bold"),
-        bg=bg_color,
-        fg="black"
-    ).place(
-        relx=0.5,
-        y=20,
-        anchor="n"
+        bg=BG_MAIN
+    )
+
+    main_frame.pack(
+        fill="both",
+        expand=True
     )
 
     # =========================================================
-    # Calculate frame widths
+    # TITLE
     # =========================================================
-    total_width = WINDOW_WIDTH - FRAME_LEFT - FRAME_RIGHT
+    title = tk.Label(
+        main_frame,
+        text="Run & process database",
+        font=FONT_TITLE,
+        bg=BG_MAIN,
+        fg="black"
+    )
 
-    frame_width = (
-        total_width - 2 * FRAME_GAP
-    ) / 3
+    title.pack(
+        pady=(20, 20)
+    )
 
     # =========================================================
-    # Frame definitions
+    # THREE MAIN FRAMES
+    # =========================================================
+    frames_container = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    frames_container.pack(
+        fill="both",
+        expand=True,
+        padx=PAD_X,
+        pady=10
+    )
+
+    # Three equally sized columns
+    #frames_container.grid_columnconfigure(0,weight=1)
+    frames_container.grid_columnconfigure(0,weight=1)
+    frames_container.grid_columnconfigure(1,weight=1)
+
+    # Allow the row to expand vertically
+    frames_container.grid_rowconfigure(0,weight=1)
+
+    # =========================================================
+    # FRAME DEFINITIONS
     # =========================================================
     frame_titles = [
-        "Required packages",
+        #"Required packages", 
         "Database minimum date",
         "Required lake level data"
     ]
 
     for i, title_text in enumerate(frame_titles):
 
-        x = FRAME_LEFT + i * (frame_width + FRAME_GAP)
-
         frame = tk.Frame(
-            root,
-            bg=frame_color,
-            bd=3,
+            frames_container,
+            bg=BTN_BG,
+            bd=2,
             relief="ridge"
         )
 
-        frame.place(
-            x=x,
-            y=FRAME_Y,
-            width=frame_width,
-            height=FRAME_HEIGHT
+        frame.grid(
+            row=0,
+            column=i,
+            sticky="nsew",
+            padx=PAD_X
         )
 
         # -----------------------------------------------------
@@ -494,48 +911,98 @@ def run_process_database_page():
         tk.Label(
             frame,
             text=title_text,
-            font=("Arial", 20, "bold"),
-            bg=frame_color,
+            font=(FONT_FAMILY, 20, "bold"),
+            bg=BTN_BG,
             fg="black"
-        ).pack(pady=(10, 5))
+        ).pack(
+            pady=(10, 5)
+        )
 
         # -----------------------------------------------------
         # Frame-specific content
         # -----------------------------------------------------
 
         # STEP 1: Required packages
-        if i == 0:
-            python_var = create_step1_packages(frame, frame_color)
+        #if i == 0:
+
+            #pass
+
+            #python_var = create_step1_packages(frame,BTN_BG) 
 
         # STEP 2: Minimum date
-        elif i == 1:
-            min_date_var = create_step2_min_date(frame, frame_color)
+        if i == 0:
+
+            min_date_var = create_step2_min_date(
+                frame,
+                BTN_BG
+            )
 
         # STEP 3: Lake level
-        elif i == 2:
+        elif i == 1:
 
             pass
 
     # =========================================================
-    # Bottom buttons
+    # BOTTOM ACTION FRAME
     # =========================================================
-    tk.Button(
-        root,
-        text="Save & continue >>>",
-        font=("Arial", 18),
+    action_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
+
+    action_frame.pack(
+        fill="x",
+        padx=PAD_X,
+        pady=15
+    )
+
+    action_frame.grid_columnconfigure(
+        0,
+        weight=1
+    )
+
+    action_frame.grid_columnconfigure(
+        1,
+        weight=1
+    )
+
+    # =========================================================
+    # BACK BUTTON
+    # =========================================================
+    back_button = add_back_button_new(
+        action_frame
+    )
+
+    back_button.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=PAD_X
+    )
+
+    # =========================================================
+    # SAVE & CONTINUE BUTTON
+    # =========================================================
+    continue_button = tk.Button(
+        action_frame,
+        text="Run database >>>",
+        font=FONT_SMALL_BUTTON,
         width=20,
-        bg="#97B0CA",
-        fg="white",
-        activebackground="#93C6FC",
-        activeforeground="white",
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
-        command=lambda: save_and_continue(min_date_var,python_var)
-    ).place(x=1080,y=BUTTON_Y)
+        #command=lambda: save_and_continue(min_date_var,python_var)
+        command=lambda: save_and_continue(min_date_var)
+    )
 
-    add_back_button().place(
-        x=50,
-        y=BUTTON_Y
+    continue_button.grid(
+        row=0,
+        column=1,
+        sticky="e",
+        padx=PAD_X
     )
 
 def create_step1_packages(frame, frame_color):
@@ -544,14 +1011,13 @@ def create_step1_packages(frame, frame_color):
     # Detect the Python environment currently running the GUI
     # ---------------------------------------------------------
     python_path = sys.executable
-    #python_path = update_python_path_file()
 
     # ---------------------------------------------------------
     # STEP 1 explanatory text
     # ---------------------------------------------------------
     step1_text = tk.Text(
         frame,
-        font=("Arial", 14, "bold"),
+        font=(FONT_FAMILY, 14, "bold"),
         bg=frame_color,
         fg="white",
         wrap="word",
@@ -564,8 +1030,8 @@ def create_step1_packages(frame, frame_color):
     )
 
     step1_text.pack(
-        padx=35,
-        pady=(50, 15),
+        padx=PAD_X + 15,
+        pady=(30, 15),
         fill="x"
     )
 
@@ -611,42 +1077,56 @@ def create_step1_packages(frame, frame_color):
     # ---------------------------------------------------------
     def update_cursor(event):
 
-        index = step1_text.index(f"@{event.x},{event.y}")
+        index = step1_text.index(
+            f"@{event.x},{event.y}"
+        )
 
         if "link" in step1_text.tag_names(index):
             step1_text.config(cursor="hand2")
         else:
             step1_text.config(cursor="arrow")
 
-    step1_text.bind("<Motion>", update_cursor)
+    step1_text.bind(
+        "<Motion>",
+        update_cursor
+    )
 
     # ---------------------------------------------------------
     # Prevent the user from editing the text
     # ---------------------------------------------------------
-    step1_text.config(state="disabled")
+    step1_text.config(
+        state="disabled"
+    )
 
     # ---------------------------------------------------------
-    # Python environment
+    # Python environment label
     # ---------------------------------------------------------
     tk.Label(
         frame,
         text="Python environment:",
-        font=("Arial", 15, "bold"),
+        font=(FONT_FAMILY, 15, "bold"),
         bg=frame_color,
         fg="white"
     ).pack(
-        padx=35,
+        padx=PAD_X + 15,
         pady=(10, 5),
         anchor="w"
     )
 
-    python_var = tk.StringVar(value=sys.executable)
+    # ---------------------------------------------------------
+    # Python environment variable
+    # ---------------------------------------------------------
+    python_var = tk.StringVar(
+        value=python_path
+    )
 
+    # ---------------------------------------------------------
     # Python path entry
+    # ---------------------------------------------------------
     python_entry = tk.Entry(
         frame,
         textvariable=python_var,
-        font=("Arial", 12),
+        font=FONT_ENTRY,
         width=1,
         relief="sunken",
         bd=2,
@@ -655,14 +1135,13 @@ def create_step1_packages(frame, frame_color):
     )
 
     python_entry.pack(
-        padx=35,
+        padx=PAD_X + 15,
         pady=(0, 5),
         fill="x"
     )
 
-
     # ---------------------------------------------------------
-    # Browse button
+    # Browse Python executable
     # ---------------------------------------------------------
     def browse_python():
 
@@ -673,12 +1152,11 @@ def create_step1_packages(frame, frame_color):
         if path:
             python_var.set(path)
 
-
     browse_button = tk.Button(
         frame,
         text="Browse",
         command=browse_python,
-        font=("Arial", 14, "bold"),
+        font=FONT_SMALL_BUTTON,
         bg=frame_color,
         fg="white",
         activebackground=frame_color,
@@ -689,7 +1167,7 @@ def create_step1_packages(frame, frame_color):
     )
 
     browse_button.pack(
-        padx=35,
+        padx=PAD_X + 15,
         pady=(5, 10),
         anchor="e"
     )
@@ -709,11 +1187,11 @@ def create_step2_min_date(frame, frame_color):
     min_date = config["processing"]["min_date_period"]
 
     # ---------------------------------------------------------
-    # Step 2 explanatory text
+    # STEP 2 explanatory text
     # ---------------------------------------------------------
     step2_text = tk.Text(
         frame,
-        font=("Arial", 14, "bold"),
+        font=(FONT_FAMILY, 14, "bold"),
         bg=frame_color,
         fg="white",
         wrap="word",
@@ -725,19 +1203,21 @@ def create_step2_min_date(frame, frame_color):
     )
 
     step2_text.pack(
-        padx=35,
-        pady=(70, 5),
+        padx=PAD_X + 15,
+        pady=(40, 5),
         fill="x"
     )
 
     step2_text.insert(
         "end",
-        "STEP 2: Define the minimum date for the database. "
+        "STEP 1: Define the minimum date for the database. "
         "Profiles collected before this date will not be included "
         "in the database."
     )
 
-    step2_text.config(state="disabled")
+    step2_text.config(
+        state="disabled"
+    )
 
     # ---------------------------------------------------------
     # Minimum date label
@@ -745,34 +1225,43 @@ def create_step2_min_date(frame, frame_color):
     tk.Label(
         frame,
         text="Minimum date:",
-        font=("Arial", 16, "bold"),
+        font=(FONT_FAMILY, 16, "bold"),
         bg=frame_color,
         fg="white"
     ).pack(
-        padx=35,
+        padx=PAD_X + 15,
         pady=(15, 5),
         anchor="w"
     )
+
     # ---------------------------------------------------------
-    # Date entry + Edit ON/OFF button
+    # Date variable
     # ---------------------------------------------------------
-    date_var = tk.StringVar(value=min_date)
+    date_var = tk.StringVar(
+        value=min_date
+    )
+
+    # ---------------------------------------------------------
+    # Date entry + edit control
+    # ---------------------------------------------------------
     date_edit_frame = tk.Frame(
         frame,
         bg=frame_color
     )
 
     date_edit_frame.pack(
-        padx=35,
+        padx=PAD_X + 15,
         pady=(0, 10),
-        anchor="w"
+        fill="x"
     )
 
+    # ---------------------------------------------------------
     # Date entry
+    # ---------------------------------------------------------
     date_entry = tk.Entry(
         date_edit_frame,
         textvariable=date_var,
-        font=("Arial", 16),
+        font=FONT_ENTRY,
         width=15,
         justify="center",
         state="readonly",
@@ -786,9 +1275,16 @@ def create_step2_min_date(frame, frame_color):
         side="left"
     )
 
-    # Edit ON/OFF button
-    edit_var = tk.BooleanVar(value=False)
+    # ---------------------------------------------------------
+    # Edit ON/OFF variable
+    # ---------------------------------------------------------
+    edit_var = tk.BooleanVar(
+        value=False
+    )
 
+    # ---------------------------------------------------------
+    # Toggle editing
+    # ---------------------------------------------------------
     def toggle_edit():
 
         if edit_var.get():
@@ -800,10 +1296,6 @@ def create_step2_min_date(frame, frame_color):
                 fg="black"
             )
 
-            edit_button.config(
-                text="edit"
-            )
-
         else:
 
             # Editing OFF
@@ -813,17 +1305,15 @@ def create_step2_min_date(frame, frame_color):
                 fg="#6F6F6F"
             )
 
-            edit_button.config(
-                text="edit"
-            )
-
-
+    # ---------------------------------------------------------
+    # Edit checkbox
+    # ---------------------------------------------------------
     edit_button = tk.Checkbutton(
         date_edit_frame,
         text="edit",
         variable=edit_var,
         command=toggle_edit,
-        font=("Arial", 14, "bold"),
+        font=FONT_SMALL_BUTTON,
         bg=frame_color,
         fg="white",
         activebackground=frame_color,
@@ -907,14 +1397,17 @@ def start_processing_gui():
     subprocess.Popen([python_path,str(PROJECT_DIR / "scripts" / "main_ctd_database.py")])
 
 # validate user inputs and start processing the db
-def save_and_continue(min_date_var, python_var):
+#def save_and_continue(min_date_var, python_var):
+def save_and_continue(min_date_var,):
     if not save_min_date_to_yaml(min_date_var):
         return
-    if not save_python_path(python_var):
-        return
+    #if not save_python_path(python_var):
+        #return
     start_processing_gui()
 
-# Functions for visualization (out of the class) ------------------------------------------------------
+#===========================================================================
+# Functions for visualization (out of the class) ---------------------------
+#===========================================================================
 def get_database():
     global data_CTD
     if data_CTD is None:
@@ -922,31 +1415,23 @@ def get_database():
         with open(config_file, "r") as f:
             config = yaml.safe_load(f)
         directories = config["directories"]
-        database_file = (config_file.parent / directories["Level3_dir"] / "Combined" / "L3_comb.nc").resolve()
+        #database_file = (config_file.parent / directories["Level3_dir"] / "Combined" / "L3_comb.nc").resolve()
+        database_file = "/storage/lakekivu/1D_Model/WP_workspaces/WP2/db_workspace/database_runs/full_database/L3_comb.nc"
         data_CTD = load_level3_nc(database_file)
     return data_CTD
 
 def prepare_visualization():
-    loading_label = show_loading_screen(
-        "Loading database..."
-    )
+    loading_label = show_loading_screen("Loading database...")
 
     def worker():
-
+        global data_plot
         data = get_database()
+        min_date, max_date = get_database_date_range(data)
 
-        min_date, max_date = get_database_date_range(
-            data
-        )
-        data_plot = filter_visualization_data(
-            data,
-            min_date,
-            max_date,
-            0
-        )
+        #if data_plot is None:
+        data_plot = filter_visualization_data(data,min_date,max_date,0)
 
-        root.after(
-            0,
+        root.after(0,
             lambda: start_initial_plot(
                 data,
                 data_plot,
@@ -955,11 +1440,7 @@ def prepare_visualization():
                 loading_label
             )
         )
-
-    threading.Thread(
-        target=worker,
-        daemon=True
-    ).start()
+    threading.Thread(target=worker, daemon=True).start()
 
 def start_initial_plot(
     data_CTD,
@@ -970,99 +1451,140 @@ def start_initial_plot(
 
     global visualization_page
 
+    # Remove the full-window loading screen first
+    loading_label.master.destroy()
+
     visualization_page = VisualizationPage(
         data_CTD,
         min_date,
         max_date
     )
-
-    visualization_page.show_visualization_page(
-        clear=False
-    )
-
-    visualization_page.create_initial_plot(
-        data_plot
-    )
-
-    loading_label.destroy()
+    visualization_page.show_visualization_page(clear=True)
+    visualization_page.create_initial_plot(data_plot)
 
 class VisualizationPage:
-
-    def __init__(
-        self,
-        data_CTD,
-        min_date,
-        max_date):
-
+    def __init__(self, data_CTD, min_date, max_date):
         self.data_CTD = data_CTD
-
         self.min_date = min_date
         self.max_date = max_date
-
         self.fig = None
         self.ax = None
         self.canvas = None
-
         self.parameter_var = None
         self.start_date_var = None
         self.end_date_var = None
         self.z_below_var = None
-
         self.parameter_menu = None
-
         self.control_frame = None
         self.plot_frame = None
 
+        # Currently applied visualization selection (defaults)
+        self.applied_parameter = "Temperature"
+        self.applied_start_date = min_date
+        self.applied_end_date = max_date
+        self.applied_z_below = 0.0
+        self.applied_source = "Comb"
+
     # Fnction 1
+
     def show_visualization_page(self, clear=True):
+
         if clear:
             clear_window()
 
-        root.geometry("1400x900")
-
-        bg_color = "#CEE5FD"
-        frame_color = "#97B0CA"
-
-        root.configure(bg=bg_color)
-
-        tk.Label(
+        # =========================================================
+        # MAIN FRAME
+        # =========================================================
+        main_frame = tk.Frame(
             root,
-            text="Visualize Lake Kivu Database",
-            font=("Arial", 24, "bold"),
-            bg=bg_color,
-            fg="black"
-        ).pack(
-            pady=(25, 15)
+            bg=BG_MAIN
         )
 
+        main_frame.pack(
+            fill="both",
+            expand=True
+        )
+
+        # =========================================================
+        # TITLE
+        # =========================================================
+        title = tk.Label(
+            main_frame,
+            text="Visualize Lake Kivu Database",
+            font=FONT_PAGE_TITLE,
+            bg=BG_MAIN,
+            fg="black"
+        )
+
+        title.pack(
+            pady=(20, 15)
+        )
+
+        # =========================================================
+        # VISUALIZATION FRAME
+        # =========================================================
         visualization_frame = tk.Frame(
-            root,
-            bg=frame_color,
+            main_frame,
+            bg=BTN_BG,
             relief="groove",
             bd=2
         )
 
-        visualization_frame.place(
-            x=40,
-            y=100,
-            width=1320,
-            height=620
+        visualization_frame.pack(
+            fill="both",
+            expand=True,
+            padx=PAD_X + 20,
+            pady=10
         )
 
+        # =========================================================
+        # TWO-COLUMN LAYOUT
+        # =========================================================
+
+        # Control panel gets a fixed/preferred width.
+        visualization_frame.grid_columnconfigure(
+            0,
+            weight=0
+        )
+
+        # Plot area gets all remaining horizontal space.
+        visualization_frame.grid_columnconfigure(
+            1,
+            weight=1
+        )
+
+        # Both control panel and plot expand vertically.
+        visualization_frame.grid_rowconfigure(
+            0,
+            weight=1
+        )
+
+        # =========================================================
+        # CONTROL FRAME
+        # =========================================================
         self.control_frame = tk.Frame(
             visualization_frame,
-            bg=frame_color,
+            bg=BTN_BG,
             relief="groove",
-            bd=2
+            bd=2,
+            width=300
         )
 
-        self.control_frame.place(
-            x=20,
-            y=20,
-            width=300,
-            height=570
+        self.control_frame.grid(
+            row=0,
+            column=0,
+            sticky="ns",
+            padx=(15, 10),
+            pady=15
         )
 
+        # Prevent the control frame from being forced wider
+        # by the grid.
+        self.control_frame.grid_propagate(False)
+
+        # =========================================================
+        # PLOT FRAME
+        # =========================================================
         self.plot_frame = tk.Frame(
             visualization_frame,
             bg="white",
@@ -1070,41 +1592,54 @@ class VisualizationPage:
             bd=2
         )
 
-        self.plot_frame.place(
-            x=340,
-            y=20,
-            width=950,
-            height=570
+        self.plot_frame.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(0, 15),
+            pady=15
         )
+
+        # =========================================================
+        # PLOT STATUS LABEL
+        # =========================================================
         self.plot_status_label = tk.Label(
             self.plot_frame,
             text="",
-            font=("Arial", 16, "bold"),
+            font=FONT_SMALL_BUTTON,
             bg="white",
             fg="#555555"
         )
 
+        # =========================================================
+        # CREATE CONTROLS
+        # =========================================================
         self.create_visualization_controls()
 
-        #self.create_initial_plot()
-
+        # =========================================================
+        # CREATE BUTTONS
+        # =========================================================
         self.create_visualization_buttons()
 
     # Function 2
     def create_visualization_controls(self):
 
         frame = self.control_frame
-        frame_color = "#97B0CA"
+        frame_color = BTN_BG
+
+        # =========================================================
+        # PARAMETER
+        # =========================================================
 
         tk.Label(
             frame,
             text="Parameter:",
-            font=("Arial", 15, "bold"),
+            font=FONT_LABEL,
             bg=frame_color,
             fg="white"
         ).pack(
-            padx=20,
-            pady=(5, 5),
+            padx=PAD_X + 10,
+            pady=(15, 5),
             anchor="w"
         )
 
@@ -1118,17 +1653,17 @@ class VisualizationPage:
             values=[
                 "Temperature",
                 "Salinity",
-                "Density"
+                "Density",
+                "Conductivity"
             ],
             state="readonly",
-            font=("Arial", 14),
-            width=18
+            font=FONT_ENTRY
         )
 
         self.parameter_menu.pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(0, 20),
-            anchor="w"
+            fill="x"
         )
 
         self.parameter_menu.bind(
@@ -1136,14 +1671,18 @@ class VisualizationPage:
             self.update_visualization_parameter
         )
 
+        # =========================================================
+        # START DATE
+        # =========================================================
+
         tk.Label(
             frame,
             text="From:",
-            font=("Arial", 15, "bold"),
+            font=FONT_LABEL,
             bg=frame_color,
             fg="white"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(5, 5),
             anchor="w"
         )
@@ -1155,23 +1694,26 @@ class VisualizationPage:
         tk.Entry(
             frame,
             textvariable=self.start_date_var,
-            font=("Arial", 14),
-            width=18,
+            font=FONT_ENTRY,
             justify="center"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(0, 15),
-            anchor="w"
+            fill="x"
         )
+
+        # =========================================================
+        # END DATE
+        # =========================================================
 
         tk.Label(
             frame,
             text="To:",
-            font=("Arial", 15, "bold"),
+            font=FONT_LABEL,
             bg=frame_color,
             fg="white"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(5, 5),
             anchor="w"
         )
@@ -1183,23 +1725,26 @@ class VisualizationPage:
         tk.Entry(
             frame,
             textvariable=self.end_date_var,
-            font=("Arial", 14),
-            width=18,
+            font=FONT_ENTRY,
             justify="center"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(0, 15),
-            anchor="w"
+            fill="x"
         )
+
+        # =========================================================
+        # Z-BELOW
+        # =========================================================
 
         tk.Label(
             frame,
             text="z-below [m]:",
-            font=("Arial", 15, "bold"),
+            font=FONT_LABEL,
             bg=frame_color,
             fg="white"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(5, 5),
             anchor="w"
         )
@@ -1211,13 +1756,166 @@ class VisualizationPage:
         tk.Entry(
             frame,
             textvariable=self.z_below_var,
-            font=("Arial", 14),
-            width=18,
+            font=FONT_ENTRY,
             justify="center"
         ).pack(
-            padx=20,
+            padx=PAD_X + 10,
             pady=(0, 15),
-            anchor="w"
+            fill="x"
+        )
+
+        # =========================================================
+        # APPLY FILTERS
+        # =========================================================
+
+        self.apply_button = tk.Button(
+            frame,
+            text="Apply",
+            font=FONT_SMALL_BUTTON,
+            bg=BTN_BG,
+            fg=BTN_FG,
+            activebackground=BTN_ACTIVE_BG,
+            activeforeground=BTN_FG,
+            relief="raised",
+            bd=3,
+            command=self.apply_visualization_filters
+        )
+
+        self.apply_button.pack(
+            padx=PAD_X + 10,
+            pady=(10, 15),
+            fill="x"
+        )
+
+    def apply_visualization_filters(self):
+
+        start_date = self.start_date_var.get()
+        end_date = self.end_date_var.get()
+
+        try:
+            z_below = float(self.z_below_var.get())
+
+        except ValueError:
+            messagebox.showerror(
+                "Invalid depth",
+                "Please enter a valid number for z-below."
+            )
+            return
+
+        parameter = self.parameter_var.get()
+
+        # Store the selection currently being applied
+        self.applied_parameter = parameter
+        self.applied_start_date = start_date
+        self.applied_end_date = end_date
+        self.applied_z_below = z_below
+
+        self.show_plot_status("Updating plot...")
+
+        self.apply_button.config(state="disabled")
+
+        self.parameter_menu.config(state="disabled")
+
+        worker = threading.Thread(
+            target=self._prepare_filtered_data,
+            args=(
+                start_date,
+                end_date,
+                z_below,
+                parameter
+            ),
+            daemon=True
+        )
+
+        worker.start()
+
+    def export_visualization_data(self):
+        """
+        Export the currently applied visualization selection.
+        """
+
+        # Check that a visualization has been applied
+        if self.applied_parameter is None:
+            messagebox.showwarning(
+                "Export data",
+                "Please apply the visualization filters first."
+            )
+            return
+
+        parameter_map = {
+            "Temperature": "Temp",
+            "Salinity": "SALIN",
+            "Density": "rho",
+            "Conductivity": "Cond20"
+        }
+
+        variable = parameter_map[
+            self.applied_parameter
+        ]
+
+        try:
+            out_file = export_variable_to_csv(
+                data_CTD=self.data_CTD,
+                variable=variable,
+                start_date=self.applied_start_date,
+                end_date=self.applied_end_date,
+                z_below=self.applied_z_below,
+                project_dir=PROJECT_DIR,
+                source=self.applied_source
+            )
+
+            messagebox.showinfo(
+                "Export complete",
+                f"Data exported successfully:\n\n{out_file}"
+            )
+
+        except Exception as e:
+            messagebox.showerror(
+                "Export failed",
+                str(e)
+            )
+
+    def _prepare_filtered_data(
+        self,
+        start_date,
+        end_date,
+        z_below,
+        parameter
+    ):
+
+        global data_plot
+
+        data_plot = filter_visualization_data(
+            self.data_CTD,
+            start_date,
+            end_date,
+            z_below
+        )
+
+        # print(
+        #     "Applied filters:",
+        #     start_date,
+        #     end_date,
+        #     z_below
+        # )
+
+        # print(
+        #     "Number of profiles:",
+        #     data_plot.sizes["time"]
+        # )
+
+        # print(
+        #     "Depth range:",
+        #     float(data_plot.depth_interp.min()),
+        #     float(data_plot.depth_interp.max())
+        # )
+
+        root.after(
+            0,
+            lambda: self._display_parameter_plot(
+                data_plot,
+                parameter
+            )
         )
 
     # Function 3
@@ -1274,24 +1972,7 @@ class VisualizationPage:
     def update_visualization_parameter(self, event=None):
 
         parameter = self.parameter_var.get()
-
-        start_date = self.start_date_var.get()
-        end_date = self.end_date_var.get()
-
-        try:
-
-            z_below = float(
-                self.z_below_var.get()
-            )
-
-        except ValueError:
-
-            messagebox.showerror(
-                "Invalid depth",
-                "Please enter a valid number for z-below."
-            )
-
-            return
+        self.applied_parameter = parameter
 
         self.show_plot_status(
             "Updating plot..."
@@ -1301,33 +1982,8 @@ class VisualizationPage:
             state="disabled"
         )
 
-        worker = threading.Thread(
-            target=self._prepare_parameter_data,
-            args=(
-                parameter,
-                start_date,
-                end_date,
-                z_below
-            ),
-            daemon=True
-        )
-
-        worker.start()
-
-    # Function 7
-    def _prepare_parameter_data(
-        self,
-        parameter,
-        start_date,
-        end_date,
-        z_below
-    ):
-
-        data_plot = filter_visualization_data(
-            self.data_CTD,
-            start_date,
-            end_date,
-            z_below
+        self.apply_button.config(
+            state="disabled"
         )
 
         root.after(
@@ -1337,6 +1993,15 @@ class VisualizationPage:
                 parameter
             )
         )
+
+    # Function 7
+    def _prepare_parameter_data(self, parameter, start_date, end_date, z_below):
+        global data_plot
+
+        if data_plot is None:
+            data_plot = filter_visualization_data(self.data_CTD, start_date, end_date, z_below)
+
+        root.after(0, lambda: self._display_parameter_plot(data_plot, parameter))
 
     # Function 8
     def _display_parameter_plot(
@@ -1380,32 +2045,79 @@ class VisualizationPage:
     # Function 9
     def _finish_plot_update(self):
         self.hide_plot_status()
+
         self.parameter_menu.config(
             state="readonly"
         )
 
-    # Function 10
-    def create_visualization_buttons(self):
-        add_back_button().place(
-            x=40,
-            y=820
+        self.apply_button.config(
+            state="normal"
         )
 
-        tk.Button(
+    # Function 10
+    def create_visualization_buttons(self):
+
+        # =========================================================
+        # ACTION FRAME
+        # =========================================================
+
+        action_frame = tk.Frame(
             root,
-            text="Extract & save data",
-            font=("Arial", 18),
+            bg=BG_MAIN
+        )
+
+        action_frame.pack(
+            fill="x",
+            padx=PAD_X + 20,
+            pady=(0, 15)
+        )
+
+        action_frame.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        action_frame.grid_columnconfigure(
+            1,
+            weight=1
+        )
+
+        # =========================================================
+        # BACK BUTTON
+        # =========================================================
+
+        back_button = add_back_button_new(action_frame)
+
+        back_button.grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=PAD_X
+        )
+
+        # =========================================================
+        # EXTRACT BUTTON (export options: csv or nc)
+        # =========================================================
+
+        extract_button = tk.Button(
+            action_frame,
+            text="Export data",
+            font=FONT_SMALL_BUTTON,
             width=20,
-            bg="#97B0CA",
-            fg="white",
-            activebackground="#93C6FC",
-            activeforeground="white",
+            bg=BTN_BG,
+            fg=BTN_FG,
+            activebackground=BTN_ACTIVE_BG,
+            activeforeground=BTN_FG,
             relief="raised",
-            bd=3
-            # command=self.extract_and_save_data
-        ).place(
-            x=1080,
-            y=820
+            bd=3,
+            command=self.export_visualization_data
+        )
+
+        extract_button.grid(
+            row=0,
+            column=1,
+            sticky="e",
+            padx=PAD_X
         )
 
  
@@ -1413,62 +2125,58 @@ def show_loading_screen(message):
 
     clear_window()
 
-    root.geometry("1400x900")
+    # =========================================================
+    # MAIN FRAME
+    # =========================================================
 
-    bg_color = "#CEE5FD"
-
-    root.configure(bg=bg_color)
-
-    loading_label = tk.Label(
+    main_frame = tk.Frame(
         root,
-        text=message,
-        font=("Arial", 20),
-        bg=bg_color,
-        fg="white"
+        bg=BG_MAIN
     )
 
-    loading_label.pack(pady=(250, 20))
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # =========================================================
+    # LOADING MESSAGE
+    # =========================================================
+
+    loading_label = tk.Label(
+        main_frame,
+        text=message,
+        font=FONT_LABEL,
+        bg=BG_MAIN,
+        fg="black"
+    )
+
+    loading_label.pack(
+        expand=True
+    )
 
     root.update_idletasks()
 
     return loading_label
 
-def create_visualization_buttons():
-
-    add_back_button().place(x=40,y=820)
-
-    tk.Button(
-        root,
-        text="Extract & save data",
-        font=("Arial", 18),
-        width=20,
-        bg="#97B0CA",
-        fg="white",
-        activebackground="#93C6FC",
-        activeforeground="white",
-        relief="raised",
-        bd=3#,
-        #command=extract_and_save_data
-    ).place(x=1080,y=820)
-
-
 # ---------------------------------------------------------
 # BACK BUTTON (standalone reusable)
 # ---------------------------------------------------------
-def add_back_button():
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
+def add_back_button_new(parent):
+
     btn_back = tk.Button(
-        root,
+        parent,
         text="<<< Back",
-        font=("Arial", 16),
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        font=FONT_SMALL_BUTTON,
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=homepage
     )
+
     return btn_back
 
 # ---------------------------------------------------------
@@ -1477,91 +2185,136 @@ def add_back_button():
 def homepage():
     clear_window()
 
-    bg_color = "#CEE5FD"
+    # ---------------------------------------------------------
+    # Main frame
+    # ---------------------------------------------------------
+    main_frame = tk.Frame(
+        root,
+        bg=BG_MAIN
+    )
 
+    main_frame.pack(
+        fill="both",
+        expand=True
+    )
+
+    # ---------------------------------------------------------
+    # Title
+    # ---------------------------------------------------------
     title = tk.Label(
-        root,
+        main_frame,
         text="Lake Kivu CTD Database",
-        font=("Arial", 36, "bold"),
-        bg=bg_color,
+        font=FONT_TITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    title.pack(pady=20)
+    title.pack(pady=(30, 5))
 
+    # ---------------------------------------------------------
+    # Subtitle
+    # ---------------------------------------------------------
     subtitle = tk.Label(
-        root,
+        main_frame,
         text="in-situ observations",
-        font=("Arial", 16),
-        bg=bg_color,
+        font=FONT_SUBTITLE,
+        bg=BG_MAIN,
         fg="black"
     )
-    subtitle.pack(pady=5)
+    subtitle.pack(pady=(0, 30))
 
-    frame = tk.Frame(root, bg=bg_color)
-    frame.pack(pady=80)
+    # ---------------------------------------------------------
+    # Button frame
+    # ---------------------------------------------------------
+    button_frame = tk.Frame(
+        main_frame,
+        bg=BG_MAIN
+    )
 
-    btn_colors = ["#97B0CA", "#93C6FC", "white"]
+    button_frame.pack(pady=20)
+
+    # -----------------------------------------------------
+    # Buttons
+    # -----------------------------------------------------
 
     btn_load = tk.Button(
-        frame,
-        text="Load and add existing metadata",
-        font=("Arial", 20),
+        button_frame,
+        text="Add existing metadata",
+        font=FONT_BUTTON,
         width=30,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=load_and_add_metadata_page
     )
-    btn_load.grid(row=0, column=0, padx=20, pady=20)
+    btn_load.grid(
+        row=0,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
     btn_new = tk.Button(
-        frame,
+        button_frame,
         text="Create new metadata",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=create_new_metadata_page
     )
-    btn_new.grid(row=1, column=0, padx=20, pady=20)
+    btn_new.grid(
+        row=1,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
     btn_run_db = tk.Button(
-        frame,
-        text="Run & process database",
-        font=("Arial", 20),
+        button_frame,
+        text="Add new data",
+        font=FONT_BUTTON,
         width=30,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=run_process_database_page
     )
+    btn_run_db.grid(
+        row=2,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
-    btn_run_db.grid(row=2, column=0, padx=20, pady=20)
-
-    btn_run_db = tk.Button(
-        frame,
+    btn_visualize = tk.Button(
+        button_frame,
         text="Visualize database",
-        font=("Arial", 20),
+        font=FONT_BUTTON,
         width=30,
-        bg=btn_colors[0],
-        fg=btn_colors[2],
-        activebackground=btn_colors[1],
-        activeforeground=btn_colors[2],
+        bg=BTN_BG,
+        fg=BTN_FG,
+        activebackground=BTN_ACTIVE_BG,
+        activeforeground=BTN_FG,
         relief="raised",
         bd=3,
         command=prepare_visualization
     )
-    btn_run_db.grid(row=3, column=0, padx=20, pady=20)
+    btn_visualize.grid(
+        row=3,
+        column=0,
+        padx=20,
+        pady=10
+    )
 
 # ---------------------------------------------------------
 # START APPLICATION

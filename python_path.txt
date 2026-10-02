@@ -1,1 +1,1 @@
-/home/mushimje@eawag.wroot.emp-eaw.ch/.conda/envs/kivudatabase/bin/python
+/home/mushimje@eawag.wroot.emp-eaw.ch/.conda/envs/kivudatabase/bin/python3
