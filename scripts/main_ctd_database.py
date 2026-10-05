@@ -266,8 +266,8 @@ if process_L0toL2:
                         CTD.quality_assurance(directories["quality_assurance"])
                     else:
                         failed.append(file)
-                        with open("../data/ctd/files_removed.txt", "a") as file:
-                            file.write(file+": profile {}/{} could not be extracted\n".format(ksubprof,len(CTD_subprof)))
+                        with open("../data/ctd/files_removed.txt", "a") as file_txt:
+                            file_txt.write(file+": profile {}/{} could not be extracted\n".format(ksubprof,len(CTD_subprof)))
                         break
             else:
                 failed.append(file)

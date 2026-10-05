@@ -1073,7 +1073,7 @@ def select_files(dirname,
 
     tk.Button(
         button_frame,
-        text="Select",
+        text="Open",
         command=select
     ).pack(side=tk.RIGHT)
 
