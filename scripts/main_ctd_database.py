@@ -16,7 +16,7 @@ import sys
 import netCDF4
 import yaml
 from ctd import ctd
-from datetime import datetime, timezone, UTC
+from datetime import datetime, timezone, UTC, date
 import numpy as np
 import copy
 import time
@@ -235,7 +235,8 @@ if process_L0toL2:
             CTD_initial.general_attributes["filename"]=file
 
             # Read data:
-            if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18),min_date=min_date_period):
+            #if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=datetime(2022, 11, 18),min_date=min_date_period):
+            if CTD_initial.read_raw_data(os.path.join(directories["Level0_dir"], file), max_date=date.today(),min_date=min_date_period):
                 CTD_initial.extract_water_level(lake_level, lake_info["alt"]) # Extract water level data
                 CTD_initial.add_meta_data(os.path.join(directories["Level0_dir"], file),CTD_metaREMA) # Extract metadata
                 

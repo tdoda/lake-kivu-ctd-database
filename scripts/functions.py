@@ -967,24 +967,127 @@ def get_nc_data(nc):
         data_nc[key]=nc.variables[key][:].data
     return data_nc
 
-def select_files(dirname,messagestr="Select CTD files to process",filetypes=(("All files", "*.*"),)):
-    """
-    Open a file dialog to select multiple files.
-    Inputs:
-        dirname (str): directory to start the file dialog in.
-        messagestr (str): message to display in the file dialog.
-        filetypes (tuple): file types to display in the dialog.
-        Outputs:
-            filenames (list): list of selected file names.
-    """
+# def select_files(dirname,messagestr="Select CTD files to process",filetypes=(("All files", "*.*"),)):
+#     """
+#     Open a file dialog to select multiple files.
+#     Inputs:
+#         dirname (str): directory to start the file dialog in.
+#         messagestr (str): message to display in the file dialog.
+#         filetypes (tuple): file types to display in the dialog.
+#         Outputs:
+#             filenames (list): list of selected file names.
+#     """
+#     root = tk.Tk()
+#     root.withdraw()  # Hide the main Tk window
+#     files = filedialog.askopenfilenames(initialdir=dirname,title=messagestr, filetypes=filetypes)
+
+#     # # If no files were selected, use all files in the directory
+#     # if not files:
+#     #     files = [
+#     #         os.path.join(dirname, f)
+#     #         for f in os.listdir(dirname)
+#     #         if os.path.isfile(os.path.join(dirname, f))
+#     #     ]
+
+#     # Extract only the filenames
+#     filenames = [os.path.basename(f) for f in files]
+
+#     return filenames
+
+# upgraded function for selecting files: windows and linux
+def select_files(dirname,
+                 messagestr="Select CTD files to process",
+                 filetypes=(("All files", "*.*"),)):
+
     root = tk.Tk()
-    root.withdraw()  # Hide the main Tk window
-    files = filedialog.askopenfilenames(initialdir=dirname,title=messagestr, filetypes=filetypes)
+    root.withdraw()
 
-    # Extract only the filenames
-    filenames = [os.path.basename(f) for f in files]
+    # Get files in directory
+    filenames = [
+        f for f in os.listdir(dirname)
+        if os.path.isfile(os.path.join(dirname, f))
+    ]
 
-    return filenames
+    filenames.sort()
+
+    # Selection window
+    window = tk.Toplevel(root)
+    window.title(messagestr)
+    window.geometry("700x500")
+
+    listbox = tk.Listbox(
+        window,
+        selectmode=tk.EXTENDED
+    )
+
+    listbox.pack(
+        fill=tk.BOTH,
+        expand=True,
+        padx=10,
+        pady=10
+    )
+
+    # Display files
+    for filename in filenames:
+        listbox.insert(tk.END, filename)
+
+    # Ctrl+A
+    def select_all(event=None):
+        listbox.select_set(0, tk.END)
+        return "break"
+
+    listbox.bind("<Control-a>", select_all)
+
+    # Buttons
+    button_frame = tk.Frame(window)
+    button_frame.pack(
+        fill=tk.X,
+        padx=10,
+        pady=(0, 10)
+    )
+
+    tk.Button(
+        button_frame,
+        text="Select all",
+        command=select_all
+    ).pack(side=tk.LEFT)
+
+    def select():
+        selected = [
+            listbox.get(i)
+            for i in listbox.curselection()
+        ]
+
+        window.selected_files = selected
+        window.destroy()
+
+    def cancel():
+        window.selected_files = []
+        window.destroy()
+
+    tk.Button(
+        button_frame,
+        text="Cancel",
+        command=cancel
+    ).pack(side=tk.RIGHT, padx=5)
+
+    tk.Button(
+        button_frame,
+        text="Select",
+        command=select
+    ).pack(side=tk.RIGHT)
+
+    root.wait_window(window)
+
+    selected_files = getattr(
+        window,
+        "selected_files",
+        []
+    )
+
+    root.destroy()
+
+    return selected_files
 
 def select_processing_options(process_REMA=True, process_KW=True,process_L0toL2=True,process_L2toL3=True,save_csv=True,show_output=False):
     """
