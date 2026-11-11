@@ -1276,7 +1276,7 @@ class ctd:
         if sum(np.isnan(data["Temp"])) > threshold or sum(np.isnan(data["Cond"])) > threshold or \
                 sum(np.isnan(data["adj_press"])) > threshold:
             log("Not enough valid parameters for derived variables.", indent=2,printlog=self.printlog)
-            breakpoint()
+            #breakpoint()  # deactive debug mode in the terminal for this case
             return False
         else:
             self.variables.update(self.derived_variables)
