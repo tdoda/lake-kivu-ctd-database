@@ -90,7 +90,7 @@ if process_L0toL2:
     if use_GUI:
         # Use GUI to select new files to process:
         if process_REMA:
-            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv"),))
+            files_REMA = select_files(dirname=directories["Level0_dir"],messagestr="Select REMA CTD files to process",filetypes=(("REMA files", "*.TOB *.cnv *.dat"),)) # .dat for RBR CTD data EAWAG & KIST
         else:
             files_REMA = []
         if process_KW:
@@ -99,7 +99,7 @@ if process_L0toL2:
             files_KW = []
     elif reprocess_all:
         # To reprocess all files:
-        files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv")) ]
+        files_REMA=[f for f in os.listdir(directories["Level0_dir"]) if f.endswith((".TOB",".cnv", ".dat")) ] # .dat for RBR CTD data EAWAG & KIST
         files_KW=[f for f in os.listdir(directories["Level0_KW_dir"]) if f.endswith((".csv")) and f.startswith('D')]
 
 

@@ -135,6 +135,12 @@ class ctd:
     
     def read_raw_data(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
         log("Reading data from {}".format(infile), indent=1,printlog=self.printlog)
+
+        #============== For RBR CTD data ==============================================
+        if os.path.splitext(infile)[1].lower() == ".dat":
+            return self.read_rbr_processed_dat(infile, max_date=max_date, min_date=min_date)
+
+        #============== Original function for TOB and cnv ==============================================
         try:
             with open(infile, encoding="utf8", errors='ignore') as f:
                 lines = f.readlines()
@@ -216,7 +222,133 @@ class ctd:
                 log("A second version of the file exists, try to read that one (not done now): {}".format(infile[:infile.rfind(".")]+'_v2'+infile[infile.rfind("."):]), indent=1,printlog=self.printlog)
             
             return False
-        
+
+    #============== Function For RBR CTD data ===================================
+    def read_rbr_processed_dat(self, infile, max_date=datetime.utcnow(), min_date=datetime(2008, 1, 1)):
+
+        log("Reading RBR data from {}".format(infile), indent=1, printlog=self.printlog)
+        try:
+            # --------------------------------------------------
+            # 1. Read file and locate measurement section
+            # --------------------------------------------------
+
+            with open(infile, encoding="utf8", errors="ignore") as f:
+                lines = f.readlines()
+            try:
+                metadata_end = next(k for k, line in enumerate(lines) if line.strip() == "*************")
+            except StopIteration:
+                log("Unable to locate RBR metadata separator", indent=1, printlog=self.printlog)
+                return False
+
+            # --------------------------------------------------
+            # 2. Read measurements
+            # --------------------------------------------------
+            df = pd.read_csv(infile, sep="\t", skiprows=metadata_end + 1, header=0, encoding="utf8")
+            required_columns = ["Datasets", "Cond", "Temp", "Press", "Depth", "time"]
+            missing_columns = [col for col in required_columns if col not in df.columns]
+
+            if missing_columns:
+                log("Missing required RBR columns: {}".format(missing_columns), indent=1, printlog=self.printlog)
+                return False
+
+            if df.empty:
+                log("No measurement data found in RBR file", indent=1, printlog=self.printlog)
+                return False
+
+            # --------------------------------------------------
+            # 3. Convert timestamps to Unix seconds (UTC)
+            # --------------------------------------------------
+
+            parsed_time = pd.to_datetime(df["time"], errors="coerce", utc=True)
+            df["time"] = parsed_time.astype("int64") / 1e9
+            df.loc[parsed_time.isna(), "time"] = np.nan
+
+            # --------------------------------------------------
+            # 4. Prepare column information
+            # --------------------------------------------------
+
+            columns = df.columns.tolist()
+            units = {}
+
+            # --------------------------------------------------
+            # 5. Remove final row if conductivity is NaN
+            # --------------------------------------------------
+
+            if math.isnan(df.Cond.iloc[-1]):
+                df.drop(index=df.index[-1], axis=0, inplace=True)
+
+            if df.empty:
+                log("No measurement data remaining after removing final row", indent=1, printlog=self.printlog)
+                return False
+
+            # --------------------------------------------------
+            # 6. Extract variables
+            # --------------------------------------------------
+
+            for variable in self.variables:
+                if variable in df.columns:
+                    if "function" in self.variables[variable]:
+                        self.data[variable] = np.array(self.variables[variable]["function"](df, variable, columns, units))
+                    else:
+                        self.data[variable] = np.array(df[variable].values)
+                else:
+                    self.data[variable] = np.array([np.nan] * len(df))
+
+            # --------------------------------------------------
+            # 7. Check time range
+            # --------------------------------------------------
+
+            if (self.data["time"][0] > max_date.timestamp() or self.data["time"][0] < min_date.timestamp()):
+                log("Time outside of project time range.", indent=1, printlog=self.printlog)
+
+                if (datetime.fromtimestamp(self.data["time"][0], UTC).year == 2004 and infile[infile.rfind('/')+1:infile.rfind('/')+3] == '08'):
+                    log("Change year 2004 into 2008.", indent=1, printlog=self.printlog)
+                    tdate = [datetime.fromtimestamp(self.data["time"][i], UTC) for i in np.arange(0, len(self.data["time"]), 1)]
+                    self.data["time"] = np.array([
+                        datetime(
+                            2008,
+                            tdate[i].month,
+                            tdate[i].day,
+                            tdate[i].hour,
+                            tdate[i].minute,
+                            tdate[i].second
+                        ).replace(tzinfo=timezone.utc).timestamp()
+                        for i in np.arange(
+                            0, len(self.data["time"]), 1
+                        )
+                    ])
+
+                else:
+                    return False
+
+            # --------------------------------------------------
+            # 8. Check profile validity
+            # --------------------------------------------------
+
+            if not check_valid_profile(self.data["Press"], 3):
+                log("Invalid profile", indent=1, printlog=self.printlog)
+                return False
+            
+            return True
+
+        except Exception as e:
+            log("Failed to parse RBR data from file {}".format(infile), indent=1, printlog=self.printlog)
+            log("Error: {}".format(e), indent=2, printlog=self.printlog)
+
+            if os.path.exists(infile[:infile.rfind(".")] + '_v2' + infile[infile.rfind("."):]):
+                log(
+                    "A second version of the file exists, try to read that "
+                    "one (not done now): {}".format(
+                        infile[:infile.rfind(".")] + '_v2'
+                        + infile[infile.rfind("."):]
+                    ),
+                    indent=1, printlog=self.printlog
+                )
+
+            return False
+
+
+
     def extract_meta_data_REMA_csv(self, infile,):
         """"
         Function description: read the metadata file (*.csv) and add it to the general attributes.
