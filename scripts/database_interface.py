@@ -1415,8 +1415,8 @@ def get_database():
         with open(config_file, "r") as f:
             config = yaml.safe_load(f)
         directories = config["directories"]
-        #database_file = (config_file.parent / directories["Level3_dir"] / "Combined" / "L3_comb.nc").resolve()
-        database_file = "/storage/lakekivu/1D_Model/WP_workspaces/WP2/db_workspace/database_runs/full_database/L3_comb.nc"
+        database_file = (config_file.parent / directories["Level3_dir"] / "Combined" / "L3_comb.nc").resolve()
+        #database_file = "/storage/lakekivu/1D_Model/WP_workspaces/WP2/db_workspace/database_runs/full_database/L3_comb.nc"
         data_CTD = load_level3_nc(database_file)
     return data_CTD
 
