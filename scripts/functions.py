@@ -1002,19 +1002,36 @@ def select_files(dirname,
     root = tk.Tk()
     root.withdraw()
 
-    # Get files in directory
-    filenames = [
-        f for f in os.listdir(dirname)
-        if os.path.isfile(os.path.join(dirname, f))
-    ]
-
-    filenames.sort()
+    # Initial directory
+    current_dir = os.path.abspath(dirname)
 
     # Selection window
     window = tk.Toplevel(root)
     window.title(messagestr)
     window.geometry("700x500")
 
+    # Display current directory
+    directory_var = tk.StringVar(value=current_dir)
+
+    directory_frame = tk.Frame(window)
+    directory_frame.pack(
+        fill=tk.X,
+        padx=10,
+        pady=(10, 0)
+    )
+
+    tk.Label(
+        directory_frame,
+        text="Current directory:"
+    ).pack(side=tk.LEFT)
+
+    tk.Label(
+        directory_frame,
+        textvariable=directory_var,
+        anchor="w"
+    ).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+
+    # File selection list
     listbox = tk.Listbox(
         window,
         selectmode=tk.EXTENDED
@@ -1027,9 +1044,40 @@ def select_files(dirname,
         pady=10
     )
 
-    # Display files
-    for filename in filenames:
-        listbox.insert(tk.END, filename)
+    # Load files from selected directory
+    def load_files(directory):
+
+        nonlocal current_dir
+
+        current_dir = directory
+        directory_var.set(current_dir)
+
+        listbox.delete(0, tk.END)
+
+        filenames = [
+            f for f in os.listdir(current_dir)
+            if os.path.isfile(os.path.join(current_dir, f))
+        ]
+
+        filenames.sort()
+
+        for filename in filenames:
+            listbox.insert(tk.END, filename)
+
+    # Browse another directory
+    def browse_directory():
+
+        directory = filedialog.askdirectory(
+            initialdir=current_dir,
+            title="Select directory",
+            parent=window
+        )
+
+        if directory:
+            load_files(directory)
+
+    # Load initial directory
+    load_files(current_dir)
 
     # Ctrl+A
     def select_all(event=None):
@@ -1048,11 +1096,18 @@ def select_files(dirname,
 
     tk.Button(
         button_frame,
-        text="Select all",
-        command=select_all
+        text="Browse directory",
+        command=browse_directory
     ).pack(side=tk.LEFT)
 
+    tk.Button(
+        button_frame,
+        text="Select all",
+        command=select_all
+    ).pack(side=tk.LEFT, padx=5)
+
     def select():
+
         selected = [
             listbox.get(i)
             for i in listbox.curselection()
@@ -1062,6 +1117,7 @@ def select_files(dirname,
         window.destroy()
 
     def cancel():
+
         window.selected_files = []
         window.destroy()
 
